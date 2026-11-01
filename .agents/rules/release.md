@@ -16,7 +16,7 @@ paths:
   under 80 characters, `full_description.txt` plain text), screenshots once
   there is a UI to show.
 - **The permission check before any release**: `aapt2 dump permissions` on
-  the release APK shows `INTERNET`, `QUERY_ALL_PACKAGES`,
+  the release APK shows `INTERNET`, `ACCESS_NETWORK_STATE`, `QUERY_ALL_PACKAGES`,
   `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE`,
   `FOREGROUND_SERVICE_SPECIAL_USE` and `POST_NOTIFICATIONS`, nothing else.
 - **Versions**: `versionCode` up by one, `versionName` as the tag `v<name>`;

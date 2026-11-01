@@ -275,6 +275,13 @@ and locked (`disallow_config_private_dns`), so the device's own
 DNS-over-TLS never bypasses the tunnel. The service runs in the foreground
 with a silent notice.
 
+The app asks for seven permissions, all granted at install without a
+prompt, and no other: `INTERNET` for the tunnel's forwarding,
+`ACCESS_NETWORK_STATE` to find the underlying network's resolver (§5.3),
+`FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE` for the filter,
+`POST_NOTIFICATIONS` for its notice, `RECEIVE_BOOT_COMPLETED` to apply the
+hold at boot (§4.2), `QUERY_ALL_PACKAGES` to see the packages it suspends.
+
 ### 5.2 The tunnel
 
 Block 0 routes **DNS only**: the tunnel's address is 10.111.0.1, its resolver
@@ -443,8 +450,11 @@ ceiling is §4.6; what it keeps between sessions is decided in block 5.
 
 On the closed device, the child's whole screen: two large buttons, *Browser*
 and *YouTube*, side by side in landscape and one above the other in
-portrait; a door the plan has closed is greyed and says when it opens next,
-an open one with a budget shows what is left of it.
+portrait; a door the plan has closed is greyed and says when it opens next
+by the clock alone (`Policy.nextOpening`: "Opens at 16:00" today, "Opens
+Tue 06:00" on another day, "Closed" when not within a week), an open one
+with a budget shows what is left of it. Back does nothing on the home; a
+door returns to it on Back or *Close*.
 On the open device Shinkan is opened like any app and shows the closed apps
 with their next window. A small *Parent* link leads to §8.2.
 
@@ -500,9 +510,10 @@ Two themes follow the system's setting, and the parent may pin one on the
 door: **rice paper**, the light theme, sepia paper with ink text and
 vermilion for the gate (the `paper`, `ink` and `gate` colours of
 `res/values/themes.xml`); **sumi**, the dark theme, an ink ground with paper
-text and the lighter vermilion the icons use on dark. The child's buttons
-are large enough for a small hand in either orientation. Block 3b brings
-the dark theme and landscape with the first real pages.
+text and a lighter vermilion for the gate (`gate_light`). The child's buttons
+are large enough for a small hand in either orientation. Both themes are
+`ShinkanTheme` in `ui/Theme.kt`; the window's colour before Compose draws
+is `values/themes.xml` and `values-night/themes.xml`.
 
 ### 8.7 Rest
 
@@ -559,6 +570,13 @@ uninstalled. Release asks for the PIN once more.
 - **Until block 11a**, an app that resolves names by itself over HTTPS or by
   address slips the DNS filter; Shinkan's own browser cannot, it resolves
   through the system (§7.6).
+- **Until block 11a, a held device reaches nothing but DNS.** Lockdown
+  (§5.1) refuses every app's traffic that does not pass through the
+  tunnel, and the tunnel routes DNS alone (§5.2): names resolve, nothing
+  else leaves (found on the emulator 2026-11-01: `dumpsys connectivity`
+  lists every uid but Shinkan's under the lockdown rules, `ping 8.8.8.8`
+  gets `EACCES`). The relay of 11a routes everything through the tunnel and
+  ends it; whether lockdown waits for it is open (ROADMAP, *Open*).
 - **The volume ceiling of the open device** is one for the device and a
   clamp: a sound may be loud for a moment before it is pulled down, and an
   app that sets the volume itself is pulled down again each time. Per-app
@@ -592,8 +610,10 @@ also reads the parent door's idle time in seconds from the system property
 so the two minutes of §8.2 need not be waited out; the release build has no
 such setting. The hold
 is checked by `adb shell dumpsys device_policy`; the filter by `adb shell
-ping -c 1` of a blocked and an unblocked name, and by the emulator's
-`logcat`.
+ping -c 1` of a blocked and an unblocked name (a blocked one says `unknown
+host`; an unblocked one resolves, and under lockdown its packet is then
+refused, §9.4), and by the emulator's `logcat`. The tool's `store`
+writes the policy or the block list into the beta's store and restarts it.
 
 ## 11. Release
 

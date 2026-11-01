@@ -31,7 +31,8 @@ paths:
   outside once `no_debugging_features` is on.
 - **Install once, then provision; never reinstall over a provisioned
   emulator.** `adb shell dpm set-device-owner` alone applies no policy (the
-  hold is applied on QR provisioning and by `ReapplyReceiver`), so the pages
+  hold is applied when the PIN is first set, on QR provisioning and by
+  `ReapplyReceiver`; the beta never applies `no_debugging_features`), so the pages
   can be driven by adb after it; but `install -r` over the provisioned app
   fires `MY_PACKAGE_REPLACED`, the receiver applies the hold, and adb is cut
   (2026-11-01). Recovery is the snapshot, loaded through the emulator

@@ -39,7 +39,7 @@ by hand before working there:
 ./gradlew :core:test                      # the policy engine
 ./gradlew :app:assembleDebug              # APK in app/build/outputs/apk/debug/
 adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk
-aapt2 dump permissions app/build/outputs/apk/debug/app-debug.apk   # the six of SPEC §5.1 and §4.2, nothing else
+aapt2 dump permissions app/build/outputs/apk/debug/app-debug.apk   # the seven of SPEC §5.1, nothing else
 python3 tools/emulator/emulator.py create        # the AVD shinkan-test; nothing when it exists
 python3 tools/emulator/emulator.py start         # boot with the window, from the snapshot clean (--cold: a full boot)
 python3 tools/emulator/emulator.py snapshot      # save clean after a boot with nothing installed
@@ -48,6 +48,7 @@ python3 tools/emulator/emulator.py install       # the debug APK; refused when i
 python3 tools/emulator/emulator.py provision     # make the beta the device owner, then open it
 python3 tools/emulator/emulator.py shot out.png  # a screenshot, by adb or else by the console
 python3 tools/emulator/emulator.py tap Parent    # tap the node whose text is "Parent"
+python3 tools/emulator/emulator.py store policy plan.txt   # the beta's policy (or blocklist) written, the app restarted
 python3 tools/emulator/emulator.py stop          # quit; nothing is saved
 ```
 

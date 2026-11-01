@@ -23,7 +23,7 @@ Conventions that hold for every block:
 - **Strings in `app/src/main/res/values/strings.xml`**, never literals.
 - **A new library** is checked for licence (free, on Maven Central or
   JitPack as NewPipe's own are) and for the merged manifest: no permission
-  beyond the six of SPEC §5.1 and §4.2, no connection of its own (§2.1).
+  beyond the seven of SPEC §5.1, no connection of its own (§2.1).
 - **Emulator only**: `shinkan-test`, never `zanshin-test`, never a phone.
   Install once, provision, test; a reinstall over the provisioned device
   applies the hold and cuts adb, and the clean snapshot is the way back
@@ -49,7 +49,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 1 | The emulator tool: create, snapshot, provision, drive, restore `shinkan-test` | done 2026-11-01 |
 | 2 | The PIN | done 2026-11-01 |
 | 3a | The engine: forms, day plans, stages, rests, ceilings, in `core/` | done 2026-11-01 |
-| 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | |
+| 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | done 2026-11-01 |
 | 3c | The counter and the rest page | |
 | 3d | The volume ceiling of the doors | |
 | 3e | The parent's editor | |
@@ -203,6 +203,21 @@ sumi theme in `Theme.kt` and `themes.xml` (`values-night/`), following
 `isSystemInDarkTheme()`. The debug build's adb exception of SPEC §10.
 
 **Leaves alone.** Counting (3c), ceilings (3d), the editor (3e).
+
+**As built.** The hold is applied when the PIN is set at the first opening
+(SPEC §3.1), and `MainActivity` enters lock task in `onResume` once the PIN
+is set. The open form clears the persistent home and the lock task packages
+(the rest of 7a waits). The greyed door uses `Policy.nextOpening`; the home
+reads the plan state as fresh until 3c keeps it. `emulator.py store KEY
+FILE` writes the policy or the block list into the beta's store and ends
+its process through `run-as`: `am force-stop` does not reach a device
+owner, and the closed home comes back by itself.
+
+Two faults of block 0 found by the check: the filter read the networks
+without `ACCESS_NETWORK_STATE` and killed the app at the first forwarded
+query (the permission is added, the seventh, SPEC §5.1); and lockdown with
+the DNS-only route leaves the held device no network but DNS (SPEC §9.4,
+*Open* below).
 
 **Files.** `app/.../admin/DeviceHold.kt`, `app/.../MainActivity.kt`,
 `app/.../ui/ShinkanApp.kt` (split pages into `ui/HomePage.kt`,
@@ -480,7 +495,7 @@ applied.
 the release build checked on the emulator by eye (R8 on; the receiver,
 the aliases and the strings survive), the permission check, the tag.
 
-**Done when.** `aapt2 dump permissions` on the release APK shows the six
+**Done when.** `aapt2 dump permissions` on the release APK shows the seven
 and nothing else; the release build on a clean emulator provisions, holds,
 filters and plays; the tag is pushed by the owner.
 
@@ -503,6 +518,15 @@ the emulator).
 ### 12. IPv6 in the tunnel [§5.2]
 
 **Builds.** `Udp6`, the IPv6 route and the relay for both families.
+
+## Open
+
+- 2026-11-01: lockdown (SPEC §5.1) with the DNS-only tunnel of blocks 0 to
+  10 refuses every app's traffic but DNS: a held device resolves names and
+  reaches nothing. Either `setAlwaysOnVpnPackage(…, lockdown = false)` until
+  block 11a routes everything (the filter is then bypassed while the VPN is
+  down, which always-on keeps short), or lockdown stays and 11a moves ahead
+  of 5 and 6a, whose browser and player need the network. The owner's call.
 
 ## Decided
 

@@ -1,0 +1,7 @@
+Shinkan holds an Android device for a child. Made the device owner once, by one adb command on a freshly set-up device, it decides which apps exist for the child, at which hours, and what the device may do.
+
+Only the apps the parent allowed can be opened, each within the hours set; everything else is suspended. Installing, uninstalling, adding accounts, changing the clock, safe boot, factory reset from Settings and USB debugging are blocked.
+
+The web is handled by the platform, not by the app: no browser unless allowed, a filtering DNS resolver of the parent's choice, and a site allow-list through the browser's own managed configuration. Shinkan never sees the traffic.
+
+The parent opens the settings with a PIN that exists only on the device and can release the device at any time. No account, no server, no companion app, no INTERNET permission; nothing about the child leaves the device.

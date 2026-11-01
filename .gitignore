@@ -1,0 +1,19 @@
+# Gradle / Android
+.gradle/
+.kotlin/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+*.apk
+*.aab
+
+# Python tools
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local assistant settings; the rules link is the project's and is kept
+.claude/*
+!.claude/rules

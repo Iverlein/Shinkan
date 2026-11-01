@@ -1,0 +1,28 @@
+package shinkan.app.admin
+
+import android.content.Context
+import shinkan.core.Policy
+import shinkan.core.PolicyText
+
+/**
+ * The policy text and the PIN hash, in device-protected storage so they are
+ * readable before the user unlocks after a reboot (SPEC §6.2). Only Shinkan,
+ * as device owner, can read them.
+ */
+class PolicyStore(context: Context) {
+    private val prefs = context.createDeviceProtectedStorageContext()
+        .getSharedPreferences("shinkan", Context.MODE_PRIVATE)
+
+    var policy: Policy
+        get() = PolicyText.parse(prefs.getString(KEY_POLICY, "") ?: "")
+        set(value) = prefs.edit().putString(KEY_POLICY, PolicyText.render(value)).apply()
+
+    var pinHash: String?
+        get() = prefs.getString(KEY_PIN, null)
+        set(value) = prefs.edit().putString(KEY_PIN, value).apply()
+
+    private companion object {
+        const val KEY_POLICY = "policy"
+        const val KEY_PIN = "pin"
+    }
+}

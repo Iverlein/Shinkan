@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ink">#FF111311</color>
+    <color name="paper">#FFF5F1E8</color>
+    <color name="gate">#FF8A2B1F</color>
+
+    <!-- The window is drawn in the page colour before Compose does. -->
+    <style name="Theme.Shinkan" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

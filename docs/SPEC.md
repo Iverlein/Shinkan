@@ -328,8 +328,9 @@ text (or a bare domain) is read by `Link.parse`:
 - a **single video or post** (`youtube.com/watch?v=`, `youtu.be/`,
   `/shorts/`) is read as an item whose creator the player looks up (§7.3).
 
-The share page shows what will be blocked and asks for one tap (the PIN gate
-of §9.1 from block 2). The filter reloads at once.
+The share page asks for the PIN (§9.1), then shows what will be blocked and
+asks for one tap. The filter reloads at once, and starts when it was not
+running.
 
 ### 6.3 Creators
 
@@ -439,8 +440,9 @@ their windows and the device ceiling on the open device, restrictions); the
 block list (sites, creators, the built-in categories of §6.5, the segment
 categories of §7.5); the day plan with its current stage, what is left of
 it and *Open now* during a rest (§4.7); the icon (§8.5); the theme (§8.6);
-*Apply now*; *Release this device*. Closes by itself after two minutes
-without a touch.
+*Apply now*; *Release this device*. Closes to the home by itself after two
+minutes without a touch, and as soon as Shinkan leaves the screen, so a
+door left open is never found open by the child.
 
 ### 8.3 Setup
 
@@ -499,13 +501,19 @@ link. It is drawn for both orientations, and in both themes.
 ### 9.1 The PIN
 
 Four or more digits, stored as a salted PBKDF2-HMAC-SHA256 hash (`Pin`,
-120 000 iterations). Entry is rate-limited: a wrong PIN waits a growing number
-of seconds. Set when the device is first held (§8.3); asked at the parent
-door, at the share target and at release.
+120 000 iterations), typed on a keypad of Shinkan's own (no keyboard, the
+digits never shown). Entry is rate-limited (`PinGate`): three wrong attempts
+in a row are free, then the wait before the next is 5 seconds and doubles
+with each wrong one, up to an hour; the page shows it as a countdown with
+the keypad shut. The count and the last attempt's time are kept beside the
+hash (§9.2), and an attempt is counted before the hash is checked, so
+closing the page mid-check skips nothing; a right PIN clears the count. Set
+when the device is first held (§8.3), typed twice; asked at the parent door,
+at the share target and at release.
 
 ### 9.2 Storage
 
-Policy text, block list and PIN hash are in device-protected shared
+Policy text, block list, PIN hash and the PIN's wrong attempts are in device-protected shared
 preferences, readable before the first unlock after a boot so the hold and
 the filter come up at boot. Only the device owner reads them; `allowBackup`
 is off.
@@ -562,7 +570,11 @@ restored by `tools/emulator/emulator.py`, whose README lists these checks.
 The debug build does not apply `no_debugging_features`
 (`Restriction.DEBUGGING_FEATURES` is skipped under `BuildConfig.DEBUG`), so
 the beta can be driven by adb after the hold; the
-release build applies it and is checked by eye once per release. The hold
+release build applies it and is checked by eye once per release. The beta
+also reads the parent door's idle time in seconds from the system property
+`debug.shinkan.door_idle` (`adb shell setprop debug.shinkan.door_idle 15`),
+so the two minutes of §8.2 need not be waited out; the release build has no
+such setting. The hold
 is checked by `adb shell dumpsys device_policy`; the filter by `adb shell
 ping -c 1` of a blocked and an unblocked name, and by the emulator's
 `logcat`.

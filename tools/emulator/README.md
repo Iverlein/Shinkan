@@ -54,6 +54,10 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   that.
 - **`dpm` refuses a device with accounts**, which is why the image has no
   Play.
+- **The parent door closes after two minutes without a touch.** For the
+  check of it, the beta reads a shorter idle time from a system property:
+  `adb shell setprop debug.shinkan.door_idle 15` (seconds; `0` or unset is
+  the two minutes). The PIN page's keypad is driven by `tap 4`, `tap OK`.
 
 ## The checks of SPEC §10
 

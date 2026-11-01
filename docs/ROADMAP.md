@@ -47,7 +47,7 @@ order. Numbers are identifiers and do not change when the order does.
 | --- | --- | --- |
 | 0 | Skeleton: core model and tests, device owner receiver, the hold applied, the DNS filter as always-on lockdown VPN, the share target with sites, families and YouTube creators, three bare pages, docs, licence, F-Droid listing | done 2026-11-01 |
 | 1 | The emulator tool: create, snapshot, provision, drive, restore `shinkan-test` | done 2026-11-01 |
-| 2 | The PIN | |
+| 2 | The PIN | done 2026-11-01 |
 | 3a | The engine: forms, day plans, stages, rests, ceilings, in `core/` | |
 | 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | |
 | 3c | The counter and the rest page | |
@@ -122,6 +122,14 @@ target (enter it before *Block*) and release (enter it again); the wait
 shown as a countdown; the door closes to the home after two minutes
 without a touch. `PolicyStore.pinHash` exists; add the attempt count and
 the last attempt's time to the store.
+
+**As built.** The PIN page has its own keypad (no keyboard; `tap 4` drives
+it). The door's idle time is read in the beta from the system property
+`debug.shinkan.door_idle` (seconds); the door also closes on `ON_STOP`.
+The check found the filter's reload, sent by the share target before the
+hold had started the filter, killing the app (a `startForegroundService`
+that never reached `startForeground`); a reload now starts a filter that
+is not up.
 
 **Leaves alone.** Everything the PIN gates: the door's contents stay the
 skeleton's.

@@ -40,7 +40,8 @@ class FilterService : VpnService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         blocklist.set(BlocklistStore(this).blocklist)
-        if (intent?.action == ACTION_RELOAD) return START_STICKY
+        // Every start comes through startForegroundService, which must end in startForeground:
+        // a reload of a filter that is not up yet starts it.
         if (tun == null) start()
         return START_STICKY
     }

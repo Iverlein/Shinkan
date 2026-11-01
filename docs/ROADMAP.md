@@ -50,7 +50,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 2 | The PIN | done 2026-11-01 |
 | 3a | The engine: forms, day plans, stages, rests, ceilings, in `core/` | done 2026-11-01 |
 | 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | done 2026-11-01 |
-| 3c | The counter and the rest page | |
+| 3c | The counter and the rest page | built, unchecked: branch `work/counter` |
 | 3d | The volume ceiling of the doors | |
 | 3e | The parent's editor | |
 | 4 | The built-in block list | |
@@ -264,6 +264,34 @@ outlasts the sleep by the sleep's length); after three minutes the home is
 back and the browser stage is open; `adb reboot` in a rest comes back in
 the same rest with the same end; `rest parent` stays until *Open now* on the
 door.
+
+**State, 2026-11-01 (handoff).** The code is written and builds, and is
+committed on the local branch `work/counter` (one `wip:` commit, worktree
+`../Shinkan-wt/counter`, not pushed); the emulator check above has not
+been run. Next session: work in that worktree, `git rebase main`, build,
+run the check, fix what it finds, then split the `wip:` commit into
+`core:` / `app:` / `tools:` / `docs:` commits and fast-forward main.
+What is there: `PlanClock` (counts whole seconds while a door page is
+resumed, the screen interactive and the keyguard unlocked; ticks every
+15 s or just past the budget's end; on a change of what is open it emits
+`pauses` and calls `DeviceHold.apply`, which flushes again and finds
+nothing), `PolicyStore.planState` with `PolicyText.renderState`/`parseState`,
+`PlanClock.Screen` registered by `FilterService`, `RestPage` (the ensō),
+the budget left on a door, *Open now* on the parent door. Docs for 3c
+(SPEC §4.7, §8.2, §8.7; this section's *As built*) are still to write.
+
+How to run the check: `restore`, `install`, `provision`, the PIN typed
+twice (`tap 4` `tap 8` `tap 2` `tap 1` `tap OK`, twice: this applies the
+hold), then a file with `mode closed`, `plan mon,tue,wed,thu,fri,sat,sun`,
+`  player 2 rest 3`, `  browser 10` written by `emulator.py store policy
+FILE`; `store plan -` with empty input resets the state. Read the stored
+state with `adb shell run-as io.github.iverlein.shinkan.beta cat
+/data/user_de/0/io.github.iverlein.shinkan.beta/shared_prefs/shinkan.xml`.
+Unchecked points to look at first: whether the keyguard shows after
+`KEYCODE_SLEEP`/`KEYCODE_WAKEUP` under lock task (then `wm
+dismiss-keyguard`), whether `BOOT_COMPLETED` arrives and the home shows
+the rest after `adb reboot`, and that a plan day ends at midnight, so the
+check must not run across it.
 
 ### 3d. The volume ceiling of the doors [§4.6]
 

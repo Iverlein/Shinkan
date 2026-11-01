@@ -4,6 +4,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The filter forwards a query to the underlying network's own resolver (SPEC §5.3), which it
+         reads from ConnectivityManager's networks and link properties. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- The home screen lists the apps the child may use; a launcher needs to see the installed packages. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <!-- The hold is applied again after a reboot and at every window edge (SPEC §4.2). -->

@@ -104,13 +104,20 @@ class FilterService : VpnService() {
         output.write(Udp4.build(query.dst, query.src, query.dstPort, query.srcPort, payload))
     }
 
-    /** The underlying network's first IPv4 resolver; the tunnel's own is never it. */
-    private fun upstream(): InetAddress? {
+    /**
+     * The underlying network's first IPv4 resolver; the tunnel's own is never it.
+     * Reading the networks needs ACCESS_NETWORK_STATE; a failure here drops the
+     * one query instead of the whole process.
+     */
+    private fun upstream(): InetAddress? = try {
         val cm = getSystemService(ConnectivityManager::class.java)
-        return cm.allNetworks.asSequence()
+        cm.allNetworks.asSequence()
             .filter { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == false }
             .flatMap { cm.getLinkProperties(it)?.dnsServers.orEmpty().asSequence() }
             .firstOrNull { it.address.size == 4 }
+    } catch (e: Exception) {
+        Log.e(TAG, "no upstream resolver: $e")
+        null
     }
 
     private fun notice(): Notification {

@@ -16,6 +16,9 @@ One command, one subcommand per step (ROADMAP block 1, SPEC §10):
   provision    makes Shinkan beta the device owner, then opens it
   shot PATH    a PNG of the screen: by adb when it is up, else by the console
   tap TEXT     taps the centre of the node whose text is TEXT
+  store KEY FILE
+               writes FILE (- for stdin) as the string KEY of Shinkan beta's store
+               (policy, blocklist), then restarts the app so it reads it
 
 Emulator only, never a real device: a device owner is removed only by the app
 itself or a factory reset. Never `zanshin-test`, which belongs to another
@@ -398,6 +401,46 @@ def cmd_tap(device: Device, args):
         time.sleep(1)
 
 
+PREFS = f"/data/user_de/0/{PACKAGE}/shared_prefs/shinkan.xml"
+STORE_KEYS = ("policy", "blocklist")
+
+
+def cmd_store(device: Device, args):
+    """Writes one string of the app's device-protected store and restarts the app (SPEC §9.2).
+
+    `am force-stop` does not reach a device owner, and the closed device's home
+    comes back the moment its process ends, so the file is written first and
+    the process is then ended from its own uid through `run-as`; the restarted
+    app reads the new value. Only the debuggable beta allows `run-as`.
+    """
+    # Read before any adb call: adb inherits stdin and would swallow the text.
+    text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
+    device.need_adb()
+    if not device.installed():
+        raise Failure(f"{PACKAGE} is not installed")
+    current = device.adb("exec-out", "run-as", PACKAGE, "cat", PREFS, check=False).decode(errors="replace")
+    root = ET.fromstring(current) if current.lstrip().startswith("<?xml") or current.lstrip().startswith("<map") else ET.Element("map")
+    for old in [e for e in root if e.get("name") == args.key]:
+        root.remove(old)
+    entry = ET.SubElement(root, "string", name=args.key)
+    entry.text = text
+    body = "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n" + ET.tostring(root, encoding="unicode")
+    with tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False, encoding="utf-8") as f:
+        f.write(body)
+        local = f.name
+    try:
+        device.adb("push", local, "/data/local/tmp/shinkan-prefs.xml")
+    finally:
+        os.unlink(local)
+    device.adb("shell", f"run-as {PACKAGE} sh -c 'mkdir -p {PREFS.rsplit('/', 1)[0]} && cat /data/local/tmp/shinkan-prefs.xml > {PREFS}'")
+    device.adb("shell", "rm", "/data/local/tmp/shinkan-prefs.xml")
+    pid = device.sh(f"pidof {PACKAGE}").strip()
+    if pid:
+        device.adb("shell", "run-as", PACKAGE, "kill", pid.split()[0])
+    time.sleep(3 * SETTLE)
+    print(f"stored {args.key} ({len(text.splitlines())} lines); {'restarted' if pid else 'the app was not running'}")
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="emulator.py", description=__doc__.split("\n\n")[0],
                                 formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -423,6 +466,10 @@ def main(argv=None) -> int:
     s.add_argument("--desc", action="store_true", help="also match the content description")
     s.add_argument("--timeout", type=float, default=8, help="seconds to wait for the node (default 8)")
     s.set_defaults(run=cmd_tap)
+    s = sub.add_parser("store", help="write a string of the beta's store (policy, blocklist), then restart it")
+    s.add_argument("key", choices=STORE_KEYS)
+    s.add_argument("file", help="the text, or - for stdin")
+    s.set_defaults(run=cmd_store)
     args = p.parse_args(argv)
     try:
         args.run(Device(args.serial), args)

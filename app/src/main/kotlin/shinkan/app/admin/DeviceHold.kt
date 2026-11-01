@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
 import shinkan.app.filter.FilterService
+import shinkan.core.Mode
 import shinkan.core.Policy
 import shinkan.core.Restriction
 import java.time.LocalDateTime
@@ -60,16 +61,26 @@ class DeviceHold(private val context: Context) {
         }
     }
 
-    /** Suspends every launchable package but Shinkan and the ones usable now (SPEC §4.2). */
+    /**
+     * Suspends the packages the form holds (SPEC §4.2): on the closed device
+     * every launchable package but Shinkan, on the open device the closed ones
+     * outside their windows; the rest are resumed.
+     */
     private fun applyPackages(policy: Policy, now: LocalDateTime) {
-        val usable = policy.usableAt(now)
         val launchable = launchablePackages()
-        val suspend = launchable.filter { it !in usable }.toTypedArray()
-        val resume = launchable.filter { it in usable }.toTypedArray()
-        if (suspend.isNotEmpty()) dpm.setPackagesSuspended(admin, suspend, true)
+        val held = when (policy.mode) {
+            Mode.CLOSED -> launchable.toSet()
+            Mode.OPEN -> policy.closedPackagesAt(now)
+        }
+        val suspend = launchable.filter { it in held }.toTypedArray()
+        val resume = launchable.filter { it !in held }.toTypedArray()
+        if (suspend.isNotEmpty()) {
+            val refused = dpm.setPackagesSuspended(admin, suspend, true)
+            if (refused.isNotEmpty()) Log.w(TAG, "not suspended: ${refused.joinToString()}")
+        }
         if (resume.isNotEmpty()) dpm.setPackagesSuspended(admin, resume, false)
-        // Lock task mode pins Shinkan's home and lets the allowed apps run over it (SPEC §4.1).
-        dpm.setLockTaskPackages(admin, (usable + context.packageName).toTypedArray())
+        // Lock task mode pins Shinkan alone (SPEC §4.1).
+        dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
     }
 
     /** The packages with a launcher entry, Shinkan excluded. */

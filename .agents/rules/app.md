@@ -14,9 +14,9 @@ paths:
   moment, when that next changes, what a policy line means: pure functions
   with tests. `DeviceHold` only turns the result into `DevicePolicyManager`
   calls; a new control is one documented call, named in SPEC §5.
-- **A test for every rule.** A change to `Policy`, `Window`, `PolicyText`,
+- **A test for every rule.** A change to `Policy`, `Plan`, `PlanState`, `Window`, `PolicyText`,
   `Blocklist`, `Link`, `DnsQuestion` or `Udp4` comes with a case in
-  `core/src/test/`; the overnight window, the window edge, the subdomain
+  `core/src/test/`; the overnight window, the window edge, the plan day's edges, the subdomain
   match and the checksums are the ones most easily broken.
 - **The tunnel carries the device's traffic, never Shinkan's.** A change to
   `app/.../filter/` is reviewed for any connection the app opens on its own

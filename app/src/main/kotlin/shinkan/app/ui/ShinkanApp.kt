@@ -1,6 +1,5 @@
 package shinkan.app.ui
 
-import android.content.Intent
 import android.os.SystemClock
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,8 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -53,7 +49,7 @@ import kotlinx.coroutines.delay
 import shinkan.app.LauncherIcon
 import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
-import java.time.LocalDateTime
+import shinkan.core.Mode
 
 /** Where the app stands: the child's home, the PIN before the door, the door, the PIN before release. */
 private enum class Page { HOME, DOOR_PIN, DOOR, RELEASE_PIN }
@@ -124,7 +120,7 @@ fun ShinkanApp(hold: DeviceHold, store: PolicyStore) {
                     },
                     onCancel = { page = Page.DOOR },
                 )
-                else -> HomePage(hold, store, onParent = { page = Page.DOOR_PIN })
+                else -> HomePage(onParent = { page = Page.DOOR_PIN })
             }
         }
     }
@@ -141,27 +137,11 @@ private fun SetupPage(command: String) {
     Text(stringResource(R.string.setup_after))
 }
 
+/** The child's home; the doors are ROADMAP block 3b. Until then nothing is offered. */
 @Composable
-private fun HomePage(hold: DeviceHold, store: PolicyStore, onParent: () -> Unit) {
-    val context = LocalContext.current
-    val usable = remember { store.policy.usableAt(LocalDateTime.now()).sorted() }
+private fun HomePage(onParent: () -> Unit) {
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-        if (usable.isEmpty()) {
-            Text(stringResource(R.string.home_empty), style = MaterialTheme.typography.titleMedium)
-        } else {
-            LazyColumn {
-                items(usable) { pkg ->
-                    val label = runCatching {
-                        context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(pkg, 0)).toString()
-                    }.getOrDefault(pkg)
-                    TextButton(onClick = {
-                        context.packageManager.getLaunchIntentForPackage(pkg)
-                            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            ?.let(context::startActivity)
-                    }) { Text(label, style = MaterialTheme.typography.titleLarge) }
-                }
-            }
-        }
+        Text(stringResource(R.string.home_empty), style = MaterialTheme.typography.titleMedium)
         TextButton(onClick = onParent) { Text(stringResource(R.string.home_parent)) }
     }
 }
@@ -171,7 +151,8 @@ private fun ParentPage(store: PolicyStore, onBack: () -> Unit, onRelease: () -> 
     Text(stringResource(R.string.parent_title), style = MaterialTheme.typography.headlineSmall)
     Spacer(Modifier.height(16.dp))
     Text(stringResource(R.string.parent_status_held))
-    Text(stringResource(R.string.parent_allowed, store.policy.allowed.size))
+    val form = if (store.policy.mode == Mode.CLOSED) R.string.parent_mode_closed else R.string.parent_mode_open
+    Text(stringResource(form))
     Spacer(Modifier.height(24.dp))
     IconChoice(store)
     Spacer(Modifier.height(24.dp))

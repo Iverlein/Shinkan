@@ -48,7 +48,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 0 | Skeleton: core model and tests, device owner receiver, the hold applied, the DNS filter as always-on lockdown VPN, the share target with sites, families and YouTube creators, three bare pages, docs, licence, F-Droid listing | done 2026-11-01 |
 | 1 | The emulator tool: create, snapshot, provision, drive, restore `shinkan-test` | done 2026-11-01 |
 | 2 | The PIN | done 2026-11-01 |
-| 3a | The engine: forms, day plans, stages, rests, ceilings, in `core/` | |
+| 3a | The engine: forms, day plans, stages, rests, ceilings, in `core/` | done 2026-11-01 |
 | 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | |
 | 3c | The counter and the rest page | |
 | 3d | The volume ceiling of the doors | |
@@ -163,6 +163,16 @@ and `ShinkanApp.HomePage` that keeps the app building and the skeleton's
 behaviour (everything suspended on the closed device).
 
 **Leaves alone.** Pages, counting, lock task: 3b and 3c.
+
+**As built.** `PlanState(day, stage, spent, restEnd, restParent)`: the plan
+day is kept so a new day starts fresh, and `rest parent` is a flag, not a
+time. Beside the functions named: `Policy.resolve` (the state carried to a
+moment by the clock), `count` (use added), `openNow`, `budgetLeft`,
+`nextOpening` (for 3b's greyed doors). The day's edges are written into
+SPEC §4.7. `DeviceHold.applyPackages` suspends every launchable package on
+the closed device and the closed ones outside their windows on the open
+one, and pins Shinkan alone in lock task; the home shows nothing to open
+until 3b.
 
 **Files.** `core/.../Policy.kt`, `core/.../PolicyText.kt`, `PolicyTest.kt`
 (rewritten), a new `PlanTest.kt`; `app/.../admin/DeviceHold.kt`,

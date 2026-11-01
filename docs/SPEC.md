@@ -126,9 +126,10 @@ only through the parent.
 
 What is open when is the day plan of §4.7: a door of the closed device is
 open in the stages that name it; a closed app of the open device with
-windows is usable inside them and suspended outside (`Policy.usableAt`).
-The policy is applied again at boot, when the clock or the zone changes, and
-by an exact alarm at the next edge (`Policy.nextChange`). The clock is
+windows is usable inside them and suspended outside (`Policy.openAt` for
+the doors, `Policy.closedPackagesAt` for the closed apps). The policy is
+applied again at boot, when the clock or the zone changes, and by an exact
+alarm at the next edge (`Policy.nextChange`). The clock is
 protected by `no_config_date_time`.
 
 ### 4.3 Device restrictions
@@ -185,8 +186,12 @@ and `rest` with minutes or `parent`), in order (§4.7); `browser` and
 device; `close` names a package of the open device and `window` gives it one
 span on given weekdays, which may cross midnight and then belongs to the day
 it opens; `volume` sets a ceiling (§4.6); `restrict` names one of §4.3 by
-the enum's name. When no `restrict` line is written the default set applies.
-Block 3a replaces the skeleton's `allow` lines with this form.
+the enum's name. When no `restrict` line is written the default set applies;
+`restrict none` lifts them all. A `window` line closes its package as a
+`close` line does. A weekday is in one plan at most. A malformed line is
+refused with its number (`PolicyText.Malformed`), and the text is written
+back in this order: `mode`, the plans, each `close` with its windows,
+`volume`, `restrict`.
 
 ### 4.5 Permissions of the usable apps
 
@@ -242,8 +247,19 @@ Shinkan which app is in front (§9.4); the closed apps keep their own
 Nothing is logged (§2.5): what is kept is the current stage, the minutes
 spent in it and a rest's end, in device-protected storage so a reboot
 neither resets nor extends them; the clock is protected by
-`no_config_date_time`. `Policy.usableAt` gives what is open now and
-`Policy.nextChange` the next edge, by clock or by the budget's remainder.
+`no_config_date_time`. `Policy.openAt` gives what is open now and
+`Policy.nextChange` the next edge, by clock or by the budget's remainder;
+`Policy.count` adds use to the running budget, `Policy.openNow` is the
+parent's *Open now*, which ends any rest, `Policy.nextOpening` is what a
+greyed door says.
+
+The edges of a plan day, as `Policy` decides them: a plan day starts at
+midnight, or when the day before's span across midnight ends, and ends at
+the next midnight, or at the end of its own span across it; a new day
+starts at its first stage whatever the day before left (a rest included).
+A span ahead of the running stage takes over at its start, skipping the
+stages between. A day with no plan opens nothing; a policy with no plan at
+all sets no time and leaves every door open, as a freshly held device is.
 Blocks 3c and 3e for the closed device, 7b for the open.
 
 ## 5. The filter

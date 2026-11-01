@@ -1,7 +1,7 @@
 # Shinkan — Specification
 
 Status: draft of 2026-11-01, revised the same day for the filter (§5), the
-block list (§6) and the player (§7).
+block list (§6), the player (§7) and the icon (§8.5).
 
 ## 1. What it is
 
@@ -289,6 +289,27 @@ allowed apps, with every launchable package listed and none chosen.
 
 The share target of §6.2: what will be blocked, *Block*, *Cancel*.
 
+### 8.5 Icon
+
+The launcher icon is chosen on the parent door among four drawn from the
+name: the **crest** (the gate inside a ring, the default), the **gate**, the
+**drawn gate** and the **seal** (関 on a hanko, the character traced from
+Shippori Mincho). Each is an adaptive icon on paper with a monochrome layer
+for themed icons, in `res/drawable/icon_*.xml`.
+
+Four `activity-alias` entries on `MainActivity` carry the `LAUNCHER` filter,
+one per icon; exactly one is enabled, through
+`PackageManager.setComponentEnabledSetting` with `DONT_KILL_APP`, a state the
+package manager keeps across reboots and updates (`LauncherIcon`). The
+`HOME` filter stays on the activity itself, so the default home and lock task
+of §4.1 do not depend on the choice. The choice is stored (§9.2, key `icon`)
+and applied when the activity stops, not at the tap: the system finishes
+every task whose root is the alias just disabled, even with `DONT_KILL_APP`,
+so applied at the tap it would close the door on a parent who opened Shinkan
+from the launcher. The door says so under the row. The application's own icon, shown by
+Settings, the share sheet and the home chooser, is the crest and cannot be
+changed at run time (§9.4).
+
 ## 9. The parent
 
 ### 9.1 The PIN
@@ -329,6 +350,9 @@ uninstalled. Release asks for the PIN once more.
 - **Suspended apps' widgets and shortcuts** still show; their taps open the
   suspension dialog.
 - **Emergency calls** are never blocked; the phone app is the OEM's.
+- **The chosen icon** (§8.5) shows on launchers only: Settings, the share
+  sheet's *Block in Shinkan* and the home chooser show the crest, the
+  application's icon, which Android lets no app change at run time.
 
 ## 10. Testing
 

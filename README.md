@@ -22,6 +22,9 @@ Shinkan is made the **device owner** once, on a freshly set-up device, by one
 - the parent opens the settings with a PIN that exists only on the device,
   and can release the device at any time.
 
+The launcher icon is the parent's choice on the same page: the crest (the
+gate in a ring, the default), the gate, the drawn gate or the seal 関.
+
 No account, no server, no companion app. The filter forwards the device's
 own traffic and nothing of Shinkan's: no endpoint, no update check, no list
 download. Nothing about the child leaves the device. The specification is

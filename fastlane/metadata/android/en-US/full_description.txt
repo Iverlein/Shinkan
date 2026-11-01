@@ -4,4 +4,4 @@ Only the apps the parent allowed can be opened, each within the hours set; every
 
 The device's traffic goes through Shinkan's own filter, an always-on VPN with lockdown the child cannot switch off. Share any link from any app to "Block in Shinkan" and the site is blocked device-wide, with every subdomain and the platform's other hosts, so the app goes dark too. Share a YouTube channel's page and the built-in player hides that creator everywhere while the official app and site are held.
 
-The parent opens the settings with a PIN that exists only on the device and can release the device at any time. No account, no server, no companion app. The filter forwards the device's own traffic and nothing of Shinkan's; nothing about the child leaves the device.
+The parent opens the settings with a PIN that exists only on the device and can release the device at any time. The launcher icon is the parent's choice among four drawn from the name: a crest, a gate, a drawn gate, a seal. No account, no server, no companion app. The filter forwards the device's own traffic and nothing of Shinkan's; nothing about the child leaves the device.

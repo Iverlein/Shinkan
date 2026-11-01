@@ -26,7 +26,7 @@ by hand before working there:
 | Path | What |
 | --- | --- |
 | `core/` | Pure Kotlin: `Policy` and `Window` (what is usable when), `Restriction` (the `UserManager` keys), `PolicyText` (the stored form), `Pin`; `net/`: `Blocklist`, `Host`, `Families`, `Link` (what a shared text means), `BlocklistText`, `DnsQuestion` and `Udp4`/`Checksum` (the filter's packets). Tests in `core/src/test/`. No Android. |
-| `app/` | Compose UI, package `shinkan.app`, application id `io.github.iverlein.shinkan`. `admin/`: `ShinkanAdmin` the device admin receiver, `DeviceHold` the policy applied through `DevicePolicyManager`, `PolicyStore`, `ReapplyReceiver`. `filter/`: `FilterService` the VPN, `BlocklistStore`, `ShareActivity` the share target. `ui/`: the pages of SPEC §8. Interface text in `res/values/strings.xml`. |
+| `app/` | Compose UI, package `shinkan.app`, application id `io.github.iverlein.shinkan`. `admin/`: `ShinkanAdmin` the device admin receiver, `DeviceHold` the policy applied through `DevicePolicyManager`, `PolicyStore`, `ReapplyReceiver`. `filter/`: `FilterService` the VPN, `BlocklistStore`, `ShareActivity` the share target. `ui/`: the pages of SPEC §8. `LauncherIcon`: the alias switch for the icon of SPEC §8.5, drawn in `res/drawable/icon_*.xml`. Interface text in `res/values/strings.xml`. |
 | `fastlane/metadata/android/` | F-Droid store listing per language. |
 | `docs/` | `SPEC.md`, `ROADMAP.md`; `fdroid/` the recipe once submitted. |
 | `tools/` | Python only (`tools/emulator/` to come, ROADMAP block 1). |
@@ -44,8 +44,11 @@ The toolchain on MONOLITH (JDK 21, SDK in `~/Android/Sdk`) is in
 `~/RUNBOOK.md` §7. Always pass `-s <serial>` to adb. **Test on an emulator
 only**, never on the owner's phone or any real device: a device owner is
 removed only by the app itself or a factory reset. The emulator for this
-project is `shinkan-test`, to be created without Google Play (ROADMAP block
-1); never `zanshin-test`, which belongs to another project.
+project is `shinkan-test` (Pixel 8, `system-images;android-37.0;google_apis;x86_64`,
+no Play; created 2026-11-01, its clean boot saved as the snapshot `clean`:
+`adb -s emulator-5554 emu avd snapshot load clean` restores it); never
+`zanshin-test`, which belongs to another project. The tool that creates and
+provisions it is ROADMAP block 1.
 
 ## One worktree per session
 

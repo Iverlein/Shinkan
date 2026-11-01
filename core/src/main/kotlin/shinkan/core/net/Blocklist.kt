@@ -1,0 +1,69 @@
+package shinkan.core.net
+
+/**
+ * What the filter blocks (SPEC §6): sites by registered domain, every
+ * subdomain included, and creators on the platforms the built-in player
+ * serves. Pure data with the one question the filter asks: [blocksHost].
+ */
+data class Blocklist(
+    val sites: Set<String> = emptySet(),
+    val creators: Set<Creator> = emptySet(),
+) {
+    /** True when [host] is a blocked domain or a subdomain of one, or belongs to a blocked family. */
+    fun blocksHost(host: String): Boolean {
+        val h = Host.normalise(host)
+        return sites.any { Host.under(h, it) }
+    }
+
+    operator fun plus(site: String) = copy(sites = sites + Host.normalise(site))
+    operator fun plus(creator: Creator) = copy(creators = creators + creator)
+}
+
+/** One creator on one platform, by the stable reference the platform gives (a channel id, a handle, an account). */
+data class Creator(val platform: Platform, val ref: String, val name: String = ref)
+
+enum class Platform { YOUTUBE, PEERTUBE, SOUNDCLOUD, BANDCAMP }
+
+object Host {
+    /** Lowercase, no trailing dot, no port; an invalid host comes back as is. */
+    fun normalise(host: String): String = host.trim().lowercase().removeSuffix(".").substringBefore(":")
+
+    /** True when [host] equals [domain] or ends in ".[domain]". */
+    fun under(host: String, domain: String): Boolean = host == domain || host.endsWith(".$domain")
+
+    private val mobilePrefixes = listOf("www.", "m.", "mobile.", "amp.", "touch.")
+
+    /** The domain a shared link stands for: the host without the mobile and www prefixes (SPEC §6.2). */
+    fun site(host: String): String {
+        var h = normalise(host)
+        for (p in mobilePrefixes) if (h.startsWith(p) && h.count { it == '.' } >= 2) { h = h.removePrefix(p); break }
+        return h
+    }
+}
+
+/**
+ * The hosts a platform is reached through besides its name (SPEC §6.2):
+ * blocking the site blocks the family. Known families only; a domain not
+ * listed is blocked by itself.
+ */
+object Families {
+    private val table: Map<String, Set<String>> = mapOf(
+        "youtube.com" to setOf("youtube.com", "youtu.be", "youtube-nocookie.com", "googlevideo.com", "ytimg.com", "yt.be"),
+        "tiktok.com" to setOf("tiktok.com", "tiktokv.com", "tiktokcdn.com", "tiktokcdn-us.com", "musical.ly", "byteoversea.com"),
+        "instagram.com" to setOf("instagram.com", "cdninstagram.com", "ig.me"),
+        "facebook.com" to setOf("facebook.com", "fb.com", "fbcdn.net", "fb.me", "messenger.com"),
+        "twitch.tv" to setOf("twitch.tv", "ttvnw.net", "jtvnw.net"),
+        "x.com" to setOf("x.com", "twitter.com", "twimg.com", "t.co"),
+        "snapchat.com" to setOf("snapchat.com", "sc-cdn.net", "snap.com"),
+        "discord.com" to setOf("discord.com", "discordapp.com", "discord.gg", "discord.media"),
+        "reddit.com" to setOf("reddit.com", "redd.it", "redditmedia.com", "redditstatic.com"),
+    )
+    private val byMember: Map<String, String> = table.flatMap { (k, v) -> v.map { it to k } }.toMap()
+
+    /** The family [site] belongs to, or the site alone. */
+    fun of(site: String): Set<String> {
+        val s = Host.site(site)
+        val key = byMember.entries.firstOrNull { Host.under(s, it.key) }?.value ?: return setOf(s)
+        return table.getValue(key)
+    }
+}

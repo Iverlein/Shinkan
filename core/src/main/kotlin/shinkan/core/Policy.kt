@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 
 /**
- * What the device may do, as the parent set it (SPEC §5). Pure data: the app
+ * What the device may do, as the parent set it (SPEC §4). Pure data: the app
  * module turns it into DevicePolicyManager calls, this module only decides.
  *
  * A package named in [allowed] with no [Window] is usable at any time; one
@@ -66,7 +66,7 @@ data class Window(
 }
 
 /**
- * A user restriction the device owner sets (SPEC §5.3), by the constant's
+ * A user restriction the device owner sets (SPEC §4.3), by the constant's
  * name in android.os.UserManager so the app module needs no table of its own.
  */
 enum class Restriction(val key: String) {
@@ -82,13 +82,14 @@ enum class Restriction(val key: String) {
     USB_FILE_TRANSFER("no_usb_file_transfer"),
     CONFIG_CREDENTIALS("no_config_credentials"),
     CONFIG_PRIVATE_DNS("disallow_config_private_dns"),
+    CONFIG_VPN("no_config_vpn"),
     ;
 
     companion object {
         /** What a freshly held device gets: everything a child could use to slip the hold, nothing a parent needs for daily use. */
         val DEFAULT: Set<Restriction> = setOf(
             FACTORY_RESET, SAFE_BOOT, ADD_USER, INSTALL_APPS, INSTALL_UNKNOWN_SOURCES,
-            UNINSTALL_APPS, MODIFY_ACCOUNTS, CONFIG_DATE_TIME, DEBUGGING_FEATURES, CONFIG_PRIVATE_DNS,
+            UNINSTALL_APPS, MODIFY_ACCOUNTS, CONFIG_DATE_TIME, DEBUGGING_FEATURES, CONFIG_PRIVATE_DNS, CONFIG_VPN,
         )
 
         fun byName(name: String): Restriction? = entries.firstOrNull { it.name.equals(name, ignoreCase = true) }

@@ -5,7 +5,7 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 /**
- * The parent's PIN, kept only as a salted PBKDF2 hash (SPEC §6.1). The stored
+ * The parent's PIN, kept only as a salted PBKDF2 hash (SPEC §9.1). The stored
  * form is "pbkdf2:<iterations>:<salt hex>:<hash hex>", so a later change of
  * parameters can be told from the old ones.
  */

@@ -5,7 +5,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 /**
- * The policy as text, one statement per line (SPEC §5.4): what the app stores
+ * The policy as text, one statement per line (SPEC §4.4): what the app stores
  * and what a parent may read or paste. No library, so the format is this file.
  *
  *     allow org.fdroid.fdroid

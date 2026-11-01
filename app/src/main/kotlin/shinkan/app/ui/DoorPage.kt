@@ -1,0 +1,31 @@
+package shinkan.app.ui
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import io.github.iverlein.shinkan.R
+import shinkan.core.Door
+
+/**
+ * A door of the closed device (SPEC §8.1): the browser of block 5 or the player
+ * of block 6a. Until those blocks it is a stub that names the block that fills
+ * it; Back and *Close* return to the home.
+ */
+@Composable
+fun DoorPage(door: Door, onClose: () -> Unit) {
+    BackHandler(onBack = onClose)
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(stringResource(doorLabel(door)), style = MaterialTheme.typography.headlineMedium)
+        val stub = if (door == Door.BROWSER) R.string.door_stub_browser else R.string.door_stub_player
+        Text(stringResource(stub), style = MaterialTheme.typography.bodyLarge)
+        Button(onClick = onClose) { Text(stringResource(R.string.door_close)) }
+    }
+}

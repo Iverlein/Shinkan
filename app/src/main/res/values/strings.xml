@@ -8,7 +8,17 @@
     <string name="setup_after">Then open Shinkan again. Debugging is switched off by the hold; to release it later, use the parent door and your PIN.</string>
 
     <!-- The child's home (SPEC §8.1) -->
-    <string name="home_empty">Nothing to open right now.</string>
+    <string name="home_opens_at">Opens at %1$s</string>
+    <string name="home_opens_on">Opens %1$s %2$s</string>
+    <string name="home_closed">Closed</string>
+
+    <!-- The doors (SPEC §8.1) -->
+    <string name="door_browser">Browser</string>
+    <string name="door_player">YouTube</string>
+    <string name="door_device">This device</string>
+    <string name="door_stub_browser">The browser is built in block 5 of the roadmap.</string>
+    <string name="door_stub_player">The player is built in block 6a of the roadmap.</string>
+    <string name="door_close">Close</string>
     <string name="home_parent">Parent</string>
 
     <!-- The parent door (SPEC §8.2) -->

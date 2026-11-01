@@ -1,6 +1,9 @@
 package shinkan.app.ui
 
 import android.os.SystemClock
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,20 +52,22 @@ import kotlinx.coroutines.delay
 import shinkan.app.LauncherIcon
 import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
+import shinkan.core.Door
 import shinkan.core.Mode
 
-/** Where the app stands: the child's home, the PIN before the door, the door, the PIN before release. */
-private enum class Page { HOME, DOOR_PIN, DOOR, RELEASE_PIN }
+/** Where the app stands: the child's home, a door, the PIN before the parent door, that door, the PIN before release. */
+private enum class Page { HOME, BROWSER, PLAYER, DOOR_PIN, DOOR, RELEASE_PIN }
 
 /**
  * The pages (SPEC §8): setup until Shinkan is device owner; the PIN set at the
  * first opening after that (§8.3); the child's home; the parent door behind
  * the PIN (§8.2, §9.1), which closes to the home after [DoorIdle] without a
  * touch and whenever Shinkan leaves the screen; release behind the PIN once
- * more (§9.3). The policy editor is ROADMAP block 3e.
+ * more (§9.3). [onSetUp] runs once the PIN is set and applies the hold;
+ * [onRelease] hands the device back. The policy editor is ROADMAP block 3e.
  */
 @Composable
-fun ShinkanApp(hold: DeviceHold, store: PolicyStore) {
+fun ShinkanApp(hold: DeviceHold, store: PolicyStore, onSetUp: () -> Unit, onRelease: () -> Unit) {
     var page by remember { mutableStateOf(Page.HOME) }
     var owner by remember { mutableStateOf(hold.isOwner) }
     var pinSet by remember { mutableStateOf(store.pinHash != null) }
@@ -104,7 +109,11 @@ fun ShinkanApp(hold: DeviceHold, store: PolicyStore) {
                 !owner -> SetupPage(hold.provisionCommand)
                 !pinSet -> PinPage(
                     store, PinPurpose.SET, stringResource(R.string.pin_set_title),
-                    onDone = { pinSet = true; page = Page.HOME },
+                    onDone = {
+                        pinSet = true
+                        page = Page.HOME
+                        onSetUp()
+                    },
                 )
                 page == Page.DOOR_PIN -> PinPage(
                     store, PinPurpose.ENTER, stringResource(R.string.parent_title),
@@ -114,20 +123,26 @@ fun ShinkanApp(hold: DeviceHold, store: PolicyStore) {
                 page == Page.RELEASE_PIN -> PinPage(
                     store, PinPurpose.ENTER, stringResource(R.string.release_title),
                     onDone = {
-                        hold.release()
+                        onRelease()
                         owner = hold.isOwner
                         page = Page.HOME
                     },
                     onCancel = { page = Page.DOOR },
                 )
-                else -> HomePage(onParent = { page = Page.DOOR_PIN })
+                page == Page.BROWSER -> DoorPage(Door.BROWSER, onClose = { page = Page.HOME })
+                page == Page.PLAYER -> DoorPage(Door.PLAYER, onClose = { page = Page.HOME })
+                else -> HomePage(
+                    store,
+                    onDoor = { page = if (it == Door.BROWSER) Page.BROWSER else Page.PLAYER },
+                    onParent = { page = Page.DOOR_PIN },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun SetupPage(command: String) {
+private fun SetupPage(command: String) = Column(Modifier.verticalScroll(rememberScrollState())) {
     Text(stringResource(R.string.setup_title), style = MaterialTheme.typography.headlineSmall)
     Spacer(Modifier.height(16.dp))
     Text(stringResource(R.string.setup_body))
@@ -137,17 +152,9 @@ private fun SetupPage(command: String) {
     Text(stringResource(R.string.setup_after))
 }
 
-/** The child's home; the doors are ROADMAP block 3b. Until then nothing is offered. */
 @Composable
-private fun HomePage(onParent: () -> Unit) {
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-        Text(stringResource(R.string.home_empty), style = MaterialTheme.typography.titleMedium)
-        TextButton(onClick = onParent) { Text(stringResource(R.string.home_parent)) }
-    }
-}
-
-@Composable
-private fun ParentPage(store: PolicyStore, onBack: () -> Unit, onRelease: () -> Unit) {
+private fun ParentPage(store: PolicyStore, onBack: () -> Unit, onRelease: () -> Unit) = Column(Modifier.verticalScroll(rememberScrollState())) {
+    BackHandler(onBack = onBack)
     Text(stringResource(R.string.parent_title), style = MaterialTheme.typography.headlineSmall)
     Spacer(Modifier.height(16.dp))
     Text(stringResource(R.string.parent_status_held))

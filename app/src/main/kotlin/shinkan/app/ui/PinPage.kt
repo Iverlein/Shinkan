@@ -1,6 +1,7 @@
 package shinkan.app.ui
 
 import android.content.res.Configuration
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,6 +71,7 @@ fun PinPage(
     var busy by remember { mutableStateOf(false) }
     var wait by remember { mutableLongStateOf(remainingWait(store)) }
     val scope = rememberCoroutineScope()
+    if (onCancel != null) BackHandler(onBack = onCancel)
 
     // The countdown: one tick a second while a wait is running.
     LaunchedEffect(wait > 0) {

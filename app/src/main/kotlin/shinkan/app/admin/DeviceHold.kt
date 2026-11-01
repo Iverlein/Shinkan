@@ -3,10 +3,14 @@ package shinkan.app.admin
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.util.Log
+import io.github.iverlein.shinkan.BuildConfig
+import shinkan.app.MainActivity
 import shinkan.app.filter.FilterService
 import shinkan.core.Mode
 import shinkan.core.Policy
@@ -35,6 +39,7 @@ class DeviceHold(private val context: Context) {
         if (!isOwner) return
         val policy = store.policy
         applyRestrictions(policy)
+        applyHome(policy)
         applyPackages(policy, now)
         applyFilter()
         scheduleNext(policy, now)
@@ -55,9 +60,40 @@ class DeviceHold(private val context: Context) {
         FilterService.start(context)
     }
 
+    /**
+     * The restrictions of SPEC §4.3. The beta never applies `no_debugging_features`,
+     * so the emulator can still be driven by adb after the hold (SPEC §10); the
+     * release build applies it as the policy says.
+     */
     private fun applyRestrictions(policy: Policy) {
+        val wanted = if (BuildConfig.DEBUG) policy.restrictions - Restriction.DEBUGGING_FEATURES else policy.restrictions
         for (r in Restriction.entries) {
-            if (r in policy.restrictions) dpm.addUserRestriction(admin, r.key) else dpm.clearUserRestriction(admin, r.key)
+            if (r in wanted) dpm.addUserRestriction(admin, r.key) else dpm.clearUserRestriction(admin, r.key)
+        }
+    }
+
+    /**
+     * The closed device's home (SPEC §4.1): Shinkan made the default home by the
+     * device owner itself, and the only package lock task may pin, with none of
+     * the system's lock task features (no home, no recents, no notifications)
+     * until block A1 tunes them. [shinkan.app.MainActivity] starts lock task.
+     * On the open device the launcher stays and nothing is pinned.
+     */
+    private fun applyHome(policy: Policy) {
+        when (policy.mode) {
+            Mode.CLOSED -> {
+                val home = IntentFilter(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_HOME)
+                    addCategory(Intent.CATEGORY_DEFAULT)
+                }
+                dpm.addPersistentPreferredActivity(admin, home, ComponentName(context, MainActivity::class.java))
+                dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
+                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+            }
+            Mode.OPEN -> {
+                dpm.clearPackagePersistentPreferredActivities(admin, context.packageName)
+                dpm.setLockTaskPackages(admin, emptyArray())
+            }
         }
     }
 
@@ -79,8 +115,6 @@ class DeviceHold(private val context: Context) {
             if (refused.isNotEmpty()) Log.w(TAG, "not suspended: ${refused.joinToString()}")
         }
         if (resume.isNotEmpty()) dpm.setPackagesSuspended(admin, resume, false)
-        // Lock task mode pins Shinkan alone (SPEC §4.1).
-        dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
     }
 
     /** The packages with a launcher entry, Shinkan excluded. */
@@ -115,6 +149,7 @@ class DeviceHold(private val context: Context) {
         for (r in Restriction.entries) dpm.clearUserRestriction(admin, r.key)
         val all = launchablePackages().toTypedArray()
         if (all.isNotEmpty()) dpm.setPackagesSuspended(admin, all, false)
+        dpm.clearPackagePersistentPreferredActivities(admin, context.packageName)
         dpm.setLockTaskPackages(admin, emptyArray())
         runCatching { dpm.setAlwaysOnVpnPackage(admin, null, false) }
         context.stopService(Intent(context, FilterService::class.java))

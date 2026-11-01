@@ -1,6 +1,7 @@
 package shinkan.app.ui
 
 import android.content.Intent
+import android.os.SystemClock
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,17 +23,22 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -40,26 +46,85 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import io.github.iverlein.shinkan.R
+import kotlinx.coroutines.delay
 import shinkan.app.LauncherIcon
 import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
 import java.time.LocalDateTime
 
+/** Where the app stands: the child's home, the PIN before the door, the door, the PIN before release. */
+private enum class Page { HOME, DOOR_PIN, DOOR, RELEASE_PIN }
+
 /**
- * The three pages (SPEC §8): setup until Shinkan is device owner; the child's
- * home with the apps usable now; the parent door. The PIN gate (§9.1) and the
- * policy editor are ROADMAP blocks 2 and 3; until then the door opens on a tap.
+ * The pages (SPEC §8): setup until Shinkan is device owner; the PIN set at the
+ * first opening after that (§8.3); the child's home; the parent door behind
+ * the PIN (§8.2, §9.1), which closes to the home after [DoorIdle] without a
+ * touch and whenever Shinkan leaves the screen; release behind the PIN once
+ * more (§9.3). The policy editor is ROADMAP block 3e.
  */
 @Composable
 fun ShinkanApp(hold: DeviceHold, store: PolicyStore) {
-    var parent by remember { mutableStateOf(false) }
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    var page by remember { mutableStateOf(Page.HOME) }
+    var owner by remember { mutableStateOf(hold.isOwner) }
+    var pinSet by remember { mutableStateOf(store.pinHash != null) }
+    var lastTouch by remember { mutableLongStateOf(SystemClock.uptimeMillis()) }
+    val behindPin = page == Page.DOOR || page == Page.DOOR_PIN || page == Page.RELEASE_PIN
+
+    // The door closes after two minutes without a touch (SPEC §8.2)...
+    LaunchedEffect(behindPin) {
+        if (!behindPin) return@LaunchedEffect
+        lastTouch = SystemClock.uptimeMillis()
+        val idle = DoorIdle.millis()
+        while (true) {
+            delay(1000)
+            if (SystemClock.uptimeMillis() - lastTouch >= idle) {
+                page = Page.HOME
+                break
+            }
+        }
+    }
+    // ...and as soon as Shinkan leaves the screen; the owner is read again on return.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { if (behindPin) page = Page.HOME }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { owner = hold.isOwner }
+
+    Surface(
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                        lastTouch = SystemClock.uptimeMillis()
+                    }
+                }
+            },
+        color = MaterialTheme.colorScheme.background,
+    ) {
         Column(Modifier.safeDrawingPadding().padding(24.dp)) {
             when {
-                !hold.isOwner -> SetupPage(hold.provisionCommand)
-                parent -> ParentPage(store, onBack = { parent = false })
-                else -> HomePage(hold, store, onParent = { parent = true })
+                !owner -> SetupPage(hold.provisionCommand)
+                !pinSet -> PinPage(
+                    store, PinPurpose.SET, stringResource(R.string.pin_set_title),
+                    onDone = { pinSet = true; page = Page.HOME },
+                )
+                page == Page.DOOR_PIN -> PinPage(
+                    store, PinPurpose.ENTER, stringResource(R.string.parent_title),
+                    onDone = { page = Page.DOOR }, onCancel = { page = Page.HOME },
+                )
+                page == Page.DOOR -> ParentPage(store, onBack = { page = Page.HOME }, onRelease = { page = Page.RELEASE_PIN })
+                page == Page.RELEASE_PIN -> PinPage(
+                    store, PinPurpose.ENTER, stringResource(R.string.release_title),
+                    onDone = {
+                        hold.release()
+                        owner = hold.isOwner
+                        page = Page.HOME
+                    },
+                    onCancel = { page = Page.DOOR },
+                )
+                else -> HomePage(hold, store, onParent = { page = Page.DOOR_PIN })
             }
         }
     }
@@ -102,7 +167,7 @@ private fun HomePage(hold: DeviceHold, store: PolicyStore, onParent: () -> Unit)
 }
 
 @Composable
-private fun ParentPage(store: PolicyStore, onBack: () -> Unit) {
+private fun ParentPage(store: PolicyStore, onBack: () -> Unit, onRelease: () -> Unit) {
     Text(stringResource(R.string.parent_title), style = MaterialTheme.typography.headlineSmall)
     Spacer(Modifier.height(16.dp))
     Text(stringResource(R.string.parent_status_held))
@@ -110,7 +175,10 @@ private fun ParentPage(store: PolicyStore, onBack: () -> Unit) {
     Spacer(Modifier.height(24.dp))
     IconChoice(store)
     Spacer(Modifier.height(24.dp))
-    Button(onClick = onBack) { Text(stringResource(R.string.parent_back)) }
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Button(onClick = onBack) { Text(stringResource(R.string.parent_back)) }
+        OutlinedButton(onClick = onRelease) { Text(stringResource(R.string.release_button)) }
+    }
 }
 
 /** The launcher icon (SPEC §8.5): each shown as the launcher's round mask shows it. */

@@ -17,6 +17,24 @@
     <string name="parent_allowed">%1$d apps allowed</string>
     <string name="parent_back">Back</string>
 
+    <!-- The PIN (SPEC §9.1) -->
+    <string name="pin_set_title">Set the parent\'s PIN</string>
+    <string name="pin_set_first">Choose a PIN of %1$d or more digits. It is the only key to this device: keep it.</string>
+    <string name="pin_set_again">Type the same PIN again.</string>
+    <string name="pin_too_short">A PIN is four or more digits.</string>
+    <string name="pin_mismatch">The two differ. Choose the PIN again.</string>
+    <string name="pin_enter">Enter the PIN.</string>
+    <string name="pin_wrong">Wrong PIN.</string>
+    <string name="pin_wait">Try again in %1$d s.</string>
+    <string name="pin_checking">Checking…</string>
+    <string name="pin_ok">OK</string>
+    <string name="pin_backspace">Delete a digit</string>
+    <string name="pin_cancel">Cancel</string>
+
+    <!-- Release (SPEC §9.3) -->
+    <string name="release_button">Release this device</string>
+    <string name="release_title">Release this device</string>
+
     <!-- The launcher icon (SPEC §8.5) -->
     <string name="parent_icon">Icon</string>
     <string name="parent_icon_hint">The launcher shows the new icon once you leave Shinkan.</string>

@@ -42,6 +42,8 @@ android {
 
     buildFeatures {
         compose = true
+        // BuildConfig.DEBUG gates what only the beta does (SPEC §10).
+        buildConfig = true
     }
 
     testOptions {

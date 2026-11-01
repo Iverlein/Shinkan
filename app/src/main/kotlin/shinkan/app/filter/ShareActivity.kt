@@ -17,17 +17,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.iverlein.shinkan.R
+import shinkan.app.admin.PolicyStore
+import shinkan.app.ui.PinPage
+import shinkan.app.ui.PinPurpose
 import shinkan.app.ui.ShinkanTheme
 import shinkan.core.net.Link
 
 /**
- * "Block in Shinkan" from any app's share sheet (SPEC §6.2): the shared
- * link is read, what will be blocked is shown, one tap confirms. The PIN
- * gate is ROADMAP block 2; a video's creator lookup, block 9.
+ * "Block in Shinkan" from any app's share sheet (SPEC §6.2, §8.4): the
+ * parent's PIN first (§9.1), when one is set; then the shared link is read,
+ * what will be blocked is shown, one tap confirms. A video's creator lookup
+ * is ROADMAP block 6c.
  */
 class ShareActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,10 +43,19 @@ class ShareActivity : ComponentActivity() {
         val text = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
         val link = Link.parse(text)
         val store = BlocklistStore(this)
+        val policyStore = PolicyStore(this)
         setContent {
             ShinkanTheme {
+                var unlocked by remember { mutableStateOf(policyStore.pinHash == null) }
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     Column(Modifier.safeDrawingPadding().padding(24.dp)) {
+                        if (!unlocked) {
+                            PinPage(
+                                policyStore, PinPurpose.ENTER, stringResource(R.string.share_label),
+                                onDone = { unlocked = true }, onCancel = { finish() },
+                            )
+                            return@Column
+                        }
                         Text(stringResource(R.string.share_label), style = MaterialTheme.typography.headlineSmall)
                         Spacer(Modifier.height(16.dp))
                         when (link) {

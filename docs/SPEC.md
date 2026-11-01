@@ -1,49 +1,54 @@
 # Shinkan — Specification
 
-Status: draft of 2026-11-01.
+Status: draft of 2026-11-01, revised the same day for the filter (§5), the
+block list (§6) and the player (§7).
 
 ## 1. What it is
 
 Shinkan (真関, "the true barrier": 関 is the checkpoint on an old Japanese
 road) holds an Android device for a child. It is made the **device owner**
 once, on a freshly set-up device, and from then on decides which apps exist
-for the child, at which hours, and what the device itself may do. A parent
-opens it with a PIN that lives only on the device.
+for the child, at which hours, what the device itself may do, and what the
+device may reach on the network. A parent opens it with a PIN that lives only
+on the device.
 
-There is no account, no server, no companion app and no network. Shinkan is
-free software on F-Droid.
+Any link shared to Shinkan from any app is blocked device-wide, with every
+subdomain and the platform's other hosts. A creator on YouTube (and the
+other platforms of §7) is blocked by sharing their page: the official app and
+site are held, and the built-in player hides the creator everywhere.
+
+There is no account, no server and no companion app. Shinkan is free software
+on F-Droid.
 
 ## 2. Principles
 
-1. **Offline by construction.** The manifest declares no `INTERNET`
-   permission. Shinkan never sees traffic: what the child may reach on the web
-   is controlled through the platform (§5.5), not by filtering in the app.
-2. **Only the platform's own policies.** Every control is one documented call
-   on `DevicePolicyManager` or one `UserManager` restriction, named in this
-   spec next to the feature. No accessibility service, no overlay, no root:
-   those can be switched off by the child or break with the next Android.
-3. **The parent can always get out.** Release (§6.3) lifts everything and
-   gives the ownership back; the PIN is the only key, and what happens when it
-   is lost is written down (§6.4), not discovered.
-4. **Nothing about the child leaves the device.** No usage statistics, no
-   logs beyond the system's, nothing to export.
-5. **Decisions are pure.** The policy and its evaluation (which packages are
-   usable at a moment, when that next changes) are in `core/`, plain Kotlin
-   with tests; `app/` only applies the result.
+1. **Nothing of Shinkan's goes out.** The filter forwards the device's own
+   traffic and that alone: Shinkan has no endpoint, no update check, no
+   list download. The `INTERNET` permission exists for the tunnel. Reviewed
+   on every change to `app/.../filter/`.
+2. **The platform's own policies for the hold.** Every control of §4 is one
+   documented call on `DevicePolicyManager` or one `UserManager`
+   restriction, named next to the feature. No accessibility service, no
+   overlay, no root.
+3. **The filter is honest about what it sees.** Encrypted traffic shows a
+   host, never a page: a site is blocked by its hosts (§6), a creator by the
+   player that knows them (§7). What cannot be done is written in §9.4, not
+   promised.
+4. **The parent can always get out.** Release (§9.3) lifts everything and
+   gives the ownership back; the PIN is the only key, and what happens when
+   it is lost is written down (§9.4).
+5. **Nothing about the child leaves the device.** No usage statistics, no
+   query logs beyond the system's, nothing to export.
+6. **Decisions are pure.** What is usable when, what a shared link means,
+   whether a host is blocked, how a DNS refusal looks: plain Kotlin in
+   `core/` with tests; `app/` only applies the result.
 
-## 3. Modules
-
-| Module | What |
-| --- | --- |
-| `core/` | `Policy`, `Window`, `Restriction`; `PolicyText` (the stored form, §5.4); `Pin` (§6.1). No Android. |
-| `app/` | `admin/`: the device admin receiver, `DeviceHold` (the policy applied), `PolicyStore`, `ReapplyReceiver`. `ui/`: the three pages (§7). |
-
-## 4. Taking the device
+## 3. Taking the device
 
 Android lets one app be the device owner, set only while the device has no
-accounts and (on most builds) only through provisioning. Shinkan supports:
+accounts and (on most builds) only through provisioning.
 
-### 4.1 By adb
+### 3.1 By adb
 
 On a device just after setup, with no Google or other account added and USB
 debugging on:
@@ -52,53 +57,47 @@ debugging on:
 adb shell dpm set-device-owner io.github.iverlein.shinkan/shinkan.app.admin.ShinkanAdmin
 ```
 
-The app's setup page (§7.3) shows this command. After it, Shinkan applies the
-default restrictions (§5.3), which include `no_debugging_features`: adb stops
+The setup page (§8.3) shows this command. After it, Shinkan applies the
+default restrictions (§4.3), which include `no_debugging_features`: adb stops
 working on the device, by design, so the child cannot use it either.
 
-### 4.2 By QR code at first boot
+### 3.2 By QR code at first boot
 
 Tapping the welcome screen six times opens the QR provisioning flow, which
-downloads the APK from a URL and verifies its checksum. The QR carries the
-package, the receiver, the download URL and the SHA-256 of the APK. A
-generator for the F-Droid APK is ROADMAP block 6; until then §4.1 is the way.
+downloads the APK from a URL and verifies its checksum. ROADMAP block 6.
 
-### 4.3 What a device owner is not
+### 3.3 What a device owner is not
 
-A device owner is not root. It cannot read other apps' data, cannot see
-traffic, cannot stop the recovery-mode wipe of a device that has no factory
-reset protection. §6.4 lists what a determined child can still do.
+A device owner is not root. It cannot read other apps' data, cannot decrypt
+their traffic, cannot stop the recovery-mode wipe of a device without factory
+reset protection. §9.4 lists what a determined child can still do.
 
-## 5. The hold
+## 4. The hold
 
-### 5.1 Home and lock task
+### 4.1 Home and lock task
 
 Shinkan registers as a launcher (`CATEGORY_HOME`). The parent makes it the
 default home once; with lock task mode (`setLockTaskPackages`, Shinkan plus
 the usable apps) the child cannot leave it for another launcher, the status
-bar's settings or the recents of other apps. Lock task features are the
-minimum: home, notifications, the global actions dialog for power.
+bar's settings or the recents of other apps.
 
-### 5.2 Packages: allowed, windowed, suspended
+### 4.2 Packages: allowed, windowed, suspended
 
 The policy names the packages the child may use. At every application of the
 policy (`DeviceHold.apply`), each launchable package is either usable now, and
-resumed, or not, and **suspended** (`setPackagesSuspended`): a suspended app
-shows a dialog instead of opening, keeps its data and its notifications stay
-quiet. Installs and uninstalls are blocked by restriction (§5.3), so the set of
-packages changes only through the parent.
+resumed, or not, and **suspended** (`setPackagesSuspended`). Installs and
+uninstalls are blocked by restriction (§4.3), so the set of packages changes
+only through the parent.
 
 A package with no window is usable always; one with windows only inside one
 (`Policy.usableAt`). The policy is applied again at boot, when the clock or
 the zone changes, and by an exact alarm at the next window edge
 (`Policy.nextChange`). The clock is protected by `no_config_date_time`.
 
-### 5.3 Device restrictions
+### 4.3 Device restrictions
 
 `Restriction` lists the `UserManager` keys Shinkan knows; `Restriction.DEFAULT`
-is what a freshly held device gets. The parent can lift any of them in the
-policy (§5.4) except that the policy editor warns when `no_factory_reset` or
-`no_debugging_features` is lifted.
+is what a freshly held device gets.
 
 | Restriction | Why |
 | --- | --- |
@@ -108,13 +107,13 @@ policy (§5.4) except that the policy editor warns when `no_factory_reset` or
 | `no_modify_accounts` | no account that could reinstall apps or sync content |
 | `no_config_date_time` | windows are measured on the device's clock |
 | `no_debugging_features` | adb is a shell as the child |
-| `disallow_config_private_dns` | the filtering resolver of §5.5 stays |
+| `disallow_config_private_dns`, `no_config_vpn` | the filter of §5 stays |
 | `no_usb_file_transfer`, `no_config_credentials` | off by default; for stricter homes |
 
-### 5.4 The policy text
+### 4.4 The policy text
 
-The policy is stored and shown as text, one statement per line, parsed and
-rendered by `PolicyText`:
+Stored and shown as text, one statement per line, parsed and rendered by
+`PolicyText`:
 
 ```
 allow org.fdroid.fdroid
@@ -126,98 +125,223 @@ restrict factory_reset
 
 `allow` names a package; `window` gives one span on given weekdays, which may
 cross midnight and then belongs to the day it opens; `restrict` names one of
-§5.3 by the enum's name. When no `restrict` line is written the default set
-applies. The parent edits it as a list (ROADMAP block 3) and may see or paste
-the text.
+§4.3 by the enum's name. When no `restrict` line is written the default set
+applies.
 
-### 5.5 Content on the web
-
-Shinkan does not look at traffic (§2). The web is controlled by three
-platform means, all set by the device owner:
-
-1. **No browser** is the default: a browser is just another package the
-   policy may allow.
-2. **A filtering resolver**: `setGlobalPrivateDns` to a family DNS of the
-   parent's choice (the setting is a hostname, no list ships with Shinkan),
-   locked by `disallow_config_private_dns`. ROADMAP block 5.
-3. **Managed configuration of the allowed browser**:
-   `setApplicationRestrictions` carries the browser's own policy keys
-   (Chromium-based browsers honour `URLAllowlist`, `URLBlocklist`,
-   `IncognitoModeAvailability`), so the parent writes an allow-list of sites.
-   ROADMAP block 5; which browsers on F-Droid honour which keys is to be
-   measured, not assumed.
-
-Other apps' content (a video app's own catalogue) is beyond the device owner
-and is not promised; the answer is the allow-list of apps.
-
-### 5.6 Permissions of the allowed apps
+### 4.5 Permissions of the allowed apps
 
 `setPermissionGrantState` lets the parent deny camera, microphone and
 location to an allowed app regardless of what it asks. ROADMAP block 4.
 
-## 6. The parent
+## 5. The filter
 
-### 6.1 The PIN
+### 5.1 Always on, locked down
 
-A PIN of four or more digits, stored as a salted PBKDF2-HMAC-SHA256 hash
-(`Pin`, 120 000 iterations). Entry is rate-limited in the UI: a wrong PIN
-waits a growing number of seconds. The PIN is set when the device is first
-held (§7.3).
+Shinkan's `FilterService` is a `VpnService`. The device owner makes it the
+**always-on VPN with lockdown** (`setAlwaysOnVpnPackage(pkg, true)`): it
+starts at boot before any app, and while it is down nothing reaches the
+network. `no_config_vpn` keeps the child out of the VPN settings; the
+system's private DNS is set to opportunistic (`setGlobalPrivateDnsModeOpportunistic`)
+and locked (`disallow_config_private_dns`), so the device's own
+DNS-over-TLS never bypasses the tunnel. The service runs in the foreground
+with a silent notice.
 
-### 6.2 Storage
+### 5.2 The tunnel
 
-Policy text and PIN hash are in device-protected shared preferences, readable
-before the first unlock after a boot so the hold is applied at boot. Only the
-device owner reads them; `allowBackup` is off.
+Block 0 routes **DNS only**: the tunnel's address is 10.111.0.1, its resolver
+10.111.0.2, and the one route is that resolver. Every app's name lookups
+enter the tunnel; the rest of the traffic flows as before. The service reads
+IPv4/UDP datagrams to port 53 (`Udp4`), answers or forwards them, and writes
+the reply back with checksums set (`Checksum`, RFC 1071).
 
-### 6.3 Release
+Block 8 routes **everything** (0.0.0.0/0 and ::/0) through a userspace
+TCP/UDP relay so that the filter also sees TLS server names (SNI), drops
+QUIC to blocked hosts, blocks hard-coded resolvers by address, and can tell
+apps apart by connection (`ConnectivityManager.getConnectionOwnerUid`).
 
-The parent door offers *Release this device*: every restriction and
-suspension is lifted, lock task packages cleared, then
+### 5.3 Answers
+
+A query (`DnsQuestion.parse`) for A, AAAA or HTTPS records whose name is a
+blocked host (§6.1) is answered **NXDOMAIN** (`DnsQuestion.refuse`): same
+id and question, authoritative, no records. Apps and browsers show "site not
+found" and stop; nothing hangs. Every other query is sent to the underlying
+network's own resolver through a protected socket and the answer is written
+back unchanged. Shinkan brings no resolver and no list of its own.
+
+### 5.4 Ways around, and the answers
+
+| Way around | Answer |
+| --- | --- |
+| DNS-over-TLS by the system | private DNS opportunistic and locked (§5.1) |
+| DNS-over-HTTPS by a browser | the browser's managed configuration turns it off (block 5); known DoH hosts are on the built-in block list (block 8) |
+| a resolver by IP address | block 8, by address |
+| QUIC (HTTP/3) | block 8: UDP 443 to blocked hosts dropped, TLS falls back |
+| Encrypted Client Hello | no SNI to read; DNS already refused the name, and the HTTPS record that carries the ECH key is refused with it |
+| a VPN app | `no_config_vpn`, and only one VPN runs |
+| a browser's built-in proxy or "VPN" | it is a host too; its family is blocked by sharing one of its links |
+
+### 5.5 Per app
+
+Until block 8 the filter cannot tell which app asked. From block 8 the
+player's own connections to a platform pass while the platform's hosts are
+blocked for every other app (§7.1).
+
+## 6. The block list
+
+### 6.1 Sites
+
+A site is a registered domain; blocking it blocks the host itself and every
+subdomain (`Host.under`): `example.org`, `www.example.org`,
+`a.b.example.org`, never `notexample.org`. Hosts are compared lowercase, with
+no trailing dot and no port.
+
+### 6.2 Sharing a link
+
+Any app's share sheet offers *Block in Shinkan*. The first URL in the shared
+text (or a bare domain) is read by `Link.parse`:
+
+- the host loses its mobile and www prefixes (`m.`, `www.`, `mobile.`,
+  `amp.`, `touch.`) to give the **site**;
+- the site is widened to its **family**, the platform's other hosts
+  (`Families`): sharing a TikTok video blocks `tiktok.com`, `tiktokv.com`,
+  `tiktokcdn.com`, `musical.ly` and the rest, so the app goes dark too. The
+  table is Shinkan's own and grows by issue; an unknown site is blocked by
+  itself;
+- a **creator's page** on a platform the player serves (§7) is read as the
+  creator: `youtube.com/@handle`, `/channel/UC…`, `/c/name`, `/user/name`;
+- a **single video or post** (`youtube.com/watch?v=`, `youtu.be/`,
+  `/shorts/`) is read as an item whose creator the player looks up (§7.3).
+
+The share page shows what will be blocked and asks for one tap (the PIN gate
+of §9.1 from block 2). The filter reloads at once.
+
+### 6.3 Creators
+
+A creator is a platform and the platform's stable reference (a channel id or
+handle). It blocks nothing in the filter: the official app and site of the
+platform are blocked as a family when the first creator is added (the parent
+is told), and the player (§7) hides the creator's channel, videos, search
+results, comments and recommendations.
+
+### 6.4 The text
+
+```
+site tiktok.com
+creator youtube @somehandle Some Name
+```
+
+`BlocklistText` parses and renders it; the parent may see and paste it.
+
+## 7. The player
+
+### 7.1 Why
+
+The YouTube app pins its certificates and the web shows the tunnel only
+`youtube.com`: no filter sees a channel. The one way to block a creator is a
+front end that knows one. Shinkan's player is that front end: YouTube
+without the official app or site, with the parent's block list applied to
+every list the platform returns. The official app is suspended and the
+family's hosts are blocked for every other app (§5.5); the player's own
+connections pass.
+
+### 7.2 Extractor
+
+The player is built on **NewPipe Extractor** (GPL-3.0-or-later, the library
+behind NewPipe on F-Droid), which talks to the platforms' public web
+endpoints with no Google API, no key and no account. Grayjay was considered
+and set aside: FUTO's Source First licence is not free software and F-Droid
+does not carry it. ROADMAP block 9.
+
+### 7.3 A creator from a video
+
+A shared video (§6.2) is resolved by the extractor to its channel, shown to
+the parent by name, and blocked as a creator. The lookup is the one network
+request Shinkan makes on the parent's behalf; it goes to the platform, not
+to Shinkan.
+
+### 7.4 What it covers
+
+YouTube first; PeerTube, SoundCloud and Bandcamp as the extractor serves
+them. Other platforms (TikTok, Instagram, Twitch) have no free front end:
+they are blocked whole or allowed whole, by family.
+
+## 8. Pages
+
+### 8.1 Home
+
+The child's page: the apps usable now, by label, one tap each; the player
+among them when allowed. When no app is usable it says so. A small *Parent*
+link leads to §8.2.
+
+### 8.2 Parent door
+
+PIN entry, then: the hold's status, the policy as a list (allowed apps with
+their windows, restrictions), the block list (sites, creators), *Apply now*,
+*Release this device*. Closes by itself after two minutes without a touch.
+
+### 8.3 Setup
+
+Shown while Shinkan is not device owner: the adb command of §3.1 and what
+follows. Once held, the first opening asks for the PIN to be set and for the
+allowed apps, with every launchable package listed and none chosen.
+
+### 8.4 Block in Shinkan
+
+The share target of §6.2: what will be blocked, *Block*, *Cancel*.
+
+## 9. The parent
+
+### 9.1 The PIN
+
+Four or more digits, stored as a salted PBKDF2-HMAC-SHA256 hash (`Pin`,
+120 000 iterations). Entry is rate-limited: a wrong PIN waits a growing number
+of seconds. Set when the device is first held (§8.3); asked at the parent
+door, at the share target and at release.
+
+### 9.2 Storage
+
+Policy text, block list and PIN hash are in device-protected shared
+preferences, readable before the first unlock after a boot so the hold and
+the filter come up at boot. Only the device owner reads them; `allowBackup`
+is off.
+
+### 9.3 Release
+
+*Release this device* lifts every restriction and suspension, clears the lock
+task packages, unsets the always-on VPN, stops the filter, then
 `clearDeviceOwnerApp`. After it Shinkan is an ordinary app and can be
 uninstalled. Release asks for the PIN once more.
 
-### 6.4 Known limits
+### 9.4 Known limits
 
 - **A lost PIN** means a factory reset from recovery mode (the restriction of
-  §5.3 blocks the reset in Settings, not the bootloader's). Factory reset
-  protection, where a Google account exists, is outside Shinkan.
+  §4.3 blocks the reset in Settings, not the bootloader's).
 - **Recovery-mode wipe** is open to the child for the same reason: the hold
   ends with the data, and the parent will know.
+- **A creator inside another app** (a TikTok account, an Instagram profile)
+  cannot be blocked: the app is blocked whole or not at all (§7.4).
+- **A page inside an allowed site** cannot be blocked: hosts are what the
+  filter sees. The answer is the site, or a browser allow-list through its
+  managed configuration (block 5).
+- **Until block 8**, an app that resolves names by itself over HTTPS or by
+  address slips the DNS filter; the browser's DoH is turned off by policy in
+  block 5.
 - **Suspended apps' widgets and shortcuts** still show; their taps open the
   suspension dialog.
 - **Emergency calls** are never blocked; the phone app is the OEM's.
 
-## 7. Pages
-
-### 7.1 Home
-
-The child's page: the apps usable now, by label, one tap each; nothing else.
-When no app is usable it says so. A small *Parent* link leads to §7.2.
-
-### 7.2 Parent door
-
-PIN entry, then: the hold's status, the policy as a list (allowed apps with
-their windows, restrictions), *Apply now*, *Release this device*. Closes by
-itself after two minutes without a touch.
-
-### 7.3 Setup
-
-Shown while Shinkan is not device owner: the adb command of §4.1 and what
-follows. Once held, the first opening asks for the PIN to be set and for the
-allowed apps, with every launchable package listed and none chosen.
-
-## 8. Testing
+## 10. Testing
 
 Core: `./gradlew :core:test`. App: on the emulator only, never on a real
 device during development, and never on the `zanshin-test` emulator, whose
 snapshot other work restores. The AVD `shinkan-test` (an image without Google
-Play, so that no account blocks §4.1) is created and provisioned by
+Play, so that no account blocks §3.1) is created and provisioned by
 `tools/emulator/` (ROADMAP block 1). The hold is checked by `adb shell dumpsys
-device_policy` before the restrictions cut adb, and from then on through the
-UI and `logcat` over the emulator console.
+device_policy` before the restrictions cut adb; the filter by `nslookup` of a
+blocked and an unblocked name from an allowed terminal app, and by the
+emulator's `logcat` on its console.
 
-## 9. Release
+## 11. Release
 
 Versions are tags `v<versionName>`; `versionCode` counts up by one. F-Droid
 builds from the tag with the recipe in `docs/fdroid/` once submitted (ROADMAP

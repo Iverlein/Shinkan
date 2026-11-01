@@ -1,1 +1,1 @@
-Child lock that holds the whole device: allowed apps, hours, no way around
+Child lock that holds the whole device: apps, hours, traffic, no way around

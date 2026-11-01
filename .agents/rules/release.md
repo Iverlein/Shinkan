@@ -16,8 +16,9 @@ paths:
   under 80 characters, `full_description.txt` plain text), screenshots once
   there is a UI to show.
 - **The permission check before any release**: `aapt2 dump permissions` on
-  the release APK shows `QUERY_ALL_PACKAGES` and `RECEIVE_BOOT_COMPLETED`
-  and nothing else. `INTERNET` is a bug, never a feature.
+  the release APK shows `INTERNET`, `QUERY_ALL_PACKAGES`,
+  `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE`,
+  `FOREGROUND_SERVICE_SPECIAL_USE` and `POST_NOTIFICATIONS`, nothing else.
 - **Versions**: `versionCode` up by one, `versionName` as the tag `v<name>`;
   the changelog in `fastlane/.../changelogs/<versionCode>.txt`, under 500
   characters, written at the release.

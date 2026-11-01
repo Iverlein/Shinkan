@@ -17,6 +17,14 @@
     <string name="parent_allowed">%1$d apps allowed</string>
     <string name="parent_back">Back</string>
 
+    <!-- The launcher icon (SPEC §8.5) -->
+    <string name="parent_icon">Icon</string>
+    <string name="parent_icon_hint">The launcher shows the new icon once you leave Shinkan.</string>
+    <string name="icon_crest">Crest</string>
+    <string name="icon_gate">Gate</string>
+    <string name="icon_gate_drawn">Drawn gate</string>
+    <string name="icon_seal">Seal</string>
+
     <!-- The share target (SPEC §6.2) -->
     <string name="share_label">Block in Shinkan</string>
     <string name="share_no_link">No link in what was shared.</string>

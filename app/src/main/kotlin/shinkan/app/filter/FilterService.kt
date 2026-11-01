@@ -118,7 +118,7 @@ class FilterService : VpnService() {
         )
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return Notification.Builder(this, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.icon_crest)
             .setContentTitle(getString(R.string.filter_notice))
             .setContentIntent(open)
             .setOngoing(true)

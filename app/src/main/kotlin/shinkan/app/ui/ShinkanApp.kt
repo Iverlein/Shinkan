@@ -1,15 +1,25 @@
 package shinkan.app.ui
 
 import android.content.Intent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -20,12 +30,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.github.iverlein.shinkan.R
+import shinkan.app.LauncherIcon
 import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
 import java.time.LocalDateTime
@@ -92,5 +108,47 @@ private fun ParentPage(store: PolicyStore, onBack: () -> Unit) {
     Text(stringResource(R.string.parent_status_held))
     Text(stringResource(R.string.parent_allowed, store.policy.allowed.size))
     Spacer(Modifier.height(24.dp))
+    IconChoice(store)
+    Spacer(Modifier.height(24.dp))
     Button(onClick = onBack) { Text(stringResource(R.string.parent_back)) }
+}
+
+/** The launcher icon (SPEC §8.5): each shown as the launcher's round mask shows it. */
+@Composable
+private fun IconChoice(store: PolicyStore) {
+    var chosen by remember { mutableStateOf(LauncherIcon.chosen(store)) }
+    Text(stringResource(R.string.parent_icon), style = MaterialTheme.typography.titleMedium)
+    Spacer(Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        LauncherIcon.entries.forEach { icon ->
+            val selected = icon == chosen
+            Column(
+                Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .selectable(selected = selected, role = Role.RadioButton) {
+                        store.icon = icon.key
+                        chosen = icon
+                    }
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val ring = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                Box(
+                    Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(colorResource(R.color.paper))
+                        .border(if (selected) 2.dp else 1.dp, ring, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // An adaptive icon shows the middle 66 of its 108 units: draw the foreground larger than the circle.
+                    Image(painterResource(icon.foreground), contentDescription = null, Modifier.requiredSize(92.dp))
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(stringResource(icon.label), style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+    Spacer(Modifier.height(8.dp))
+    Text(stringResource(R.string.parent_icon_hint), style = MaterialTheme.typography.bodySmall)
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The crest: the barrier gate (関) inside a ring, in the manner of a family crest. The default
+     launcher icon (SPEC §8.5); drawn inside the 66dp circle an adaptive icon keeps. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="@color/ink" android:strokeWidth="4"
+        android:pathData="M23,54 a31,31 0 1,0 62,0 a31,31 0 1,0 -62,0" />
+    <path android:fillColor="@color/gate"
+        android:pathData="M36,40h36v5H36z M41,45h5v25h-5z M62,45h5v25h-5z M46,55h16v4H46z" />
+</vector>

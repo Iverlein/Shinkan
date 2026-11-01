@@ -78,7 +78,8 @@ every session, from its first edit:
 4. **Cleans up**: `git worktree remove --force $W`, `git branch -d
    work/<name>`.
 
-Pushing waits for the owner's word.
+5. **Pushes main** right after the fast-forward (owner's standing word,
+   2026-11-01); no other branch is pushed.
 
 ## Docs on every feature merge
 
@@ -105,4 +106,4 @@ rule file, the F-Droid listing. Only the changelog waits for the release.
   nothing exported (SPEC §2.5).
 - **No personal data in the repository**: it is public.
 - **Commit verified work without asking**, from the session's own worktree;
-  push only when the owner says; no assistant signature in commits.
+  push main after every fast-forward; no assistant signature in commits.

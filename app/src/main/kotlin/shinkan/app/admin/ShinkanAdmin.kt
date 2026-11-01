@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 
 /**
- * The device owner's receiver (SPEC §4). It has no policy of its own: the
+ * The device owner's receiver (SPEC §3). It has no policy of its own: the
  * hold is in [DeviceHold], which this receiver triggers once provisioning
  * is complete.
  */

@@ -2,18 +2,31 @@
 <resources>
     <string name="app_name" translatable="false">Shinkan</string>
 
-    <!-- Setup, before Shinkan is device owner (SPEC §4) -->
+    <!-- Setup, before Shinkan is device owner (SPEC §3) -->
     <string name="setup_title">Shinkan does not hold this device yet</string>
     <string name="setup_body">Shinkan must be made the device owner once, on a device with no accounts added. Connect it by USB with debugging on and run:</string>
     <string name="setup_after">Then open Shinkan again. Debugging is switched off by the hold; to release it later, use the parent door and your PIN.</string>
 
-    <!-- The child's home (SPEC §7.1) -->
+    <!-- The child's home (SPEC §8.1) -->
     <string name="home_empty">Nothing to open right now.</string>
     <string name="home_parent">Parent</string>
 
-    <!-- The parent door (SPEC §7.2) -->
+    <!-- The parent door (SPEC §8.2) -->
     <string name="parent_title">Parent</string>
     <string name="parent_status_held">Shinkan holds this device.</string>
     <string name="parent_allowed">%1$d apps allowed</string>
     <string name="parent_back">Back</string>
+
+    <!-- The share target (SPEC §6.2) -->
+    <string name="share_label">Block in Shinkan</string>
+    <string name="share_no_link">No link in what was shared.</string>
+    <string name="share_site">Block %1$s on this device, with every subdomain and these hosts: %2$s</string>
+    <string name="share_creator">Block %1$s on %2$s in the player.</string>
+    <string name="share_item_later">This is a single video or post. Blocking its creator from it needs the player\'s lookup, which is not built yet; share the channel page instead.</string>
+    <string name="share_cancel">Cancel</string>
+    <string name="share_block">Block</string>
+
+    <!-- The filter (SPEC §5) -->
+    <string name="filter_channel">Filter</string>
+    <string name="filter_notice">Shinkan filters this device</string>
 </resources>

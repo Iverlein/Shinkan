@@ -6,7 +6,7 @@ import shinkan.core.PolicyText
 
 /**
  * The policy text and the PIN hash, in device-protected storage so they are
- * readable before the user unlocks after a reboot (SPEC §6.2). Only Shinkan,
+ * readable before the user unlocks after a reboot (SPEC §9.2). Only Shinkan,
  * as device owner, can read them.
  */
 class PolicyStore(context: Context) {

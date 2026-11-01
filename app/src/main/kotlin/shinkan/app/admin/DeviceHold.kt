@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
+import shinkan.app.filter.FilterService
 import shinkan.core.Policy
 import shinkan.core.Restriction
 import java.time.LocalDateTime
@@ -14,7 +15,7 @@ import java.time.ZoneId
 
 /**
  * Turns the [Policy] into the device's state through DevicePolicyManager
- * (SPEC §5). Every call here is one documented platform policy; the decisions
+ * (SPEC §4). Every call here is one documented platform policy; the decisions
  * are in the core module.
  */
 class DeviceHold(private val context: Context) {
@@ -24,7 +25,7 @@ class DeviceHold(private val context: Context) {
 
     val isOwner: Boolean get() = dpm.isDeviceOwnerApp(context.packageName)
 
-    /** The adb command that makes Shinkan the device owner (SPEC §4.1). */
+    /** The adb command that makes Shinkan the device owner (SPEC §3.1). */
     val provisionCommand: String
         get() = "adb shell dpm set-device-owner ${admin.flattenToShortString()}"
 
@@ -34,7 +35,23 @@ class DeviceHold(private val context: Context) {
         val policy = store.policy
         applyRestrictions(policy)
         applyPackages(policy, now)
+        applyFilter()
         scheduleNext(policy, now)
+    }
+
+    /**
+     * Locks the device to Shinkan's own VPN (SPEC §5.1): always on, lockdown, so
+     * nothing reaches the network while the filter is down; plain DNS only, so
+     * the system's own DNS-over-TLS cannot bypass it.
+     */
+    private fun applyFilter() {
+        try {
+            dpm.setGlobalPrivateDnsModeOpportunistic(admin)
+            dpm.setAlwaysOnVpnPackage(admin, context.packageName, true)
+        } catch (e: Exception) {
+            Log.e(TAG, "always-on VPN not set: $e")
+        }
+        FilterService.start(context)
     }
 
     private fun applyRestrictions(policy: Policy) {
@@ -43,7 +60,7 @@ class DeviceHold(private val context: Context) {
         }
     }
 
-    /** Suspends every launchable package but Shinkan and the ones usable now (SPEC §5.2). */
+    /** Suspends every launchable package but Shinkan and the ones usable now (SPEC §4.2). */
     private fun applyPackages(policy: Policy, now: LocalDateTime) {
         val usable = policy.usableAt(now)
         val launchable = launchablePackages()
@@ -51,7 +68,7 @@ class DeviceHold(private val context: Context) {
         val resume = launchable.filter { it in usable }.toTypedArray()
         if (suspend.isNotEmpty()) dpm.setPackagesSuspended(admin, suspend, true)
         if (resume.isNotEmpty()) dpm.setPackagesSuspended(admin, resume, false)
-        // Lock task mode pins Shinkan's home and lets the allowed apps run over it (SPEC §5.1).
+        // Lock task mode pins Shinkan's home and lets the allowed apps run over it (SPEC §4.1).
         dpm.setLockTaskPackages(admin, (usable + context.packageName).toTypedArray())
     }
 
@@ -81,13 +98,15 @@ class DeviceHold(private val context: Context) {
         Log.i(TAG, "next change at $next")
     }
 
-    /** Hands the device back (SPEC §6.3): every restriction and suspension lifted, then the ownership itself. */
+    /** Hands the device back (SPEC §9.3): every restriction and suspension lifted, then the ownership itself. */
     fun release() {
         if (!isOwner) return
         for (r in Restriction.entries) dpm.clearUserRestriction(admin, r.key)
         val all = launchablePackages().toTypedArray()
         if (all.isNotEmpty()) dpm.setPackagesSuspended(admin, all, false)
         dpm.setLockTaskPackages(admin, emptyArray())
+        runCatching { dpm.setAlwaysOnVpnPackage(admin, null, false) }
+        context.stopService(Intent(context, FilterService::class.java))
         dpm.clearDeviceOwnerApp(context.packageName)
     }
 

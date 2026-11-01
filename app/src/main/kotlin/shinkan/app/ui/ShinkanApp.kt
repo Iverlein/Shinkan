@@ -31,8 +31,8 @@ import shinkan.app.admin.PolicyStore
 import java.time.LocalDateTime
 
 /**
- * The three pages (SPEC §7): setup until Shinkan is device owner; the child's
- * home with the apps usable now; the parent door. The PIN gate (§7.2) and the
+ * The three pages (SPEC §8): setup until Shinkan is device owner; the child's
+ * home with the apps usable now; the parent door. The PIN gate (§9.1) and the
  * policy editor are ROADMAP blocks 2 and 3; until then the door opens on a tap.
  */
 @Composable

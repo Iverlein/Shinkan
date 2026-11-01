@@ -9,7 +9,7 @@ import shinkan.app.admin.PolicyStore
 import shinkan.app.ui.ShinkanApp
 import shinkan.app.ui.ShinkanTheme
 
-/** The one activity: the child's home, the parent door, or the setup page before the device is held (SPEC §7). */
+/** The one activity: the child's home, the parent door, or the setup page before the device is held (SPEC §8). */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

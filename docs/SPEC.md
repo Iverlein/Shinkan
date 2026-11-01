@@ -120,12 +120,12 @@ on the open device the closed ones outside their windows. Installs and
 uninstalls are blocked by restriction (§4.3), so the set of packages changes
 only through the parent.
 
-A window is when a thing is usable: a door of the closed device with no
-window is open always, one with windows only inside one; a closed app of the
-open device with windows is usable inside them and suspended outside
-(`Policy.usableAt`). The policy is applied again at boot, when the clock or
-the zone changes, and by an exact alarm at the next window edge
-(`Policy.nextChange`). The clock is protected by `no_config_date_time`.
+What is open when is the day plan of §4.7: a door of the closed device is
+open in the stages that name it; a closed app of the open device with
+windows is usable inside them and suspended outside (`Policy.usableAt`).
+The policy is applied again at boot, when the clock or the zone changes, and
+by an exact alarm at the next edge (`Policy.nextChange`). The clock is
+protected by `no_config_date_time`.
 
 ### 4.3 Device restrictions
 
@@ -150,31 +150,38 @@ Stored and shown as text, one statement per line, parsed and rendered by
 
 ```
 mode closed
-window browser mon,tue,wed,thu,fri 16:00-18:00
-window player sat,sun 10:00-12:00
+plan mon,tue,wed,thu,fri
+  06:00-10:00 browser player
+  player 30 rest 90
+  browser 120
+plan sat,sun
+  08:00-12:00 browser player
+  player 60 rest parent
 volume browser 60
 volume player 40
-screen 45
-cooldown 60
 restrict factory_reset
 ```
 
 ```
 mode open
+plan mon,tue,wed,thu,fri
+  07:00-09:00 device
+  device 60 rest 30
 close com.example.game
 window com.example.game sat,sun 10:00-12:00
 close com.zhiliaoapp.musically
 volume device 70
-screen 90
-cooldown parent
 ```
 
-`mode` is `closed` or `open` (§4.1); `browser` and `player` name Shinkan's
-two doors; `close` names a package of the open device; `window` gives one
+`mode` is `closed` or `open` (§4.1); `plan` opens a day plan for the
+weekdays named and the indented lines are its stages, a span
+(`HH:MM-HH:MM` and the doors open in it) or a budget (the doors, the minutes,
+and `rest` with minutes or `parent`), in order (§4.7); `browser` and
+`player` name Shinkan's two doors and `device` the whole screen of the open
+device; `close` names a package of the open device and `window` gives it one
 span on given weekdays, which may cross midnight and then belongs to the day
-it opens; `volume` sets a ceiling (§4.6); `screen` and `cooldown` give the
-budget and the rest in minutes, `cooldown parent` a rest only a parent ends
-(§4.7); `restrict` names one of §4.3 by the enum's name. When no `restrict` line is written the default set applies.
+it opens; `volume` sets a ceiling (§4.6); `restrict` names one of §4.3 by
+the enum's name. When no `restrict` line is written the default set applies.
 Block 3 replaces the skeleton's `allow` lines with this form.
 
 ### 4.5 Permissions of the usable apps
@@ -200,25 +207,40 @@ ceiling when it is exceeded, a clamp that acts after the change, not a lock
 (§9.4). The child may always go lower. Ringer and alarm streams are the
 device's own. Block 3 for the doors, block 7 for the device.
 
-### 4.7 Screen time and rest
+### 4.7 The day plan: spans, budgets and rests
 
-The parent gives the child a **budget** of screen time and a **rest** that
-follows it (`screen` and `cooldown` lines, §4.4). Screen time is time the
-screen is on and the device unlocked, on either form: the filter's
-foreground service counts it from `ACTION_SCREEN_ON`, `ACTION_SCREEN_OFF`
-and `ACTION_USER_PRESENT`, and the rest page itself does not count. When
-the budget is spent, playback stops (the player pauses, the browser's page
-is paused) and the rest page (§8.7) takes the screen: on the closed device
-it is the home; on the open device Shinkan brings it to the front and pins
-it with lock task (`startLockTask`, allowed to a device owner's own
-activity without a prompt), so the child cannot leave it for another app.
-The rest ends in one of two ways, the parent's choice: after a set number
-of minutes of wall time, counted whether the screen is on or off (`cooldown
-60`), or when a parent opens the door and taps *Open* (`cooldown parent`).
-A rest that ends starts a fresh budget. Nothing is logged (§2.5): what is
-kept is the running budget and the rest's end, in device-protected storage
-so a reboot neither resets nor extends them; the clock is protected by
-`no_config_date_time`. Block 3 for the closed device, block 7 for the open.
+A day is a **plan** of stages (`plan` lines, §4.4), one plan per set of
+weekdays. A stage is either a **span**, a clock period in which the named
+doors are open (`06:00-10:00 browser player`), or a **budget**, a number of
+minutes of use of the named doors, after which an optional **rest** follows
+(`player 30 rest 90`). Stages run in order: a span starts at its time
+whatever is running; a budget starts when the stage before it ends and lasts
+until its minutes are spent; a rest lasts the minutes given on the wall
+clock, screen on or off, or until a parent opens the door and taps *Open*
+(`rest parent`). After the last stage nothing is open until the next plan
+day. A plan belongs to the day its first stage starts, and a span may cross
+midnight. So "free until ten, then half an hour of YouTube with an hour and
+a half of rest, then two hours of the browser" is three stages.
+
+Use is time the screen is on, the device unlocked and that door in front:
+the filter's foreground service counts it from `ACTION_SCREEN_ON`,
+`ACTION_SCREEN_OFF`, `ACTION_USER_PRESENT` and the doors' own lifecycle; the
+rest page itself does not count. When a budget is spent, playback stops
+(the player pauses, the browser's page is paused) and, if a rest follows,
+the rest page (§8.7) takes the screen: on the closed device it is the home;
+on the open device Shinkan brings it to the front and pins it with lock
+task (`startLockTask`, allowed to a device owner's own activity without a
+prompt), so the child cannot leave it for another app. On the open device
+the subject of a stage is `device`, the whole screen, since no policy tells
+Shinkan which app is in front (§9.4); the closed apps keep their own
+`window` lines beside the plan.
+
+Nothing is logged (§2.5): what is kept is the current stage, the minutes
+spent in it and a rest's end, in device-protected storage so a reboot
+neither resets nor extends them; the clock is protected by
+`no_config_date_time`. `Policy.usableAt` gives what is open now and
+`Policy.nextChange` the next edge, by clock or by the budget's remainder.
+Block 3 for the closed device, block 7 for the open.
 
 ## 5. The filter
 
@@ -397,7 +419,8 @@ ceiling is §4.6; what it keeps between sessions is decided in block 5.
 
 On the closed device, the child's whole screen: two large buttons, *Browser*
 and *YouTube*, side by side in landscape and one above the other in
-portrait; a door outside its window is greyed and says when it opens next.
+portrait; a door the plan has closed is greyed and says when it opens next,
+an open one with a budget shows what is left of it.
 On the open device Shinkan is opened like any app and shows the closed apps
 with their next window. A small *Parent* link leads to §8.2.
 
@@ -407,10 +430,10 @@ PIN entry, then: the hold's status; the form (§4.1); the policy as a list
 (the doors' windows and ceilings on the closed device, the closed apps with
 their windows and the device ceiling on the open device, restrictions); the
 block list (sites, creators, the built-in categories of §6.5, the segment
-categories of §7.5); the budget and the rest with what is left of each and
-*Open now* during a rest (§4.7); the icon (§8.5); the theme (§8.6); *Apply
-now*; *Release this device*. Closes by itself after two minutes without a
-touch.
+categories of §7.5); the day plan with its current stage, what is left of
+it and *Open now* during a rest (§4.7); the icon (§8.5); the theme (§8.6);
+*Apply now*; *Release this device*. Closes by itself after two minutes
+without a touch.
 
 ### 8.3 Setup
 
@@ -458,7 +481,7 @@ dark theme and landscape with the first real pages.
 
 ### 8.7 Rest
 
-The page the child sees when the budget is spent (§4.7): a brush-drawn ring
+The page the child sees during a rest (§4.7): a brush-drawn ring
 in vermilion, an ensō, that closes as the rest passes, with the time left
 under it in large figures; when the rest is the parent's to end, the ring
 is whole and the page says so. Nothing else is on it but the small *Parent*
@@ -510,10 +533,11 @@ uninstalled. Release asks for the PIN once more.
   app that sets the volume itself is pulled down again each time. Per-app
   ceilings exist only for the two doors of the closed device (§4.6).
 - **Segments** are community data: one nobody marked is played.
-- **Screen time is screen-on time**, not attention: a page left open counts,
-  and on the open device the budget cannot tell one app from another (the
-  same limit as the ceiling). A rest in minutes runs on the wall clock,
-  which is protected; a rest the parent ends waits for the parent.
+- **A budget counts screen-on time**, not attention: a page left open
+  counts, and on the open device a stage cannot tell one app from another
+  (`device` only, the same limit as the ceiling). A rest in minutes runs on
+  the wall clock, which is protected; a rest the parent ends waits for the
+  parent.
 - **Suspended apps' widgets and shortcuts** still show; their taps open the
   suspension dialog.
 - **Emergency calls** are never blocked; the phone app is the OEM's.

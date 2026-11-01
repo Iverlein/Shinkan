@@ -8,7 +8,7 @@ on every feature merge*). Spec sections in brackets.
 | 0 | Skeleton: core model and tests, device owner receiver, the hold applied, the DNS filter as always-on lockdown VPN, the share target with sites, families and YouTube creators, three bare pages, docs, licence, F-Droid listing | done 2026-11-01 |
 | 1 | `tools/emulator/`: create `shinkan-test` (no Play), provision by adb, restore; the emulator checks of SPEC §10 — the filter's first run on a device. The AVD itself exists since 2026-11-01 with a `clean` snapshot (AGENTS.md); the tool remains | |
 | 2 | The PIN: set at first hold, gate on the parent door, the share target and release, rate limit, closes after two minutes [§9.1, §8.2] | |
-| 3 | The closed device: Shinkan the only home in lock task, the two doors with windows and ceilings, everything else suspended; the policy text with `mode`, `window browser|player`, `volume`, replacing `allow`; the screen-time budget and the rest page with its ring; the child's page and the parent's editor for it; landscape on every page and the sumi theme [§4.1, §4.2, §4.4, §4.6, §4.7, §8.1, §8.2, §8.6, §8.7] | |
+| 3 | The closed device: Shinkan the only home in lock task, the two doors with windows and ceilings, everything else suspended; the policy text with `mode`, `window browser|player`, `volume`, replacing `allow`; the day plan of spans, budgets and rests, and the rest page with its ring; the child's page and the parent's editor for it; landscape on every page and the sumi theme [§4.1, §4.2, §4.4, §4.6, §4.7, §8.1, §8.2, §8.6, §8.7] | |
 | 4 | The built-in block list: Hagezi and StevenBlack bundled, the categories on the door, `pass` lines [§6.5] | |
 | 5 | The browser: Shinkan's page on the WebView with EasyList and EasyPrivacy at request level, the system resolver, its ceiling; what it keeps between sessions [§7.6] | |
 | 6 | The player on NewPipe Extractor: YouTube with the creator block list applied to channel, search, related and comments; a shared video resolved to its creator; the official app suspended and the family blocked when the first creator is added; SponsorBlock segments by hash prefix, from Tubular [§7] | |
@@ -49,5 +49,6 @@ on every feature merge*). Spec sections in brackets.
 - 2026-11-01: landscape on every page from the first real UI; two themes,
   rice paper (light) and sumi (dark) (SPEC §8.6). A parent-set volume
   ceiling, per door on the closed device, one for the open device (SPEC
-  §4.6). A screen-time budget followed by a rest, in minutes or until a
-  parent opens, shown as a closing ring (SPEC §4.7, §8.7).
+  §4.6). A day plan of stages: clock spans with the doors open in them,
+  budgets of minutes per door, rests in minutes or until a parent opens,
+  shown as a closing ring (SPEC §4.7, §8.7).

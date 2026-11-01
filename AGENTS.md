@@ -5,7 +5,9 @@ app allow-list with hours, device restrictions, its own traffic filter as
 the always-on lockdown VPN, a share target that blocks any link device-wide,
 a built-in player that blocks creators, a parent PIN. The specification is
 [docs/SPEC.md](docs/SPEC.md); read it before changing behaviour, and keep it
-in step with the code. What is next: [docs/ROADMAP.md](docs/ROADMAP.md).
+in step with the code. What is next, block by block with what each builds and how it is proved:
+[docs/ROADMAP.md](docs/ROADMAP.md); a session builds one block and reads
+its section first.
 
 ## How the rules are laid out
 

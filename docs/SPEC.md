@@ -93,16 +93,20 @@ reset protection. §9.4 lists what a determined child can still do.
 
 ### 4.1 Two forms: the closed device and the open device
 
-**The closed device** (ROADMAP block 3, the first form). Shinkan registers
-as a launcher (`CATEGORY_HOME`) and the parent makes it the default home
-once; lock task mode (`setLockTaskPackages`, Shinkan alone) keeps the child
+**The closed device** (ROADMAP blocks 3a to 3e, the first form). Shinkan
+registers as a launcher (`CATEGORY_HOME`) and makes itself the default home
+as device owner (`addPersistentPreferredActivity` with the HOME filter);
+lock task mode (`setLockTaskPackages`, Shinkan alone; `setLockTaskFeatures`
+with none until A1; `startLockTask` from its own activity) keeps the child
 in it: no other launcher, no status-bar settings, no recents. The child's
 page (§8.1) has two doors and nothing else: the browser (§7.6) and the
 player (§7), each usable within its windows; every other launchable package
 is suspended.
 
-**The open device** (block 7, the second form). The device keeps its own
-launcher and Shinkan is one app among the others; lock task is off. The
+**The open device** (blocks 7a to 7c, the second form). The device keeps
+its own launcher (`clearPackagePersistentPreferredActivities`) and Shinkan
+is one app among the others; lock task is off except for the rest page
+(§4.7). The
 packages the parent names are **closed**: suspended always, or outside
 their windows. Everything else of the hold stays: the restrictions of
 §4.3, the filter of §5 with the block list of §6, the browser and the
@@ -182,7 +186,7 @@ device; `close` names a package of the open device and `window` gives it one
 span on given weekdays, which may cross midnight and then belongs to the day
 it opens; `volume` sets a ceiling (§4.6); `restrict` names one of §4.3 by
 the enum's name. When no `restrict` line is written the default set applies.
-Block 3 replaces the skeleton's `allow` lines with this form.
+Block 3a replaces the skeleton's `allow` lines with this form.
 
 ### 4.5 Permissions of the usable apps
 
@@ -205,7 +209,7 @@ granted by a device owner), so the ceiling is **one for the device**
 `AudioManager.VOLUME_CHANGED_ACTION` and sets the media stream back to the
 ceiling when it is exceeded, a clamp that acts after the change, not a lock
 (§9.4). The child may always go lower. Ringer and alarm streams are the
-device's own. Block 3 for the doors, block 7 for the device.
+device's own. Block 3d for the doors, 7c for the device.
 
 ### 4.7 The day plan: spans, budgets and rests
 
@@ -240,7 +244,7 @@ spent in it and a rest's end, in device-protected storage so a reboot
 neither resets nor extends them; the clock is protected by
 `no_config_date_time`. `Policy.usableAt` gives what is open now and
 `Policy.nextChange` the next edge, by clock or by the budget's remainder.
-Block 3 for the closed device, block 7 for the open.
+Blocks 3c and 3e for the closed device, 7b for the open.
 
 ## 5. The filter
 
@@ -282,18 +286,21 @@ back unchanged. Shinkan brings no resolver and no list of its own.
 | Way around | Answer |
 | --- | --- |
 | DNS-over-TLS by the system | private DNS opportunistic and locked (§5.1) |
-| DNS-over-HTTPS by a browser | Shinkan's browser is a WebView and resolves through the system, so the filter answers it (§7.6); known DoH hosts are on the built-in block list (block 11) |
-| a resolver by IP address | block 11, by address |
-| QUIC (HTTP/3) | block 11: UDP 443 to blocked hosts dropped, TLS falls back |
+| DNS-over-HTTPS by a browser | Shinkan's browser is a WebView and resolves through the system, so the filter answers it (§7.6); known DoH hosts are on the built-in block list (block 11c) |
+| a resolver by IP address | block 11c, by address |
+| QUIC (HTTP/3) | block 11b: UDP 443 to blocked hosts dropped, TLS falls back |
 | Encrypted Client Hello | no SNI to read; DNS already refused the name, and the HTTPS record that carries the ECH key is refused with it |
 | a VPN app | `no_config_vpn`, and only one VPN runs |
 | a browser's built-in proxy or "VPN" | it is a host too; its family is blocked by sharing one of its links |
 
 ### 5.5 Per app
 
-Until block 11 the filter cannot tell which app asked. From block 11 the
+The filter learns which app sent a datagram from
+`ConnectivityManager.getConnectionOwnerUid`, which the active VPN may call
+(block 6a). A query from Shinkan's own uid is answered unfiltered, so the
 player's own connections to a platform pass while the platform's hosts are
-blocked for every other app (§7.1).
+blocked for every other app (§7.1). The same call on TCP carries the pass
+into the full tunnel (block 11d).
 
 ## 6. The block list
 
@@ -372,7 +379,7 @@ The player is built on **NewPipe Extractor** (GPL-3.0-or-later, the library
 behind NewPipe on F-Droid), which talks to the platforms' public web
 endpoints with no Google API, no key and no account. Grayjay was considered
 and set aside: FUTO's Source First licence is not free software and F-Droid
-does not carry it. ROADMAP block 6.
+does not carry it. ROADMAP block 6a.
 
 ### 7.3 A creator from a video
 
@@ -397,7 +404,7 @@ same four hex characters, so the server sees a bucket of videos, never the
 one played: this is the second named request of §2.1. The categories are
 the parent's choice; `sponsor`, `selfpromo` and `interaction` by default.
 The parent may name a mirror. The code comes from Tubular (GPL-3.0, NewPipe
-with SponsorBlock), block 6.
+with SponsorBlock), block 6d.
 
 ### 7.6 The browser
 
@@ -476,8 +483,8 @@ door: **rice paper**, the light theme, sepia paper with ink text and
 vermilion for the gate (the `paper`, `ink` and `gate` colours of
 `res/values/themes.xml`); **sumi**, the dark theme, an ink ground with paper
 text and the lighter vermilion the icons use on dark. The child's buttons
-are large enough for a small hand in either orientation. Block 3 brings the
-dark theme and landscape with the first real pages.
+are large enough for a small hand in either orientation. Block 3b brings
+the dark theme and landscape with the first real pages.
 
 ### 8.7 Rest
 
@@ -525,7 +532,7 @@ uninstalled. Release asks for the PIN once more.
   uBlock Origin blocks them, elements are hidden only where a simple rule
   allows. A third-party browser on the open device gets the host filter and
   nothing more.
-- **Until block 11**, an app that resolves names by itself over HTTPS or by
+- **Until block 11a**, an app that resolves names by itself over HTTPS or by
   address slips the DNS filter; Shinkan's own browser cannot, it resolves
   through the system (§7.6).
 - **The volume ceiling of the open device** is one for the device and a
@@ -551,10 +558,13 @@ Core: `./gradlew :core:test`. App: on the emulator only, never on a real
 device during development, and never on the `zanshin-test` emulator, whose
 snapshot other work restores. The AVD `shinkan-test` (an image without Google
 Play, so that no account blocks §3.1) is created and provisioned by
-`tools/emulator/` (ROADMAP block 1). The hold is checked by `adb shell dumpsys
-device_policy` before the restrictions cut adb; the filter by `nslookup` of a
-blocked and an unblocked name from an allowed terminal app, and by the
-emulator's `logcat` on its console.
+`tools/emulator/` (ROADMAP block 1). The debug build does not apply
+`no_debugging_features` (`Restriction.DEBUGGING_FEATURES` is skipped under
+`BuildConfig.DEBUG`), so the beta can be driven by adb after the hold; the
+release build applies it and is checked by eye once per release. The hold
+is checked by `adb shell dumpsys device_policy`; the filter by `adb shell
+ping -c 1` of a blocked and an unblocked name, and by the emulator's
+`logcat`.
 
 ## 11. Release
 

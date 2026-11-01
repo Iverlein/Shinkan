@@ -7,18 +7,28 @@ Free software, on F-Droid when 1.0 is out.
 Shinkan is made the **device owner** once, on a freshly set-up device, by one
 `adb` command (or a QR code at first boot). From then on:
 
-- only the apps the parent allowed can be opened, each within the hours the
-  parent set; everything else is suspended;
+- on the **closed device**, Shinkan is the child's whole home: two doors, a
+  browser and a YouTube player, both Shinkan's own and filtered, each at the
+  hours the parent set, each with its own volume ceiling; everything else is
+  suspended. On the **open device** the child keeps the launcher and the
+  parent closes the apps named, at the hours named;
 - installing, uninstalling, adding accounts, changing the clock, safe boot,
   factory reset from Settings, VPN and DNS settings and USB debugging are
   blocked;
 - **the device's traffic goes through Shinkan's own filter**, an always-on
-  VPN with lockdown that the child cannot switch off. Share any link from
-  any app to *Block in Shinkan*: the site is blocked device-wide with every
-  subdomain and the platform's other hosts, so the app goes dark too;
+  VPN with lockdown that the child cannot switch off. Ads and trackers are
+  blocked from a bundled list, gambling, porn and social sites by the
+  parent's choice. Share any link from any app to *Block in Shinkan*: the
+  site is blocked device-wide with every subdomain and the platform's other
+  hosts, so the app goes dark too;
 - **a creator can be blocked**: share a YouTube channel's page and Shinkan's
   built-in player (on NewPipe Extractor) hides them everywhere, while the
-  official app and site are held;
+  official app and site are held; the player skips sponsor segments with
+  SponsorBlock;
+- the browser is Shinkan's own page with EasyList and EasyPrivacy applied
+  to every request;
+- a screen-time budget, then a rest: playback stops and the child sees a
+  ring closing until the rest ends, or until a parent opens the device;
 - the parent opens the settings with a PIN that exists only on the device,
   and can release the device at any time.
 

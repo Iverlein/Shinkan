@@ -1,7 +1,9 @@
 # Shinkan — Specification
 
 Status: draft of 2026-11-01, revised the same day for the filter (§5), the
-block list (§6), the player (§7) and the icon (§8.5).
+block list (§6), the player (§7), the icon (§8.5), the two forms of the
+hold (§4.1), the built-in list (§6.5), segments and the browser (§7.5,
+§7.6), the look (§8.6), the volume ceiling (§4.6) and screen time (§4.7).
 
 ## 1. What it is
 
@@ -11,6 +13,12 @@ once, on a freshly set-up device, and from then on decides which apps exist
 for the child, at which hours, what the device itself may do, and what the
 device may reach on the network. A parent opens it with a PIN that lives only
 on the device.
+
+The hold has two forms (§4.1). On the **closed device**, the first, Shinkan
+is the child's whole home: two doors, a browser and a YouTube player, both
+Shinkan's own and both filtered, each at the hours the parent set; every
+other app is suspended. On the **open device**, the second, the child keeps
+the launcher and the parent closes the apps named, at the hours named.
 
 Any link shared to Shinkan from any app is blocked device-wide, with every
 subdomain and the platform's other hosts. A creator on YouTube (and the
@@ -24,12 +32,20 @@ on F-Droid.
 
 1. **Nothing of Shinkan's goes out.** The filter forwards the device's own
    traffic and that alone: Shinkan has no endpoint, no update check, no
-   list download. The `INTERNET` permission exists for the tunnel. Reviewed
-   on every change to `app/.../filter/`.
+   list download. The `INTERNET` permission exists for the tunnel. Two
+   requests on the child's behalf are named, and no other: the creator
+   lookup to the platform (§7.3) and the segment lookup to the SponsorBlock
+   API, by hash prefix (§7.5). The built-in block list (§6.5) and the
+   browser's filter lists (§7.6) ship inside the APK and are refreshed with
+   each release, never downloaded. Reviewed on every change to
+   `app/.../filter/`.
 2. **The platform's own policies for the hold.** Every control of §4 is one
    documented call on `DevicePolicyManager` or one `UserManager`
    restriction, named next to the feature. No accessibility service, no
-   overlay, no root.
+   overlay, no root. Shinkan's own pages, the browser and the player, are
+   governed by Shinkan itself (their hours, their volume ceiling, their
+   filters): that is an app ruling its own windows, not a policy over
+   others.
 3. **The filter is honest about what it sees.** Encrypted traffic shows a
    host, never a page: a site is blocked by its hosts (§6), a creator by the
    player that knows them (§7). What cannot be done is written in §9.4, not
@@ -57,14 +73,15 @@ debugging on:
 adb shell dpm set-device-owner io.github.iverlein.shinkan/shinkan.app.admin.ShinkanAdmin
 ```
 
-The setup page (§8.3) shows this command. After it, Shinkan applies the
-default restrictions (§4.3), which include `no_debugging_features`: adb stops
-working on the device, by design, so the child cannot use it either.
+The setup page (§8.3) shows this command. The command alone changes no
+policy; once the setup of §8.3 is completed Shinkan applies the default
+restrictions (§4.3), which include `no_debugging_features`: adb stops working
+on the device, by design, so the child cannot use it either.
 
 ### 3.2 By QR code at first boot
 
 Tapping the welcome screen six times opens the QR provisioning flow, which
-downloads the APK from a URL and verifies its checksum. ROADMAP block 6.
+downloads the APK from a URL and verifies its checksum. ROADMAP block 9.
 
 ### 3.3 What a device owner is not
 
@@ -74,22 +91,38 @@ reset protection. §9.4 lists what a determined child can still do.
 
 ## 4. The hold
 
-### 4.1 Home and lock task
+### 4.1 Two forms: the closed device and the open device
 
-Shinkan registers as a launcher (`CATEGORY_HOME`). The parent makes it the
-default home once; with lock task mode (`setLockTaskPackages`, Shinkan plus
-the usable apps) the child cannot leave it for another launcher, the status
-bar's settings or the recents of other apps.
+**The closed device** (ROADMAP block 3, the first form). Shinkan registers
+as a launcher (`CATEGORY_HOME`) and the parent makes it the default home
+once; lock task mode (`setLockTaskPackages`, Shinkan alone) keeps the child
+in it: no other launcher, no status-bar settings, no recents. The child's
+page (§8.1) has two doors and nothing else: the browser (§7.6) and the
+player (§7), each usable within its windows; every other launchable package
+is suspended.
 
-### 4.2 Packages: allowed, windowed, suspended
+**The open device** (block 7, the second form). The device keeps its own
+launcher and Shinkan is one app among the others; lock task is off. The
+packages the parent names are **closed**: suspended always, or outside
+their windows. Everything else of the hold stays: the restrictions of
+§4.3, the filter of §5 with the block list of §6, the browser and the
+player as apps the child may open.
 
-The policy names the packages the child may use. At every application of the
-policy (`DeviceHold.apply`), each launchable package is either usable now, and
-resumed, or not, and **suspended** (`setPackagesSuspended`). Installs and
+The form is one line of the policy text (`mode`, §4.4) and is changed on the
+parent door; changing it applies the policy at once.
+
+### 4.2 Packages: usable, windowed, suspended
+
+At every application of the policy (`DeviceHold.apply`), each launchable
+package is either usable now, and resumed, or not, and **suspended**
+(`setPackagesSuspended`): on the closed device every package but Shinkan;
+on the open device the closed ones outside their windows. Installs and
 uninstalls are blocked by restriction (§4.3), so the set of packages changes
 only through the parent.
 
-A package with no window is usable always; one with windows only inside one
+A window is when a thing is usable: a door of the closed device with no
+window is open always, one with windows only inside one; a closed app of the
+open device with windows is usable inside them and suspended outside
 (`Policy.usableAt`). The policy is applied again at boot, when the clock or
 the zone changes, and by an exact alarm at the next window edge
 (`Policy.nextChange`). The clock is protected by `no_config_date_time`.
@@ -116,22 +149,76 @@ Stored and shown as text, one statement per line, parsed and rendered by
 `PolicyText`:
 
 ```
-allow org.fdroid.fdroid
-allow com.example.game
-window com.example.game mon,tue,wed,thu,fri 16:00-18:00
-window com.example.game sat,sun 10:00-12:00
+mode closed
+window browser mon,tue,wed,thu,fri 16:00-18:00
+window player sat,sun 10:00-12:00
+volume browser 60
+volume player 40
+screen 45
+cooldown 60
 restrict factory_reset
 ```
 
-`allow` names a package; `window` gives one span on given weekdays, which may
-cross midnight and then belongs to the day it opens; `restrict` names one of
-§4.3 by the enum's name. When no `restrict` line is written the default set
-applies.
+```
+mode open
+close com.example.game
+window com.example.game sat,sun 10:00-12:00
+close com.zhiliaoapp.musically
+volume device 70
+screen 90
+cooldown parent
+```
 
-### 4.5 Permissions of the allowed apps
+`mode` is `closed` or `open` (§4.1); `browser` and `player` name Shinkan's
+two doors; `close` names a package of the open device; `window` gives one
+span on given weekdays, which may cross midnight and then belongs to the day
+it opens; `volume` sets a ceiling (§4.6); `screen` and `cooldown` give the
+budget and the rest in minutes, `cooldown parent` a rest only a parent ends
+(§4.7); `restrict` names one of §4.3 by the enum's name. When no `restrict` line is written the default set applies.
+Block 3 replaces the skeleton's `allow` lines with this form.
+
+### 4.5 Permissions of the usable apps
 
 `setPermissionGrantState` lets the parent deny camera, microphone and
-location to an allowed app regardless of what it asks. ROADMAP block 4.
+location to a usable app regardless of what it asks. ROADMAP block 8.
+
+### 4.6 The volume ceiling
+
+The parent caps how loud the device may play, as a share of the media
+stream's maximum (`volume` lines, §4.4). On the closed device the ceiling is
+**per door**: `volume browser` and `volume player` each hold while that door
+is in front. The doors are Shinkan's own pages, so Shinkan handles the
+volume keys itself (`onKeyDown` on `KEYCODE_VOLUME_UP` and `_DOWN`,
+`AudioManager.setStreamVolume` on `STREAM_MUSIC`, never above the ceiling)
+and sets the stream to the ceiling when a door opens above it; in lock task
+mode the status bar's slider is not reachable. On the open device no
+platform policy tells Shinkan which app is in front (usage access cannot be
+granted by a device owner), so the ceiling is **one for the device**
+(`volume device`): the filter's foreground service listens for
+`AudioManager.VOLUME_CHANGED_ACTION` and sets the media stream back to the
+ceiling when it is exceeded, a clamp that acts after the change, not a lock
+(§9.4). The child may always go lower. Ringer and alarm streams are the
+device's own. Block 3 for the doors, block 7 for the device.
+
+### 4.7 Screen time and rest
+
+The parent gives the child a **budget** of screen time and a **rest** that
+follows it (`screen` and `cooldown` lines, §4.4). Screen time is time the
+screen is on and the device unlocked, on either form: the filter's
+foreground service counts it from `ACTION_SCREEN_ON`, `ACTION_SCREEN_OFF`
+and `ACTION_USER_PRESENT`, and the rest page itself does not count. When
+the budget is spent, playback stops (the player pauses, the browser's page
+is paused) and the rest page (§8.7) takes the screen: on the closed device
+it is the home; on the open device Shinkan brings it to the front and pins
+it with lock task (`startLockTask`, allowed to a device owner's own
+activity without a prompt), so the child cannot leave it for another app.
+The rest ends in one of two ways, the parent's choice: after a set number
+of minutes of wall time, counted whether the screen is on or off (`cooldown
+60`), or when a parent opens the door and taps *Open* (`cooldown parent`).
+A rest that ends starts a fresh budget. Nothing is logged (§2.5): what is
+kept is the running budget and the rest's end, in device-protected storage
+so a reboot neither resets nor extends them; the clock is protected by
+`no_config_date_time`. Block 3 for the closed device, block 7 for the open.
 
 ## 5. The filter
 
@@ -173,16 +260,16 @@ back unchanged. Shinkan brings no resolver and no list of its own.
 | Way around | Answer |
 | --- | --- |
 | DNS-over-TLS by the system | private DNS opportunistic and locked (§5.1) |
-| DNS-over-HTTPS by a browser | the browser's managed configuration turns it off (block 5); known DoH hosts are on the built-in block list (block 8) |
-| a resolver by IP address | block 8, by address |
-| QUIC (HTTP/3) | block 8: UDP 443 to blocked hosts dropped, TLS falls back |
+| DNS-over-HTTPS by a browser | Shinkan's browser is a WebView and resolves through the system, so the filter answers it (§7.6); known DoH hosts are on the built-in block list (block 11) |
+| a resolver by IP address | block 11, by address |
+| QUIC (HTTP/3) | block 11: UDP 443 to blocked hosts dropped, TLS falls back |
 | Encrypted Client Hello | no SNI to read; DNS already refused the name, and the HTTPS record that carries the ECH key is refused with it |
 | a VPN app | `no_config_vpn`, and only one VPN runs |
 | a browser's built-in proxy or "VPN" | it is a host too; its family is blocked by sharing one of its links |
 
 ### 5.5 Per app
 
-Until block 8 the filter cannot tell which app asked. From block 8 the
+Until block 11 the filter cannot tell which app asked. From block 11 the
 player's own connections to a platform pass while the platform's hosts are
 blocked for every other app (§7.1).
 
@@ -232,6 +319,19 @@ creator youtube @somehandle Some Name
 
 `BlocklistText` parses and renders it; the parent may see and paste it.
 
+### 6.5 The built-in list
+
+Ads and trackers are blocked on every device from a list that ships inside
+the APK (ROADMAP block 4): **Hagezi** (GPL-3.0, the Multi tier chosen for
+size, wildcard-domain format, which is the subdomain match of §6.1) and
+**StevenBlack's** unified hosts (MIT) with its extensions. The extensions
+are the categories the parent switches on the door: *gambling*, *porn*,
+*fake news*, *social*; ads and trackers are always on. The lists live in
+the repository under their own licences and are refreshed with each
+release, never downloaded (§2.1). The filter answers a built-in name as it
+answers a blocked site; a `pass example.org` line of the block list lets a
+built-in name through. oisd was set aside: it states no licence.
+
 ## 7. The player
 
 ### 7.1 Why
@@ -250,7 +350,7 @@ The player is built on **NewPipe Extractor** (GPL-3.0-or-later, the library
 behind NewPipe on F-Droid), which talks to the platforms' public web
 endpoints with no Google API, no key and no account. Grayjay was considered
 and set aside: FUTO's Source First licence is not free software and F-Droid
-does not carry it. ROADMAP block 9.
+does not carry it. ROADMAP block 6.
 
 ### 7.3 A creator from a video
 
@@ -265,25 +365,59 @@ YouTube first; PeerTube, SoundCloud and Bandcamp as the extractor serves
 them. Other platforms (TikTok, Instagram, Twitch) have no free front end:
 they are blocked whole or allowed whole, by family.
 
+### 7.5 Segments
+
+Sponsor, self-promotion and interaction segments inside a video are skipped
+with **SponsorBlock**'s community data (server AGPL-3.0, data CC BY-NC-SA
+4.0, credited in the player). The player asks the public API once per
+video for the segments of every video whose id's SHA-256 starts with the
+same four hex characters, so the server sees a bucket of videos, never the
+one played: this is the second named request of §2.1. The categories are
+the parent's choice; `sponsor`, `selfpromo` and `interaction` by default.
+The parent may name a mirror. The code comes from Tubular (GPL-3.0, NewPipe
+with SponsorBlock), block 6.
+
+### 7.6 The browser
+
+The closed device's other door, a page of Shinkan's own on the system
+WebView (block 5). Every request passes **EasyList** and **EasyPrivacy**
+(GPL-3.0 and CC BY-SA 3.0, bundled, §2.1) in `shouldInterceptRequest`: the
+request-level blocking of uBlock Origin with those lists. Hiding of page
+elements (cosmetic filtering) is partial and said so in §9.4. The WebView
+resolves names through the system, so the DNS filter of §5 and the built-in
+list of §6.5 answer it, and DNS-over-HTTPS does not arise. No browser on
+F-Droid can take the place of this page: Firefox builds ignore managed
+configuration on Android and Cromite ignores enterprise policies, so a
+blocker the child can switch off is not a hold. The browser's volume
+ceiling is §4.6; what it keeps between sessions is decided in block 5.
+
 ## 8. Pages
 
 ### 8.1 Home
 
-The child's page: the apps usable now, by label, one tap each; the player
-among them when allowed. When no app is usable it says so. A small *Parent*
-link leads to §8.2.
+On the closed device, the child's whole screen: two large buttons, *Browser*
+and *YouTube*, side by side in landscape and one above the other in
+portrait; a door outside its window is greyed and says when it opens next.
+On the open device Shinkan is opened like any app and shows the closed apps
+with their next window. A small *Parent* link leads to §8.2.
 
 ### 8.2 Parent door
 
-PIN entry, then: the hold's status, the policy as a list (allowed apps with
-their windows, restrictions), the block list (sites, creators), *Apply now*,
-*Release this device*. Closes by itself after two minutes without a touch.
+PIN entry, then: the hold's status; the form (§4.1); the policy as a list
+(the doors' windows and ceilings on the closed device, the closed apps with
+their windows and the device ceiling on the open device, restrictions); the
+block list (sites, creators, the built-in categories of §6.5, the segment
+categories of §7.5); the budget and the rest with what is left of each and
+*Open now* during a rest (§4.7); the icon (§8.5); the theme (§8.6); *Apply
+now*; *Release this device*. Closes by itself after two minutes without a
+touch.
 
 ### 8.3 Setup
 
 Shown while Shinkan is not device owner: the adb command of §3.1 and what
 follows. Once held, the first opening asks for the PIN to be set and for the
-allowed apps, with every launchable package listed and none chosen.
+form: the closed device needs nothing more; the open device lists every
+launchable package, none closed.
 
 ### 8.4 Block in Shinkan
 
@@ -306,9 +440,29 @@ of §4.1 do not depend on the choice. The choice is stored (§9.2, key `icon`)
 and applied when the activity stops, not at the tap: the system finishes
 every task whose root is the alias just disabled, even with `DONT_KILL_APP`,
 so applied at the tap it would close the door on a parent who opened Shinkan
-from the launcher. The door says so under the row. The application's own icon, shown by
-Settings, the share sheet and the home chooser, is the crest and cannot be
-changed at run time (§9.4).
+from the launcher. The door says so under the row. The application's own
+icon, shown by Settings, the share sheet and the home chooser, is the crest
+and cannot be changed at run time (§9.4).
+
+### 8.6 Look
+
+Every page works in portrait and in landscape from its first version; no
+page locks an orientation, and the player fills the screen in landscape.
+Two themes follow the system's setting, and the parent may pin one on the
+door: **rice paper**, the light theme, sepia paper with ink text and
+vermilion for the gate (the `paper`, `ink` and `gate` colours of
+`res/values/themes.xml`); **sumi**, the dark theme, an ink ground with paper
+text and the lighter vermilion the icons use on dark. The child's buttons
+are large enough for a small hand in either orientation. Block 3 brings the
+dark theme and landscape with the first real pages.
+
+### 8.7 Rest
+
+The page the child sees when the budget is spent (§4.7): a brush-drawn ring
+in vermilion, an ensō, that closes as the rest passes, with the time left
+under it in large figures; when the rest is the parent's to end, the ring
+is whole and the page says so. Nothing else is on it but the small *Parent*
+link. It is drawn for both orientations, and in both themes.
 
 ## 9. The parent
 
@@ -342,11 +496,24 @@ uninstalled. Release asks for the PIN once more.
 - **A creator inside another app** (a TikTok account, an Instagram profile)
   cannot be blocked: the app is blocked whole or not at all (§7.4).
 - **A page inside an allowed site** cannot be blocked: hosts are what the
-  filter sees. The answer is the site, or a browser allow-list through its
-  managed configuration (block 5).
-- **Until block 8**, an app that resolves names by itself over HTTPS or by
-  address slips the DNS filter; the browser's DoH is turned off by policy in
-  block 5.
+  filter sees. The answer is the site, or the browser's filter lists
+  (§7.6), which see requests, not pages either.
+- **Cosmetic filtering** in the browser is partial: requests are blocked as
+  uBlock Origin blocks them, elements are hidden only where a simple rule
+  allows. A third-party browser on the open device gets the host filter and
+  nothing more.
+- **Until block 11**, an app that resolves names by itself over HTTPS or by
+  address slips the DNS filter; Shinkan's own browser cannot, it resolves
+  through the system (§7.6).
+- **The volume ceiling of the open device** is one for the device and a
+  clamp: a sound may be loud for a moment before it is pulled down, and an
+  app that sets the volume itself is pulled down again each time. Per-app
+  ceilings exist only for the two doors of the closed device (§4.6).
+- **Segments** are community data: one nobody marked is played.
+- **Screen time is screen-on time**, not attention: a page left open counts,
+  and on the open device the budget cannot tell one app from another (the
+  same limit as the ceiling). A rest in minutes runs on the wall clock,
+  which is protected; a rest the parent ends waits for the parent.
 - **Suspended apps' widgets and shortcuts** still show; their taps open the
   suspension dialog.
 - **Emergency calls** are never blocked; the phone app is the OEM's.
@@ -369,4 +536,4 @@ emulator's `logcat` on its console.
 
 Versions are tags `v<versionName>`; `versionCode` counts up by one. F-Droid
 builds from the tag with the recipe in `docs/fdroid/` once submitted (ROADMAP
-block 7). Reproducible: `dependenciesInfo` off, no proprietary library.
+block 10). Reproducible: `dependenciesInfo` off, no proprietary library.

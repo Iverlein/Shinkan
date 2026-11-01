@@ -64,7 +64,8 @@ button behind the PIN; a lost PIN means a factory reset from recovery.
 
 JDK 21, Android SDK 37. The debug build installs beside the release as
 "Shinkan beta". Test on an emulator without Google Play (the `dpm` command
-refuses a device with accounts).
+refuses a device with accounts); `tools/emulator/emulator.py` creates,
+provisions, drives and restores one.
 
 ## Licence
 

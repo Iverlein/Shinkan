@@ -31,7 +31,7 @@ by hand before working there:
 | `app/` | Compose UI, package `shinkan.app`, application id `io.github.iverlein.shinkan`. `admin/`: `ShinkanAdmin` the device admin receiver, `DeviceHold` the policy applied through `DevicePolicyManager`, `PolicyStore`, `ReapplyReceiver`. `filter/`: `FilterService` the VPN, `BlocklistStore`, `ShareActivity` the share target. `ui/`: the pages of SPEC §8. `LauncherIcon`: the alias switch for the icon of SPEC §8.5, drawn in `res/drawable/icon_*.xml`. Interface text in `res/values/strings.xml`. |
 | `fastlane/metadata/android/` | F-Droid store listing per language. |
 | `docs/` | `SPEC.md`, `ROADMAP.md`; `fdroid/` the recipe once submitted. |
-| `tools/` | Python only (`tools/emulator/` to come, ROADMAP block 1). |
+| `tools/` | Python only. `emulator/`: `emulator.py`, the emulator tool, and its README with the traps and the checks of SPEC §10. |
 
 ## Commands
 
@@ -40,6 +40,15 @@ by hand before working there:
 ./gradlew :app:assembleDebug              # APK in app/build/outputs/apk/debug/
 adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk
 aapt2 dump permissions app/build/outputs/apk/debug/app-debug.apk   # the six of SPEC §5.1 and §4.2, nothing else
+python3 tools/emulator/emulator.py create        # the AVD shinkan-test; nothing when it exists
+python3 tools/emulator/emulator.py start         # boot with the window, from the snapshot clean (--cold: a full boot)
+python3 tools/emulator/emulator.py snapshot      # save clean after a boot with nothing installed
+python3 tools/emulator/emulator.py restore       # load clean through the console; works when adb is cut
+python3 tools/emulator/emulator.py install       # the debug APK; refused when it is there
+python3 tools/emulator/emulator.py provision     # make the beta the device owner, then open it
+python3 tools/emulator/emulator.py shot out.png  # a screenshot, by adb or else by the console
+python3 tools/emulator/emulator.py tap Parent    # tap the node whose text is "Parent"
+python3 tools/emulator/emulator.py stop          # quit; nothing is saved
 ```
 
 The toolchain on MONOLITH (JDK 21, SDK in `~/Android/Sdk`) is in
@@ -47,10 +56,9 @@ The toolchain on MONOLITH (JDK 21, SDK in `~/Android/Sdk`) is in
 only**, never on the owner's phone or any real device: a device owner is
 removed only by the app itself or a factory reset. The emulator for this
 project is `shinkan-test` (Pixel 8, `system-images;android-37.0;google_apis;x86_64`,
-no Play; created 2026-11-01, its clean boot saved as the snapshot `clean`:
-`adb -s emulator-5554 emu avd snapshot load clean` restores it); never
-`zanshin-test`, which belongs to another project. The tool that creates and
-provisions it is ROADMAP block 1.
+no Play; created 2026-11-01, its clean boot saved as the snapshot `clean`,
+which `restore` loads); never `zanshin-test`, which belongs to another
+project. `tools/emulator/README.md` holds the traps and the checklist.
 
 ## One worktree per session
 

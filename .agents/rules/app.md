@@ -35,8 +35,7 @@ paths:
   can be driven by adb after it; but `install -r` over the provisioned app
   fires `MY_PACKAGE_REPLACED`, the receiver applies the hold, and adb is cut
   (2026-11-01). Recovery is the snapshot, loaded through the emulator
-  console: `auth` with `~/.emulator_console_auth_token`, then
-  `avd snapshot load clean`.
+  console: `python3 tools/emulator/emulator.py restore`.
 - **Check the hold, not the log line.** `adb shell dumpsys device_policy`
   before the restrictions cut adb; after it, the UI and the emulator console.
   `setPackagesSuspended` returns the packages it could *not* suspend; read it.

@@ -46,7 +46,7 @@ order. Numbers are identifiers and do not change when the order does.
 | Block | What | State |
 | --- | --- | --- |
 | 0 | Skeleton: core model and tests, device owner receiver, the hold applied, the DNS filter as always-on lockdown VPN, the share target with sites, families and YouTube creators, three bare pages, docs, licence, F-Droid listing | done 2026-11-01 |
-| 1 | The emulator tool: create, snapshot, provision, drive, restore `shinkan-test` | |
+| 1 | The emulator tool: create, snapshot, provision, drive, restore `shinkan-test` | done 2026-11-01 |
 | 2 | The PIN | |
 | 3a | The engine: forms, day plans, stages, rests, ceilings, in `core/` | |
 | 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | |

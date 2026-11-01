@@ -557,10 +557,11 @@ uninstalled. Release asks for the PIN once more.
 Core: `./gradlew :core:test`. App: on the emulator only, never on a real
 device during development, and never on the `zanshin-test` emulator, whose
 snapshot other work restores. The AVD `shinkan-test` (an image without Google
-Play, so that no account blocks §3.1) is created and provisioned by
-`tools/emulator/` (ROADMAP block 1). The debug build does not apply
-`no_debugging_features` (`Restriction.DEBUGGING_FEATURES` is skipped under
-`BuildConfig.DEBUG`), so the beta can be driven by adb after the hold; the
+Play, so that no account blocks §3.1) is created, provisioned, driven and
+restored by `tools/emulator/emulator.py`, whose README lists these checks.
+The debug build does not apply `no_debugging_features`
+(`Restriction.DEBUGGING_FEATURES` is skipped under `BuildConfig.DEBUG`), so
+the beta can be driven by adb after the hold; the
 release build applies it and is checked by eye once per release. The hold
 is checked by `adb shell dumpsys device_policy`; the filter by `adb shell
 ping -c 1` of a blocked and an unblocked name, and by the emulator's

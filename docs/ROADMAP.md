@@ -733,8 +733,12 @@ second preparation with the software decoders. The fixed release, held,
 showed the address bar, searched DuckDuckGo (safe search strict) and drew
 its page; searched "cats" in the player and played a video, its frames
 moving between two screenshots. `aapt2 dump permissions`: the seven and
-androidx's own. The recipe in `docs/fdroid/` builds 1.0.1; the F-Droid
-submission follows.
+androidx's own. The recipe in `docs/fdroid/` builds 1.0.1. Submitted to F-Droid on
+2026-11-02: https://gitlab.com/fdroid/fdroiddata/-/merge_requests/55458
+("New app: Shinkan", branch `io.github.iverlein.shinkan` of the fork
+`iwaren/fdroiddata`); the fork's own pipeline cannot run (GitLab's user
+verification), so the MR asks maintainers to trigger CI. A later release
+changes the recipe on that branch, never in a second MR.
 
 ### 11a–11d. The tunnel [§5.2, §5.4, §5.5]
 

@@ -11,8 +11,8 @@ android {
         applicationId = "io.github.iverlein.shinkan"
         minSdk = 28
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.0.1"
     }
 
     buildTypes {

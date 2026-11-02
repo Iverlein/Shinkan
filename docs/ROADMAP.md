@@ -58,7 +58,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 4 | The built-in block list | done 2026-11-02 |
 | 5 | The browser door | done 2026-11-02 |
 | 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | done 2026-11-02 |
-| 6b | The player: the creator block list applied to every list | |
+| 6b | The player: the creator block list applied to every list | built, emulator check pending: branch `work/creators` |
 | 6c | The player: a shared video resolved to its creator; the official app held | |
 | 6d | The player: SponsorBlock segments | |
 | 7a | The open device: the launcher kept, the named apps closed | |
@@ -576,6 +576,16 @@ Pure matching in `core/` (`Blocklist.hidesUploader(url)`), with tests.
 On the emulator: with `creator youtube @somehandle` on the list, that
 channel's videos are missing from search and related, and the channel
 page is refused.
+
+**As built (unchecked on the emulator).** `Link.creatorRef`,
+`Blocklist.hidesUploader` and `unresolvedCreators` in `core/`
+(`CreatorTest`: the four forms, case, aliases); `app/.../player/Creators`
+resolves blocked handles and names to channel ids through the extractor.
+Checked from the host on 2026-11-02 with a throwaway JVM test:
+`@kurzgesagt` resolved to `UCsXVk37bltHxD1rDPwtNM8Q`, and with it blocked
+13 of 15 results for "kurzgesagt black holes" were hidden (the two kept
+were another channel, *Dinge Erklärt – Kurzgesagt*). The player shows no
+comments yet, so there is none to filter.
 
 ### 6c. The player: a shared video; the official app held [§7.3, §6.2, §6.3]
 

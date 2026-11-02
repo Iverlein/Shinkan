@@ -396,6 +396,16 @@ platform are blocked as a family when the first creator is added (the parent
 is told), and the player (§7) hides the creator's channel, videos, search
 results, comments and recommendations.
 
+As built (block 6b): an uploader's address is read as the reference a shared
+link gives (`Link.creatorRef`: `UC…`, `@handle`, `c/name`, `user/name`) and
+matched against the list (`Blocklist.hidesUploader`; handles and names
+without case, channel ids exactly). The extractor names uploaders by
+channel id, so a creator blocked by handle or name is resolved to its id
+once per process through the extractor and kept in memory (the creator
+lookup of §7.3). Search results, related videos and a channel's videos
+leave the blocked out; a blocked creator's channel or video says so and
+does not load.
+
 ### 6.4 The text
 
 ```

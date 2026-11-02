@@ -595,6 +595,16 @@ related list had none of *Kurzgesagt – In a Nutshell*. A blocked channel's
 page cannot be reached from inside the player, whose lists never show it;
 its refusal waits for a shared video or channel (6c).
 
+**The quality selector**, asked by the owner on 2026-11-02 (at least 1080p,
+or the screen's own height). `core/`: `Quality` (the height asked for, the
+heights on offer, the stream chosen) with `QualityTest`. `app/`:
+`Media.streams` and `Media.source`, the quality button and menu in
+`PlayerPage`. Checked on the emulator, 2026-11-02: an ordinary video opens
+at 1080p60 with sound, offers 2160p down to 144p, plays past a minute with
+no 403, and switches to 720p in place; a video made for kids opens at
+360p, the only height offered. The iOS client's streams were tried first
+and stopped with 403 after 1 to 9 MB (no proof-of-origin token).
+
 ### 6e. The player's modes, screens and history [§7.1.1]
 
 Asked by the owner on 2026-11-02: a block list and an allow list of

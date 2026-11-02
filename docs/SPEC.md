@@ -502,10 +502,22 @@ does not carry it. ROADMAP block 6a.
 
 As built (block 6a): the extractor (from JitPack, as NewPipe takes it) does
 its HTTP through OkHttp with a fixed desktop user agent and no cookie jar
-(`app/.../player/Extractor`); Media3 ExoPlayer plays the best stream that
-carries sound and picture in one file, up to 720p (`Media.bestProgressive`;
-the platform often offers 360p alone that way, higher ones as separate
-video and sound, which a later block may merge). When the device's decoder
+(`app/.../player/Extractor`). Media3 ExoPlayer plays a picture at the
+height asked for, or the nearest below: a stream with its own sound, or a
+picture alone joined with the best sound (AAC first) in a
+`MergingMediaSource`; H.264 is preferred to VP9, AV1 is never chosen
+(`core/.../net/Quality`, `Media.streams`). The height asked for is the
+screen's shorter side, never below 1080p; a quality button beside the
+uploader lists the heights on offer, marks the one playing, and switches
+from the same position. The heights above 360p come from the extractor's
+visionOS client: its addresses are served to the end without a
+proof-of-origin token, fetched with that client's user agent and always
+with a range, without which the platform cuts the answer short. The iOS
+and Android clients' separate streams stop with 403 after the first
+megabytes without such a token, so they are not used. The platform gives
+videos made for kids to none of the clients that need no token: those play
+in the one 360p stream with sound, and the button offers only that
+(2026-11-02). When the device's decoder
 fails while decoding, the player prepares again preferring Android's
 software decoders from the same position (1.0.1). The door has a search, its
 results, a video with its uploader and related videos, and the uploader's

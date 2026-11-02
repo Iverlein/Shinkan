@@ -11,6 +11,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // NewPipe Extractor alone, as NewPipe itself takes it (SPEC §7.2).
+        maven("https://jitpack.io") {
+            content { includeGroup("com.github.TeamNewPipe") }
+        }
     }
 }
 

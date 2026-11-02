@@ -36,6 +36,8 @@ android {
     }
 
     compileOptions {
+        // NewPipe Extractor uses Java APIs newer than API 28 (SPEC §7.2).
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -63,6 +65,12 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
     implementation(libs.compose.ui.tooling.preview)
+    // The player (SPEC §7): the extractor, playback, and the extractor's HTTP.
+    implementation(libs.newpipe.extractor)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
+    implementation(libs.okhttp)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

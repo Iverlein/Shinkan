@@ -624,6 +624,11 @@ and cannot be changed at run time (§9.4).
 
 ### 8.6 Look
 
+Every page speaks English and Russian (`res/values-ru/`), following the
+device's language; the F-Droid listing has both (`fastlane/.../ru-RU`).
+The words of the policy text and of the block list text (§4.4, §6.4) stay
+English in both: they are a format, not prose.
+
 Every page works in portrait and in landscape from its first version; no
 page locks an orientation, and the player fills the screen in landscape.
 Two themes follow the system's setting, and the parent may pin one on the

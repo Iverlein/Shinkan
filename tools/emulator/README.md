@@ -91,13 +91,18 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   page content, and Chrome's Vulkan device crashed the emulator on
   2026-11-02, after which every boot died with `kvm_user_backed_ram_map:
   error registering slot: File exists`, through a KVM module reload and a
-  recreated AVD. `start` passes `-feature -Vulkan`; a snapshot records the
-  features it was taken with and is refused under others. The beta draws
-  its WebView in software with `adb shell setprop
-  debug.shinkan.webview_software 1`.
+  recreated AVD, until emulator 37.2.13. `start` passes `-gpu host`, where
+  WebView and video work; a snapshot records the GPU mode and features it
+  was taken with and is refused under others (a wipe and `snapshot` take
+  it again). Without the host GPU the beta draws its WebView in software
+  with `adb shell setprop debug.shinkan.webview_software 1`.
 - **Video on the emulator.** Its H.264 decoder (`c2.goldfish.h264.decoder`)
-  fails on the first frames of the player's streams: `adb shell setprop
-  debug.shinkan.software_codecs 1` before opening the player.
+  fails mid-stream; the player then prepares again with Android's software
+  decoders by itself (since 1.0.1).
+- **The release check** (`ROADMAP` 10): on a wiped device, `adb shell
+  settings put secure stylus_handwriting_enabled 0` before the hold, or
+  the keyboard takes the console's taps for a stylus; then the PIN, the
+  doors and the soft keyboard's keys by `ctap`.
 - **The release build cuts adb** once its PIN is set. Drive it through the
   console: `ctap X Y` (the console's `event mouse`; raw multitouch events
   through `event send` arrive without their positions) and the soft

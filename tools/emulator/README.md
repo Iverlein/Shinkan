@@ -15,6 +15,7 @@ python3 tools/emulator/emulator.py install       # the debug APK; refused when S
 python3 tools/emulator/emulator.py provision     # dpm set-device-owner of the beta's receiver, then open it
 python3 tools/emulator/emulator.py shot out.png  # a PNG: by adb when up, else by the console
 python3 tools/emulator/emulator.py tap Parent    # tap the centre of the node whose text is "Parent" (--desc: or its description)
+python3 tools/emulator/emulator.py type --field 1 --clear - < policy.txt   # type lines into the first text field, emptied first
 python3 tools/emulator/emulator.py store policy plan.txt   # write the beta's policy (or blocklist, or plan state; - for stdin), then restart it
 python3 tools/emulator/emulator.py stop          # quit; nothing is saved
 ```
@@ -68,6 +69,15 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   check of it, the beta reads a shorter idle time from a system property:
   `adb shell setprop debug.shinkan.door_idle 15` (seconds; `0` or unset is
   the two minutes). The PIN page's keypad is driven by `tap 4`, `tap OK`.
+
+- **Typing into a field.** `adb shell input text` types no newline and a
+  Compose field takes no Ctrl+A from `input keycombination`; `type --field
+  N --clear` empties the field by its length (Del and Forward-Del) and
+  joins lines with Enter. A Back meant to hide the keyboard when none is up
+  goes to the page: on the parent door it leaves the section.
+- **`tap` takes the first node with the text**: the same button on two
+  cards (*Add a span* on each plan) needs `adb shell input tap X Y`, read
+  off a `shot`.
 
 ## The checks of SPEC §10
 

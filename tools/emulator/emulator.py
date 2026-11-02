@@ -16,6 +16,8 @@ One command, one subcommand per step (ROADMAP block 1, SPEC §10):
   provision    makes Shinkan beta the device owner, then opens it
   shot PATH    a PNG of the screen: by adb when it is up, else by the console
   tap TEXT     taps the centre of the node whose text is TEXT
+  type TEXT    types TEXT (- for stdin) into a text field, lines joined by Enter;
+               --field N taps the Nth field first, --clear empties it
   store KEY FILE
                writes FILE (- for stdin) as the string KEY of Shinkan beta's store
                (policy, blocklist, plan), then restarts the app so it reads it
@@ -401,6 +403,53 @@ def cmd_tap(device: Device, args):
         time.sleep(1)
 
 
+def fields(device: Device) -> list[tuple[int, int, str]]:
+    """The screen's text fields (EditText nodes), top to bottom: centre x, centre y, text."""
+    root = ET.fromstring(dump(device))
+    out = []
+    for n in root.iter("node"):
+        if n.get("class") != "android.widget.EditText":
+            continue
+        m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.get("bounds", ""))
+        if m:
+            x1, y1, x2, y2 = map(int, m.groups())
+            out.append(((x1 + x2) // 2, (y1 + y2) // 2, n.get("text", "")))
+    return sorted(out, key=lambda c: (c[1], c[0]))
+
+
+def typed(line: str) -> str:
+    """One line for `input text`, quoted for the device's shell: spaces as %s."""
+    return "'" + line.replace(" ", "%s").replace("'", "'\\''") + "'"
+
+
+def cmd_type(device: Device, args):
+    device.need_adb()
+    text = sys.stdin.read() if args.text == "-" else args.text
+    if args.clear and not args.field:
+        raise Failure("--clear needs --field, to know the field's text")
+    if args.field:
+        found = fields(device)
+        if len(found) < args.field:
+            raise Failure(f"no text field number {args.field}; {len(found)} on screen")
+        x, y, old = found[args.field - 1]
+        device.adb("shell", "input", "tap", str(x), str(y))
+        time.sleep(0.5)
+        if args.clear and old:
+            # A Compose field takes no Ctrl+A from `input`: delete the text's length both
+            # ways from wherever the tap left the cursor.
+            n = len(old)
+            for keys in (["KEYCODE_DEL"] * n, ["KEYCODE_FORWARD_DEL"] * n):
+                for i in range(0, n, 100):
+                    device.adb("shell", "input", "keyevent", *keys[i:i + 100])
+    lines = text.rstrip("\n").split("\n")
+    for i, line in enumerate(lines):
+        if line:
+            device.adb("shell", "input", "text", typed(line))
+        if i < len(lines) - 1:
+            device.adb("shell", "input", "keyevent", "KEYCODE_ENTER")
+    print(f"typed {len(lines)} line(s)")
+
+
 PREFS = f"/data/user_de/0/{PACKAGE}/shared_prefs/shinkan.xml"
 STORE_KEYS = ("policy", "blocklist", "plan")
 
@@ -466,6 +515,11 @@ def main(argv=None) -> int:
     s.add_argument("--desc", action="store_true", help="also match the content description")
     s.add_argument("--timeout", type=float, default=8, help="seconds to wait for the node (default 8)")
     s.set_defaults(run=cmd_tap)
+    s = sub.add_parser("type", help="type TEXT (- for stdin; lines joined by Enter) into the focused field")
+    s.add_argument("text")
+    s.add_argument("--field", type=int, help="first tap the Nth text field on screen, from the top")
+    s.add_argument("--clear", action="store_true", help="with --field: first delete the field's text")
+    s.set_defaults(run=cmd_type)
     s = sub.add_parser("store", help="write a string of the beta's store (policy, blocklist), then restart it")
     s.add_argument("key", choices=STORE_KEYS)
     s.add_argument("file", help="the text, or - for stdin")

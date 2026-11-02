@@ -337,7 +337,9 @@ def cmd_provision(device: Device, args):
             out = device.sh(f"dpm set-device-owner {PACKAGE}/{RECEIVER}")
             break
         except Failure as e:
-            if "already some accounts" not in str(e) or time.monotonic() > deadline:
+            # Right after install the receiver may not be registered yet ("Not active admin").
+            passing = ("already some accounts", "Not active admin")
+            if not any(p in str(e) for p in passing) or time.monotonic() > deadline:
                 raise
             time.sleep(3)
     print(out.strip())

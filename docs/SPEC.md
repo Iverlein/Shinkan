@@ -482,7 +482,30 @@ their windows and the device ceiling on the open device, restrictions); the
 block list (sites, creators, the built-in categories of §6.5, the segment
 categories of §7.5); the day plan with its current stage, what is left of
 it and *Open now* during a rest (§4.7); the icon (§8.5); the theme (§8.6);
-*Apply now*; *Release this device*. Closes to the home by itself after two
+*Apply now*; *Release this device*.
+
+The policy is edited in sections, each a page: the form (two choices); the
+day plans (a card per plan with its weekdays as chips, a weekday of another
+plan greyed, and its stages, each moved up or down, edited in a dialog or
+removed; times typed as `HH:MM`); the closed apps (every launchable package
+by name, a check to close it, its windows added and removed); the volume
+ceilings (a switch and a slider in steps of five per door); the
+restrictions (a switch each, and two warnings: one while a way out of the
+hold is open, `factory_reset`, `safe_boot`, `add_user` or
+`debugging_features` lifted, one while a way around the filter is open,
+`config_vpn` or `config_private_dns` lifted); the theme; and the policy as
+its text, editable, read back by the parser, a malformed line named by its
+number. A stage is drawn, not spelled: a span as its hours and the marks of
+the doors open in it, a budget as its doors' marks, an hourglass and its
+minutes, then an ensō with the rest's minutes, or an ensō and a key for a
+rest a parent ends; the door's *Now* line draws it the same way.
+
+The sections edit a draft. *Apply now* checks it by its own text (it must
+render and parse back, `PolicyText.problem`, so the editor and a pasted
+text meet one parser), stores it and applies the hold; a changed day plan
+starts the day afresh, since the stored plan state names a stage of the
+old one. Leaving the door with a draft not applied asks whether to apply
+it, drop it or keep editing; the door closing by itself drops it. Closes to the home by itself after two
 minutes without a touch, and as soon as Shinkan leaves the screen, so a
 door left open is never found open by the child.
 
@@ -523,13 +546,19 @@ and cannot be changed at run time (§9.4).
 Every page works in portrait and in landscape from its first version; no
 page locks an orientation, and the player fills the screen in landscape.
 Two themes follow the system's setting, and the parent may pin one on the
-door: **rice paper**, the light theme, sepia paper with ink text and
+door (`theme` in the store, §9.2: the system's, rice paper or sumi; it
+holds at once, and the bars' icons follow it): **rice paper**, the light theme, sepia paper with ink text and
 vermilion for the gate (the `paper`, `ink` and `gate` colours of
 `res/values/themes.xml`); **sumi**, the dark theme, an ink ground with paper
 text and a lighter vermilion for the gate (`gate_light`). The child's buttons
 are large enough for a small hand in either orientation. Both themes are
-`ShinkanTheme` in `ui/Theme.kt`; the window's colour before Compose draws
-is `values/themes.xml` and `values-night/themes.xml`.
+`ShinkanTheme` in `ui/Theme.kt`, dialogs and cards included (paper or ink a
+shade darker, never the toolkit's own tint); the window's colour before
+Compose draws is `values/themes.xml` and `values-night/themes.xml`.
+`MainActivity` takes rotation, size and night mode itself
+(`configChanges`): Compose redraws, and a parent door, a PIN half typed or
+an edit in progress are not recreated, where a recreation would stop the
+activity and so close the door.
 
 ### 8.7 Rest
 

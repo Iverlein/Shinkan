@@ -52,7 +52,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | done 2026-11-01 |
 | 3c | The counter and the rest page | done 2026-11-02 |
 | 3d | The volume ceiling of the doors | done 2026-11-02 |
-| 3e | The parent's editor | |
+| 3e | The parent's editor | done 2026-11-02 |
 | 4 | The built-in block list | |
 | 5 | The browser door | |
 | 6a | The player: playback and search on NewPipe Extractor; the filter passes Shinkan's own queries | |
@@ -343,6 +343,30 @@ the segments).
 **Done when.** On the emulator: a plan built on the door renders to the
 text of §4.4 and back; a malformed line pasted in the text view names its
 line; the theme pin overrides the system; every page works in landscape.
+
+**As built.** The door is `ui/ParentPage.kt`, a hub of sections with a
+draft; the sections are `ui/parent/` (`PlansPage` with the stage dialog,
+`AppsPage` with the window dialog, `Pages.kt` for the form, volume,
+restrictions, theme and text, `Common.kt`). Times are typed as `HH:MM`
+(`PolicyText.time`, which also takes `H:MM` and `HHMM`) rather than picked
+on a clock face: the policy's own form, and drivable by adb. The two
+warnings are defined in SPEC §8.2. Stages are drawn with marks
+(`ui/StageLine.kt`; `door_device`, `mark_budget`, `mark_rest`,
+`mark_parent`), asked for by the owner. Found by the check and fixed: a
+rotation recreated the activity, whose stop closed the door and dropped
+the draft (`configChanges` on `MainActivity`); Back on the door dropped an
+unapplied draft without a word (it now asks); dialogs drew in the
+toolkit's lavender (the surface containers are set in both themes).
+`emulator.py type` types lines into a field (`--field N --clear`), which
+the check of the text view needed: `input text` has no newline, and a
+Compose field takes no Ctrl+A from `input`.
+
+Checked on the emulator, 2026-11-02: the weekday and weekend plans of
+§4.4 built by taps render in the text view as §4.4 writes them; the §4.4
+text with `volume player loud` says "Line 10: volume is 0 to 100"; the
+§4.4 text used, applied and read from the store equals §4.4 line for line;
+sumi pinned with the system light; the leave dialog; restrictions with
+both warnings, volume, plans and a stage dialog in landscape.
 
 ### 4. The built-in block list [§6.5]
 

@@ -15,7 +15,7 @@ python3 tools/emulator/emulator.py install       # the debug APK; refused when S
 python3 tools/emulator/emulator.py provision     # dpm set-device-owner of the beta's receiver, then open it
 python3 tools/emulator/emulator.py shot out.png  # a PNG: by adb when up, else by the console
 python3 tools/emulator/emulator.py tap Parent    # tap the centre of the node whose text is "Parent" (--desc: or its description)
-python3 tools/emulator/emulator.py store policy plan.txt   # write the beta's policy (or blocklist; - for stdin), then restart it
+python3 tools/emulator/emulator.py store policy plan.txt   # write the beta's policy (or blocklist, or plan state; - for stdin), then restart it
 python3 tools/emulator/emulator.py stop          # quit; nothing is saved
 ```
 

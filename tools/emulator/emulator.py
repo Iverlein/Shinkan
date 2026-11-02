@@ -18,7 +18,7 @@ One command, one subcommand per step (ROADMAP block 1, SPEC §10):
   tap TEXT     taps the centre of the node whose text is TEXT
   store KEY FILE
                writes FILE (- for stdin) as the string KEY of Shinkan beta's store
-               (policy, blocklist), then restarts the app so it reads it
+               (policy, blocklist, plan), then restarts the app so it reads it
 
 Emulator only, never a real device: a device owner is removed only by the app
 itself or a factory reset. Never `zanshin-test`, which belongs to another
@@ -402,7 +402,7 @@ def cmd_tap(device: Device, args):
 
 
 PREFS = f"/data/user_de/0/{PACKAGE}/shared_prefs/shinkan.xml"
-STORE_KEYS = ("policy", "blocklist")
+STORE_KEYS = ("policy", "blocklist", "plan")
 
 
 def cmd_store(device: Device, args):

@@ -84,6 +84,10 @@ class MainActivity : ComponentActivity() {
         // on the held closed device it is shown over the keyguard as soon as the screen comes on.
         setShowWhenLocked(held && closed)
         if (!held) return
+        // The filter comes back with the home: when Shinkan's process is killed the always-on VPN
+        // is not always restarted by the system (found 2026-11-02), and under lockdown a filter
+        // down is no network at all. Starting a running filter only reads its list again.
+        shinkan.app.filter.FilterService.start(this)
         val dpm = getSystemService(DevicePolicyManager::class.java)
         if (closed && !inLockTask() && dpm.isLockTaskPermitted(packageName)) startLockTask()
         if (!closed && inLockTask()) stopLockTask()

@@ -98,3 +98,38 @@ class ShippedListsTest {
         assertTrue(BuiltinList(java.io.File(dir, "gambling.txt").readBytes()).blocks("www.bet365.com"))
     }
 }
+
+class CreatorTest {
+    private val id = "UCsXVk37bltHxD1rDPwtNM8Q"
+
+    @Test fun `an uploader's address reads as the reference a shared link gives`() {
+        assertEquals(id, Link.creatorRef("https://www.youtube.com/channel/$id"))
+        assertEquals("@SomeHandle", Link.creatorRef("https://m.youtube.com/@SomeHandle/videos"))
+        assertEquals("c/Name", Link.creatorRef("https://youtube.com/c/Name"))
+        assertEquals("user/Old", Link.creatorRef("https://www.youtube.com/user/Old"))
+        assertEquals(null, Link.creatorRef("https://www.youtube.com/watch?v=abc"))
+        assertEquals(null, Link.creatorRef("https://example.org/channel/$id"))
+        assertEquals(null, Link.creatorRef(null))
+    }
+
+    @Test fun `each form of a blocked creator hides that uploader and no other`() {
+        val list = Blocklist() + Creator(Platform.YOUTUBE, id) + Creator(Platform.YOUTUBE, "@SomeHandle") +
+            Creator(Platform.YOUTUBE, "c/Name") + Creator(Platform.YOUTUBE, "user/Old")
+        assertTrue(list.hidesUploader("https://www.youtube.com/channel/$id"))
+        assertFalse(list.hidesUploader("https://www.youtube.com/channel/${id.lowercase()}"))
+        assertTrue(list.hidesUploader("https://www.youtube.com/@somehandle"))
+        assertTrue(list.hidesUploader("https://www.youtube.com/c/NAME"))
+        assertTrue(list.hidesUploader("https://www.youtube.com/user/old/videos"))
+        assertFalse(list.hidesUploader("https://www.youtube.com/@someoneelse"))
+        assertFalse(list.hidesUploader("https://www.youtube.com/channel/UCxxxxxxxxxxxxxxxxxxxxxx"))
+    }
+
+    @Test fun `a handle blocked reaches the channel id through the player's aliases`() {
+        val list = Blocklist() + Creator(Platform.YOUTUBE, "@SomeHandle")
+        assertEquals(listOf("@SomeHandle"), list.unresolvedCreators)
+        val uploader = "https://www.youtube.com/channel/$id"
+        assertFalse(list.hidesUploader(uploader))
+        assertTrue(list.hidesUploader(uploader, mapOf(id to "@somehandle")))
+        assertEquals(emptyList<String>(), (Blocklist() + Creator(Platform.YOUTUBE, id)).unresolvedCreators)
+    }
+}

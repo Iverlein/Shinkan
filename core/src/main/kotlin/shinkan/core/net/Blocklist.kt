@@ -25,12 +25,35 @@ data class Blocklist(
         return passes.none { Host.under(h, it) }
     }
 
+    /**
+     * True when the uploader at [url] is a blocked creator (SPEC §6.3, §7.1): its
+     * reference ([Link.creatorRef]) is one on the list, or [aliases] (a channel id
+     * to the handle or name a parent blocked it by, found by the player) leads to
+     * one. Handles and `c/`, `user/` names are compared without case, channel ids
+     * exactly.
+     */
+    fun hidesUploader(url: String?, aliases: Map<String, String> = emptyMap()): Boolean {
+        val ref = Link.creatorRef(url) ?: return false
+        val blocked = creators.filter { it.platform == Platform.YOUTUBE }.map { comparable(it.ref) }.toSet()
+        return comparable(ref) in blocked || aliases[ref]?.let { comparable(it) in blocked } == true
+    }
+
+    /** The creators whose reference is not a channel id: the player resolves these to one. */
+    val unresolvedCreators: List<String>
+        get() = creators.filter { it.platform == Platform.YOUTUBE && !isChannelId(it.ref) }.map { it.ref }
+
     operator fun plus(site: String) = copy(sites = sites + Host.normalise(site))
     operator fun plus(creator: Creator) = copy(creators = creators + creator)
 }
 
 /** One creator on one platform, by the stable reference the platform gives (a channel id, a handle, an account). */
 data class Creator(val platform: Platform, val ref: String, val name: String = ref)
+
+/** A YouTube channel id: `UC` and 22 more characters. */
+internal fun isChannelId(ref: String): Boolean = ref.length == 24 && ref.startsWith("UC")
+
+/** A reference as compared: a channel id as it is, a handle or a name in lowercase. */
+private fun comparable(ref: String): String = if (isChannelId(ref)) ref else ref.lowercase()
 
 enum class Platform { YOUTUBE, PEERTUBE, SOUNDCLOUD, BANDCAMP }
 

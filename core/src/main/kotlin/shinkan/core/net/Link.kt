@@ -47,6 +47,17 @@ sealed interface Link {
             }
         }
 
+        /**
+         * The creator reference a YouTube channel address names, in the form a
+         * shared link gives it (SPEC §6.2): `UC…` for `/channel/UC…`, `@handle`,
+         * `c/name`, `user/name`; null for any other address.
+         */
+        fun creatorRef(url: String?): String? {
+            val uri = runCatching { URI(url?.trim() ?: return null) }.getOrNull() ?: return null
+            val host = Host.site(uri.host ?: return null)
+            return (youtube(host, uri.path.orEmpty().trimEnd('/'), uri) as? CreatorLink)?.creator?.ref
+        }
+
         private fun query(uri: URI, key: String): String? =
             uri.rawQuery?.split('&')?.map { it.substringBefore('=') to it.substringAfter('=', "") }
                 ?.firstOrNull { it.first == key }?.second?.takeIf { it.isNotEmpty() }

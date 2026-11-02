@@ -13,6 +13,7 @@ import android.os.ParcelFileDescriptor
 import android.util.Log
 import io.github.iverlein.shinkan.R
 import shinkan.app.MainActivity
+import shinkan.app.plan.PlanClock
 import shinkan.core.net.Blocklist
 import shinkan.core.net.DnsQuestion
 import shinkan.core.net.Udp4
@@ -37,6 +38,13 @@ class FilterService : VpnService() {
     private var worker: Thread? = null
     private val upstreams = Executors.newCachedThreadPool()
     private val blocklist = AtomicReference(Blocklist())
+    private val screen = PlanClock.Screen()
+
+    /** The screen's broadcasts for the day plan's counter, for as long as the filter runs (SPEC §4.7). */
+    override fun onCreate() {
+        super.onCreate()
+        registerReceiver(screen, PlanClock.Screen.filter, RECEIVER_NOT_EXPORTED)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         blocklist.set(BlocklistStore(this).blocklist)
@@ -134,6 +142,7 @@ class FilterService : VpnService() {
     }
 
     override fun onDestroy() {
+        unregisterReceiver(screen)
         worker?.interrupt()
         tun?.close()
         tun = null

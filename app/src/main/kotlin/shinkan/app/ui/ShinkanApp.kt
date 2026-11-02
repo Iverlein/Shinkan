@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -54,6 +56,13 @@ import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
 import shinkan.core.Door
 import shinkan.core.Mode
+import shinkan.core.PlanState
+import shinkan.core.Policy
+import shinkan.core.PolicyText
+import shinkan.app.plan.PlanClock
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /** Where the app stands: the child's home, a door, the PIN before the parent door, that door, the PIN before release. */
 private enum class Page { HOME, BROWSER, PLAYER, DOOR_PIN, DOOR, RELEASE_PIN }
@@ -72,6 +81,17 @@ fun ShinkanApp(hold: DeviceHold, store: PolicyStore, onSetUp: () -> Unit, onRele
     var owner by remember { mutableStateOf(hold.isOwner) }
     var pinSet by remember { mutableStateOf(store.pinHash != null) }
     var lastTouch by remember { mutableLongStateOf(SystemClock.uptimeMillis()) }
+    val context = LocalContext.current
+    val counted by PlanClock.state.collectAsState()
+    // A door the plan has closed (a budget spent, a span ended) gives way to the home (SPEC §4.7).
+    LaunchedEffect(page, counted) {
+        val door = when (page) {
+            Page.BROWSER -> Door.BROWSER
+            Page.PLAYER -> Door.PLAYER
+            else -> return@LaunchedEffect
+        }
+        if (door !in store.policy.openAt(LocalDateTime.now(), counted)) page = Page.HOME
+    }
     val behindPin = page == Page.DOOR || page == Page.DOOR_PIN || page == Page.RELEASE_PIN
 
     // The door closes after two minutes without a touch (SPEC §8.2)...
@@ -90,6 +110,7 @@ fun ShinkanApp(hold: DeviceHold, store: PolicyStore, onSetUp: () -> Unit, onRele
     // ...and as soon as Shinkan leaves the screen; the owner is read again on return.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { if (behindPin) page = Page.HOME }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { owner = hold.isOwner }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { PlanClock.refresh(context) }
 
     Surface(
         Modifier
@@ -119,7 +140,10 @@ fun ShinkanApp(hold: DeviceHold, store: PolicyStore, onSetUp: () -> Unit, onRele
                     store, PinPurpose.ENTER, stringResource(R.string.parent_title),
                     onDone = { page = Page.DOOR }, onCancel = { page = Page.HOME },
                 )
-                page == Page.DOOR -> ParentPage(store, onBack = { page = Page.HOME }, onRelease = { page = Page.RELEASE_PIN })
+                page == Page.DOOR -> ParentPage(
+                    hold, store, counted,
+                    onBack = { page = Page.HOME }, onRelease = { page = Page.RELEASE_PIN },
+                )
                 page == Page.RELEASE_PIN -> PinPage(
                     store, PinPurpose.ENTER, stringResource(R.string.release_title),
                     onDone = {
@@ -132,7 +156,7 @@ fun ShinkanApp(hold: DeviceHold, store: PolicyStore, onSetUp: () -> Unit, onRele
                 page == Page.BROWSER -> DoorPage(Door.BROWSER, onClose = { page = Page.HOME })
                 page == Page.PLAYER -> DoorPage(Door.PLAYER, onClose = { page = Page.HOME })
                 else -> HomePage(
-                    store,
+                    store, counted,
                     onDoor = { page = if (it == Door.BROWSER) Page.BROWSER else Page.PLAYER },
                     onParent = { page = Page.DOOR_PIN },
                 )
@@ -153,19 +177,57 @@ private fun SetupPage(command: String) = Column(Modifier.verticalScroll(remember
 }
 
 @Composable
-private fun ParentPage(store: PolicyStore, onBack: () -> Unit, onRelease: () -> Unit) = Column(Modifier.verticalScroll(rememberScrollState())) {
+private fun ParentPage(
+    hold: DeviceHold,
+    store: PolicyStore,
+    counted: PlanState,
+    onBack: () -> Unit,
+    onRelease: () -> Unit,
+) = Column(Modifier.verticalScroll(rememberScrollState())) {
     BackHandler(onBack = onBack)
+    val context = LocalContext.current
     Text(stringResource(R.string.parent_title), style = MaterialTheme.typography.headlineSmall)
     Spacer(Modifier.height(16.dp))
     Text(stringResource(R.string.parent_status_held))
     val form = if (store.policy.mode == Mode.CLOSED) R.string.parent_mode_closed else R.string.parent_mode_open
     Text(stringResource(form))
+    Spacer(Modifier.height(16.dp))
+    PlanNow(store.policy, counted) {
+        // *Open now* (SPEC §8.2): the rest ends, the next stage begins, the hold follows.
+        val now = LocalDateTime.now()
+        store.planState = store.policy.openNow(now, store.policy.resolve(now, store.planState))
+        hold.apply(now)
+        PlanClock.refresh(context)
+    }
     Spacer(Modifier.height(24.dp))
     IconChoice(store)
     Spacer(Modifier.height(24.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Button(onClick = onBack) { Text(stringResource(R.string.parent_back)) }
         OutlinedButton(onClick = onRelease) { Text(stringResource(R.string.release_button)) }
+    }
+}
+
+/** The day plan's current stage, what is left of it, and *Open now* during a rest (SPEC §8.2, §4.7). */
+@Composable
+private fun PlanNow(policy: Policy, counted: PlanState, onOpenNow: () -> Unit) {
+    val now = LocalDateTime.now()
+    val state = policy.resolve(now, counted)
+    val stage = state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage)
+    val line = when {
+        policy.plans.isEmpty() -> stringResource(R.string.plan_none)
+        stage == null -> stringResource(R.string.plan_done)
+        else -> stringResource(R.string.plan_stage, PolicyText.render(stage))
+    }
+    Text(line)
+    when {
+        state.restParent -> Text(stringResource(R.string.plan_rest_parent))
+        state.restEnd != null -> Text(stringResource(R.string.plan_rest_until, state.restEnd!!.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))))
+        else -> policy.budgetLeft(now, state)?.let { Text(stringResource(R.string.plan_left, (it + 59) / 60)) }
+    }
+    if (state.resting) {
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = onOpenNow) { Text(stringResource(R.string.plan_open_now)) }
     }
 }
 

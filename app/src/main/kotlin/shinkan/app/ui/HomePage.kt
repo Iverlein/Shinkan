@@ -35,6 +35,8 @@ import kotlinx.coroutines.delay
 import shinkan.app.admin.PolicyStore
 import shinkan.core.Door
 import shinkan.core.PlanState
+import shinkan.core.Policy
+import shinkan.core.Stage
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -46,14 +48,15 @@ import java.util.Locale
  * The child's home on the closed device (SPEC §8.1): two large doors, the
  * browser and the player, one above the other in portrait and side by side in
  * landscape; a door the plan has closed is greyed and says when it opens next.
- * Back does nothing here: there is nowhere behind the home. A small *Parent*
- * link leads to the door.
+ * An open door with a budget says what is left of it. During a rest the
+ * home is the rest page (§8.7). Back does nothing here: there is nowhere
+ * behind the home. A small *Parent* link leads to the door.
  */
 @Composable
-fun HomePage(store: PolicyStore, onDoor: (Door) -> Unit, onParent: () -> Unit) {
+fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onParent: () -> Unit) {
     var now by remember { mutableStateOf(LocalDateTime.now()) }
-    val policy = remember(now) { store.policy }
-    val state = PlanState()
+    val policy = remember(now, counted) { store.policy }
+    val state = policy.resolve(now, counted)
     val open = policy.openAt(now, state)
 
     // Look again at the next edge of the plan, and at least once a minute.
@@ -65,13 +68,22 @@ fun HomePage(store: PolicyStore, onDoor: (Door) -> Unit, onParent: () -> Unit) {
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { now = LocalDateTime.now() }
     BackHandler {}
+    if (state.resting) {
+        RestPage(policy, state, onParent)
+        return
+    }
 
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     Column(Modifier.fillMaxSize()) {
         val doors: @Composable (Modifier) -> Unit = { m ->
             for (door in listOf(Door.BROWSER, Door.PLAYER)) {
                 val isOpen = door in open
-                val note = if (isOpen) null else opensNote(policy.nextOpening(door, now, state), now)
+                val left = policy.budgetLeft(now, state)?.takeIf { isOpen && door in budgetDoors(policy, state) }
+                val note = when {
+                    left != null -> stringResource(R.string.home_left, (left + 59) / 60)
+                    isOpen -> null
+                    else -> opensNote(policy.nextOpening(door, now, state), now)
+                }
                 DoorButton(door, isOpen, note, m) { onDoor(door) }
             }
         }
@@ -109,6 +121,10 @@ private fun DoorButton(door: Door, open: Boolean, note: String?, modifier: Modif
         }
     }
 }
+
+/** The doors the running budget counts, or none when no budget runs. */
+private fun budgetDoors(policy: Policy, state: PlanState): Set<Door> =
+    (state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage) as? Stage.Budget)?.doors.orEmpty()
 
 /** The name of a door as the child reads it. */
 fun doorLabel(door: Door): Int = when (door) {

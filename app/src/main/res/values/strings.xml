@@ -11,6 +11,20 @@
     <string name="home_opens_at">Opens at %1$s</string>
     <string name="home_opens_on">Opens %1$s %2$s</string>
     <string name="home_closed">Closed</string>
+    <string name="home_left">%1$d min left</string>
+
+    <!-- The rest (SPEC §8.7) -->
+    <string name="rest_minutes_left">minutes of rest</string>
+    <string name="rest_parent">Resting until a parent opens the doors</string>
+
+    <!-- The day plan on the parent door (SPEC §8.2) -->
+    <string name="plan_none">No day plan: the doors are open at any time.</string>
+    <string name="plan_done">The day plan is over; the doors open with the next plan day.</string>
+    <string name="plan_stage">Now: %1$s</string>
+    <string name="plan_left">%1$d min left of this budget</string>
+    <string name="plan_rest_until">Resting until %1$s</string>
+    <string name="plan_rest_parent">Resting until a parent opens.</string>
+    <string name="plan_open_now">Open now</string>
 
     <!-- The doors (SPEC §8.1) -->
     <string name="door_browser">Browser</string>

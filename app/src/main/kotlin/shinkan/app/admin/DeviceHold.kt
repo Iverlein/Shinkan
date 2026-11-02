@@ -12,7 +12,9 @@ import android.util.Log
 import io.github.iverlein.shinkan.BuildConfig
 import shinkan.app.MainActivity
 import shinkan.app.filter.FilterService
+import shinkan.app.plan.PlanClock
 import shinkan.core.Mode
+import shinkan.core.PlanState
 import shinkan.core.Policy
 import shinkan.core.Restriction
 import java.time.LocalDateTime
@@ -37,12 +39,17 @@ class DeviceHold(private val context: Context) {
     /** Brings the device to the stored policy at this moment and sets the alarm for the next change. */
     fun apply(now: LocalDateTime = LocalDateTime.now()) {
         if (!isOwner) return
+        // The count so far first, so the state is the one of this moment (SPEC §4.7).
+        PlanClock.flush(context)
         val policy = store.policy
+        val state = policy.resolve(now, store.planState)
+        if (state != store.planState) store.planState = state
         applyRestrictions(policy)
         applyHome(policy)
         applyPackages(policy, now)
         applyFilter()
-        scheduleNext(policy, now)
+        scheduleNext(policy, state, now)
+        PlanClock.refresh(context)
     }
 
     /**
@@ -103,7 +110,9 @@ class DeviceHold(private val context: Context) {
      * outside their windows; the rest are resumed.
      */
     private fun applyPackages(policy: Policy, now: LocalDateTime) {
-        val launchable = launchablePackages()
+        // On the closed device the other homes are held too: when Shinkan's process dies, the
+        // system resumes the launcher's old task, not the persistent home (found 2026-11-02).
+        val launchable = launchablePackages() + if (policy.mode == Mode.CLOSED) otherHomes() else emptyList()
         val held = when (policy.mode) {
             Mode.CLOSED -> launchable.toSet()
             Mode.OPEN -> policy.closedPackagesAt(now)
@@ -126,20 +135,39 @@ class DeviceHold(private val context: Context) {
             .filter { it != context.packageName }
     }
 
-    private fun scheduleNext(policy: Policy, now: LocalDateTime) {
+    /** The packages with a home activity, Shinkan excluded: the launchers the closed device replaces. */
+    private fun otherHomes(): List<String> {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        return context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+            .map { it.activityInfo.packageName }
+            .distinct()
+            .filter { it != context.packageName && it != "android" }
+    }
+
+    private fun scheduleNext(policy: Policy, state: PlanState, now: LocalDateTime) {
         val alarms = context.getSystemService(AlarmManager::class.java)
         val pending = PendingIntent.getBroadcast(
             context, 0, Intent(context, ReapplyReceiver::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val next = policy.nextChange(now)
+        val next = policy.nextChange(now, state)
         if (next == null) {
             alarms.cancel(pending)
+            PlanClock.edgeAt(context, null)
             return
         }
         val at = next.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        // Exact alarms need no permission from a device owner; the edge is the whole point of a window.
-        alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
+        // An exact alarm needs SCHEDULE_EXACT_ALARM even from a device owner (Android 37 refuses
+        // it with a SecurityException), and that permission is not among the seven of SPEC §5.1.
+        // So the alarm is exact only where the system allows it, inexact otherwise; while the
+        // device is awake the process times the edge itself, and the screen coming on applies
+        // the hold again (PlanClock), so the child never sees a stale edge.
+        if (alarms.canScheduleExactAlarms()) {
+            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
+        } else {
+            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
+        }
+        PlanClock.edgeAt(context, next)
         Log.i(TAG, "next change at $next")
     }
 
@@ -147,7 +175,7 @@ class DeviceHold(private val context: Context) {
     fun release() {
         if (!isOwner) return
         for (r in Restriction.entries) dpm.clearUserRestriction(admin, r.key)
-        val all = launchablePackages().toTypedArray()
+        val all = (launchablePackages() + otherHomes()).distinct().toTypedArray()
         if (all.isNotEmpty()) dpm.setPackagesSuspended(admin, all, false)
         dpm.clearPackagePersistentPreferredActivities(admin, context.packageName)
         dpm.setLockTaskPackages(admin, emptyArray())

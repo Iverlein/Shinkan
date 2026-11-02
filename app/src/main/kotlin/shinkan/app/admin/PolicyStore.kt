@@ -1,6 +1,7 @@
 package shinkan.app.admin
 
 import android.content.Context
+import shinkan.core.PlanState
 import shinkan.core.Policy
 import shinkan.core.PolicyText
 
@@ -16,6 +17,11 @@ class PolicyStore(context: Context) {
     var policy: Policy
         get() = PolicyText.parse(prefs.getString(KEY_POLICY, "") ?: "")
         set(value) = prefs.edit().putString(KEY_POLICY, PolicyText.render(value)).apply()
+
+    /** Where the day plan stands (SPEC §4.7): the stage, the seconds spent, a rest's end. */
+    var planState: PlanState
+        get() = PolicyText.parseState(prefs.getString(KEY_PLAN, "") ?: "")
+        set(value) { prefs.edit().putString(KEY_PLAN, PolicyText.renderState(value)).commit() }
 
     var pinHash: String?
         get() = prefs.getString(KEY_PIN, null)
@@ -40,6 +46,7 @@ class PolicyStore(context: Context) {
         const val KEY_POLICY = "policy"
         const val KEY_PIN = "pin"
         const val KEY_ICON = "icon"
+        const val KEY_PLAN = "plan"
         const val KEY_PIN_WRONG = "pin_wrong"
         const val KEY_PIN_LAST = "pin_last"
     }

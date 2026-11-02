@@ -24,9 +24,13 @@
         android:theme="@style/Theme.Shinkan">
 
         <!-- The child's home screen and the parent's door (SPEC §8). Registered as a home so that
-             lock task mode can pin it (SPEC §4.1). The launcher entry is on the aliases below. -->
+             lock task mode can pin it (SPEC §4.1). The launcher entry is on the aliases below.
+             Direct-boot aware, so it is the home before the first unlock too: otherwise the system
+             starts the device's own launcher at boot and keeps its task after the unlock. Its pages
+             read only device-protected storage (SPEC §9.2). -->
         <activity
             android:name="shinkan.app.MainActivity"
+            android:directBootAware="true"
             android:exported="true"
             android:launchMode="singleTask"
             android:excludeFromRecents="true"

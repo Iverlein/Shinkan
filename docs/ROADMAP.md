@@ -53,7 +53,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 3c | The counter and the rest page | done 2026-11-02 |
 | 3d | The volume ceiling of the doors | done 2026-11-02 |
 | 3e | The parent's editor | done 2026-11-02 |
-| 4 | The built-in block list | |
+| 4 | The built-in block list | done 2026-11-02 |
 | 5 | The browser door | |
 | 6a | The player: playback and search on NewPipe Extractor; the filter passes Shinkan's own queries | |
 | 6b | The player: the creator block list applied to every list | |
@@ -395,6 +395,28 @@ category off. On the emulator (debug, adb up): `adb shell ping -c 1
 ads.doubleclick.net` fails to resolve, `ping -c 1 example.org` resolves,
 and a gambling host resolves until the category is switched on. The APK
 grows by the lists and nothing else (`aapt2 dump permissions` unchanged).
+
+**As built.** StevenBlack's extensions are taken alone from
+`alternates/<name>-only/hosts`; each merges several upstream sources, whose
+licences `refresh.py` reads from their `update.json` into `VERSIONS.md`
+(two porn sources are CC BY 4.0). The lists are not a `Set<String>`: the
+tool writes them sorted by bytes and `core/.../net/BuiltinList` searches
+the file's bytes in place (`Builtin` holds ads and the four categories;
+`BuiltinLists` in the app reads the assets once). `ShippedListsTest` loads
+the shipped files, so a list out of byte order fails the build's tests.
+The door's block-list page (`ui/parent/BlocklistPage.kt`) has the switches
+and the list as text, saved at once with a filter reload.
+
+Checked on the emulator, 2026-11-02, with the lists of that day (175 760
+names of ads, 4 363 gambling, 47 667 porn, 2 180 fake news, 586 social):
+`pagead2.googlesyndication.com` is refused (Hagezi Normal lists
+`googlesyndication.com`; it does not list `ads.doubleclick.net`, so the
+check's first name changed); `example.org` and `www.bet365.com` resolve
+(then `connect: Permission denied` under lockdown); the gambling switch on
+the door refuses `williamhill.com` (a name asked before the switch is
+answered from the resolver's cache until its time runs out); `pass
+googlesyndication.com` lets `tpc.googlesyndication.com` resolve. The
+debug APK grows by about 2 MB; `aapt2 dump permissions` is as on main.
 
 ### 5. The browser door [§7.6, §2.1]
 

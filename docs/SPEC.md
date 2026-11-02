@@ -381,20 +381,34 @@ results, comments and recommendations.
 ```
 site tiktok.com
 creator youtube @somehandle Some Name
+category gambling
+pass example.org
 ```
 
-`BlocklistText` parses and renders it; the parent may see and paste it.
+`BlocklistText` parses and renders it; the parent may see and paste it on
+the door's block-list page, which also has a switch per category. `category`
+switches on a list of §6.5; `pass` lets a built-in name through with its
+subdomains, never a parent's site. A change there is stored and read by the
+filter at once, as a shared link is.
 
 ### 6.5 The built-in list
 
 Ads and trackers are blocked on every device from a list that ships inside
 the APK (ROADMAP block 4): **Hagezi** (GPL-3.0, the Multi tier chosen for
 size, wildcard-domain format, which is the subdomain match of §6.1) and
-**StevenBlack's** unified hosts (MIT) with its extensions. The extensions
+**StevenBlack's** hosts extensions (MIT), each extension the merge of
+upstream sources with licences of their own (MIT, and CC BY 4.0 for two
+porn sources), all named in `assets/blocklist/VERSIONS.md`. A StevenBlack
+name blocks its subdomains too, as every name of the filter does. The extensions
 are the categories the parent switches on the door: *gambling*, *porn*,
 *fake news*, *social*; ads and trackers are always on. The lists live in
-the repository under their own licences and are refreshed with each
-release, never downloaded (§2.1). The filter answers a built-in name as it
+the repository under their own licences (`app/src/main/assets/blocklist/`)
+and are refreshed with each release by `tools/blocklist/refresh.py`, never
+downloaded by the app (§2.1). The tool writes each list as lowercase ASCII
+names sorted by bytes, a name covered by a shorter one dropped; the filter
+reads them once into memory as they are (`BuiltinList`, a few megabytes for
+some 230 000 names) and looks a host up by halving, then each domain above
+it (`a.b.example.org`, `b.example.org`, `example.org`). The filter answers a built-in name as it
 answers a blocked site; a `pass example.org` line of the block list lets a
 built-in name through. oisd was set aside: it states no licence.
 

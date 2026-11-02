@@ -70,3 +70,9 @@ provisions, drives and restores one.
 ## Licence
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
+
+The built-in block list in `app/src/main/assets/blocklist/` keeps its
+sources' licences: Hagezi's DNS blocklists (GPL-3.0), StevenBlack's hosts
+(MIT) and the upstream sources of its extensions (MIT, CC BY 4.0), each
+named with its licence in `VERSIONS.md` there. It is refreshed before a
+release by `tools/blocklist/refresh.py`.

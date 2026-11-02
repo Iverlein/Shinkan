@@ -27,11 +27,11 @@ by hand before working there:
 
 | Path | What |
 | --- | --- |
-| `core/` | Pure Kotlin: `Policy` and `Window` (what is usable when), `Restriction` (the `UserManager` keys), `PolicyText` (the stored form), `Pin`; `net/`: `Blocklist`, `Host`, `Families`, `Link` (what a shared text means), `BlocklistText`, `DnsQuestion` and `Udp4`/`Checksum` (the filter's packets). Tests in `core/src/test/`. No Android. |
+| `core/` | Pure Kotlin: `Policy` and `Window` (what is usable when), `Restriction` (the `UserManager` keys), `PolicyText` (the stored form), `Pin`, `Volume`; `net/`: `Blocklist`, `BuiltinList` and `Category` (the built-in list), `Host`, `Families`, `Link` (what a shared text means), `BlocklistText`, `DnsQuestion` and `Udp4`/`Checksum` (the filter's packets). Tests in `core/src/test/`. No Android. |
 | `app/` | Compose UI, package `shinkan.app`, application id `io.github.iverlein.shinkan`. `admin/`: `ShinkanAdmin` the device admin receiver, `DeviceHold` the policy applied through `DevicePolicyManager`, `PolicyStore`, `ReapplyReceiver`. `filter/`: `FilterService` the VPN, `BlocklistStore`, `ShareActivity` the share target. `ui/`: the pages of SPEC §8. `LauncherIcon`: the alias switch for the icon of SPEC §8.5, drawn in `res/drawable/icon_*.xml`. Interface text in `res/values/strings.xml`. |
 | `fastlane/metadata/android/` | F-Droid store listing per language. |
 | `docs/` | `SPEC.md`, `ROADMAP.md`; `fdroid/` the recipe once submitted. |
-| `tools/` | Python only. `emulator/`: `emulator.py`, the emulator tool, and its README with the traps and the checks of SPEC §10. |
+| `tools/` | Python only. `emulator/`: `emulator.py`, the emulator tool, and its README with the traps and the checks of SPEC §10. `blocklist/refresh.py`: the built-in block list fetched into `app/src/main/assets/blocklist/` before a release. |
 
 ## Commands
 
@@ -40,6 +40,7 @@ by hand before working there:
 ./gradlew :app:assembleDebug              # APK in app/build/outputs/apk/debug/
 adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk
 aapt2 dump permissions app/build/outputs/apk/debug/app-debug.apk   # the seven of SPEC §5.1, nothing else
+python3 tools/blocklist/refresh.py               # the built-in block list, before a release (--check: are the assets whole)
 python3 tools/emulator/emulator.py create        # the AVD shinkan-test; nothing when it exists
 python3 tools/emulator/emulator.py start         # boot with the window, from the snapshot clean (--cold: a full boot)
 python3 tools/emulator/emulator.py snapshot      # save clean after a boot with nothing installed

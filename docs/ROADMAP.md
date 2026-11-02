@@ -57,7 +57,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 3e | The parent's editor | done 2026-11-02 |
 | 4 | The built-in block list | done 2026-11-02 |
 | 5 | The browser door | done 2026-11-02 |
-| 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | |
+| 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | built, emulator check pending: branch `work/player` |
 | 6b | The player: the creator block list applied to every list | |
 | 6c | The player: a shared video resolved to its creator; the official app held | |
 | 6d | The player: SponsorBlock segments | |
@@ -538,6 +538,18 @@ with sound under the ceiling, rotation goes full screen; `aapt2 dump
 permissions` unchanged; the merged manifest shows no new component; with
 `site youtube.com` on the block list the player still plays while `adb
 shell ping -c 1 www.youtube.com` fails to resolve.
+
+**As built (unchecked on the emulator).** No uid lookup in the filter:
+Shinkan is outside its tunnel since block 5. `app/.../player/`
+(`Extractor`, `Media`, `Images`), `ui/PlayerPage.kt`; core-library
+desugaring for the extractor's newer Java APIs; keep rules for Rhino and
+the extractor in `proguard-rules.pro` (the release build passes R8).
+Checked from the host on 2026-11-02 with a throwaway JVM test through the
+same downloader: a search returned 15 videos with their uploaders'
+`/channel/UC…` addresses, a video resolved to a 360p progressive stream and
+20 related videos. `aapt2 dump permissions` shows the seven once Media3's
+`WAKE_LOCK` is removed; the merged manifest has no component from the new
+libraries.
 
 ### 6b. The player: the creator block list applied [§6.3, §7.1]
 

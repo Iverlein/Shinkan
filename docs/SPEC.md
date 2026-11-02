@@ -452,6 +452,20 @@ endpoints with no Google API, no key and no account. Grayjay was considered
 and set aside: FUTO's Source First licence is not free software and F-Droid
 does not carry it. ROADMAP block 6a.
 
+As built (block 6a): the extractor (from JitPack, as NewPipe takes it) does
+its HTTP through OkHttp with a fixed desktop user agent and no cookie jar
+(`app/.../player/Extractor`); Media3 ExoPlayer plays the best stream that
+carries sound and picture in one file, up to 720p (`Media.bestProgressive`;
+the platform often offers 360p alone that way, higher ones as separate
+video and sound, which a later block may merge). The door has a search, its
+results, a video with its uploader and related videos, and the uploader's
+channel; a playing video fills the screen in landscape; a rest and leaving
+the door pause it; the volume keys keep the door's ceiling. Thumbnails are
+fetched by the same client and kept in memory only. The player's requests
+leave outside the filter's tunnel (§5.5), so a family blocked for every
+other app still plays here (§7.1). Media3's `WAKE_LOCK` is removed from the
+merged manifest; the libraries add no component.
+
 ### 7.3 A creator from a video
 
 A shared video (§6.2) is resolved by the extractor to its channel, shown to

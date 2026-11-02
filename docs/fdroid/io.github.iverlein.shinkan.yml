@@ -1,19 +1,16 @@
-# The fdroiddata recipe for Shinkan (SPEC §11), mirrored here; submitted to
-# fdroiddata as metadata/io.github.iverlein.shinkan.yml.
-Categories:
-  - Security
-  - System
-License: GPL-3.0-or-later
-SourceCode: https://github.com/Iverlein/Shinkan
-IssueTracker: https://github.com/Iverlein/Shinkan/issues
-
-AutoName: Shinkan
-
-# The player plays videos from YouTube, a service that is not free software (SPEC §7).
 AntiFeatures:
   NonFreeNet:
     en-US: The player shows and plays videos from YouTube.
     ru-RU: Плеер показывает и воспроизводит видео с YouTube.
+Categories:
+  - Security
+  - System
+License: GPL-3.0-or-later
+AuthorName: Iverlein
+SourceCode: https://github.com/Iverlein/Shinkan
+IssueTracker: https://github.com/Iverlein/Shinkan/issues
+
+AutoName: Shinkan
 
 RepoType: git
 Repo: https://github.com/Iverlein/Shinkan.git
@@ -21,7 +18,7 @@ Repo: https://github.com/Iverlein/Shinkan.git
 Builds:
   - versionName: 1.0.1
     versionCode: 3
-    commit: v1.0.1
+    commit: 9b125386e4f074b3f4bbd614de9f37cfed14c534
     subdir: app
     gradle:
       - yes

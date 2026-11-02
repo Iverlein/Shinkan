@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -114,6 +117,8 @@ private fun DoorButton(door: Door, open: Boolean, note: String?, modifier: Modif
         ),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // The door's mark, tinted as the label is, so a greyed door greys it too.
+            Icon(painterResource(doorMark(door)), contentDescription = null, Modifier.size(96.dp).padding(bottom = 12.dp))
             Text(stringResource(doorLabel(door)), style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
             if (note != null) {
                 Text(note, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 12.dp))
@@ -125,6 +130,12 @@ private fun DoorButton(door: Door, open: Boolean, note: String?, modifier: Modif
 /** The doors the running budget counts, or none when no budget runs. */
 private fun budgetDoors(policy: Policy, state: PlanState): Set<Door> =
     (state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage) as? Stage.Budget)?.doors.orEmpty()
+
+/** The drawn mark of a door: a globe for the browser, a screen with the play sign for the player. */
+fun doorMark(door: Door): Int = when (door) {
+    Door.BROWSER -> R.drawable.door_browser
+    else -> R.drawable.door_player
+}
 
 /** The name of a door as the child reads it. */
 fun doorLabel(door: Door): Int = when (door) {

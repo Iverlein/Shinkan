@@ -420,6 +420,7 @@ site tiktok.com
 creator youtube @somehandle Some Name
 player allow
 allow youtube @kurzgesagt Kurzgesagt
+history week
 category gambling
 pass example.org
 ```
@@ -485,8 +486,11 @@ videos watched, each by its avatar first, then its name; the avatar comes
 from the channel through the extractor and is kept in memory), *History* (every video played, newest first, with how
 much was watched; a video resumes where it stopped). The bar hides while a
 video plays. The history is a file in the app's storage (`History` in
-`core/`, a hundred videos), never exported; *Clear the player's history* is
-on the door (§2.5).
+`core/`, a hundred videos), never exported. On the door's block list page
+the parent chooses how long it is kept (`history` line: not at all, a day,
+a week, a month, or until cleared, the default), older entries dropped
+whenever it is read or written; *Clear the player's history* empties it
+(§2.5).
 
 ### 7.2 Extractor
 

@@ -438,7 +438,14 @@ size, wildcard-domain format, which is the subdomain match of §6.1) and
 **StevenBlack's** hosts extensions (MIT), each extension the merge of
 upstream sources with licences of their own (MIT, and CC BY 4.0 for two
 porn sources), all named in `assets/blocklist/VERSIONS.md`. A StevenBlack
-name blocks its subdomains too, as every name of the filter does. The extensions
+name blocks its subdomains too, as every name of the filter does. The
+*fake news* category also takes Shinkan's own list,
+`tools/blocklist/state-media.txt`, kept by hand: Russian news outlets owned
+or controlled by the Russian state (the federal or a regional government,
+state companies and state banks) or named by the EU's sanctions on Russian
+state propaganda (Council Regulation 833/2014); privately owned outlets are
+left out whatever their line. Asked by the owner, 2026-11-02, after
+gazeta.ru opened with the category on. The extensions
 are the categories the parent switches on the door: *gambling*, *porn*,
 *fake news*, *social*; ads and trackers are always on. The lists live in
 the repository under their own licences (`app/src/main/assets/blocklist/`)

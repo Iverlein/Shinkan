@@ -74,5 +74,7 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 The built-in block list in `app/src/main/assets/blocklist/` keeps its
 sources' licences: Hagezi's DNS blocklists (GPL-3.0), StevenBlack's hosts
 (MIT) and the upstream sources of its extensions (MIT, CC BY 4.0), each
-named with its licence in `VERSIONS.md` there. It is refreshed before a
+named with its licence in `VERSIONS.md` there, and Shinkan's own list of
+Russian state-controlled media in the fake news category
+(`tools/blocklist/state-media.txt`). It is refreshed before a
 release by `tools/blocklist/refresh.py`.

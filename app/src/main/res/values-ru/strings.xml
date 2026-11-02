@@ -36,6 +36,7 @@
     <string name="player_blocked">Этот автор заблокирован на устройстве.</string>
     <string name="player_no_stream">У этого видео нет потока, который может воспроизвести плеер.</string>
     <string name="door_close">Закрыть</string>
+    <string name="door_unlock">Разблокировать</string>
     <string name="door_locked">Эта дверь откроется, когда родитель разблокирует устройство после включения.</string>
     <string name="browser_back">На страницу назад</string>
     <string name="browser_reload">Обновить</string>

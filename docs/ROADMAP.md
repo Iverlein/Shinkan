@@ -67,7 +67,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 7c | The open device: the device ceiling by clamp | |
 | 8 | Permissions of the usable apps | |
 | 9 | QR provisioning | |
-| 10 | Release 1.0 | ready 2026-11-02: everything but the owner's signed tag `v1.0` |
+| 10 | Release 1.0 | done 2026-11-02: tag `v1.0` on 4eebb7e |
 | 11a | The tunnel: all routes through a userspace TCP relay | |
 | 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | |
 | 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | |
@@ -739,8 +739,9 @@ beta. The DNS filter of the release for other apps cannot be checked once
 adb is cut; the beta's checks of blocks 4 and 6a showed it. A real phone
 is the place to see the release browse and play.
 
-The owner signs the release and pushes the tag `v1.0`; the F-Droid
-submission follows the tag.
+The annotated tag `v1.0` (the changelog as its message) was pushed on
+2026-11-02 on the owner's word; the F-Droid submission of the recipe
+follows it.
 
 ### 11a–11d. The tunnel [§5.2, §5.4, §5.5]
 

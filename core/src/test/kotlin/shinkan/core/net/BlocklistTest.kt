@@ -133,3 +133,63 @@ class CreatorTest {
         assertEquals(emptyList<String>(), (Blocklist() + Creator(Platform.YOUTUBE, id)).unresolvedCreators)
     }
 }
+
+class PlayerModeTest {
+    private val id = "UCsXVk37bltHxD1rDPwtNM8Q"
+    private val kurz = "https://www.youtube.com/channel/$id"
+    private val other = "https://www.youtube.com/channel/UCxxxxxxxxxxxxxxxxxxxxxx"
+
+    @Test fun `the allow mode hides every uploader but the allowed`() {
+        val list = Blocklist(player = PlayerMode.ALLOW, allowed = setOf(Creator(Platform.YOUTUBE, "@kurzgesagt")))
+        assertFalse(list.hidesUploader(kurz, mapOf(id to "@kurzgesagt")))
+        assertTrue(list.hidesUploader(other))
+        assertTrue(list.hidesUploader(null))
+        assertEquals(listOf("@kurzgesagt"), list.unresolvedCreators)
+    }
+
+    @Test fun `the block mode ignores the allowed, the allow mode the blocked`() {
+        val both = Blocklist(creators = setOf(Creator(Platform.YOUTUBE, id)), allowed = setOf(Creator(Platform.YOUTUBE, id)))
+        assertTrue(both.hidesUploader(kurz))
+        assertFalse(both.copy(player = PlayerMode.ALLOW).hidesUploader(kurz))
+    }
+
+    @Test fun `mode and allowed creators in the text`() {
+        val list = Blocklist(player = PlayerMode.ALLOW, allowed = setOf(Creator(Platform.YOUTUBE, "@kurzgesagt", "Kurzgesagt")))
+        val text = BlocklistText.render(list)
+        assertEquals("player allow\nallow youtube @kurzgesagt Kurzgesagt\n", text)
+        assertEquals(list, BlocklistText.parse(text))
+        assertEquals(PlayerMode.BLOCK, BlocklistText.parse("player block").player)
+        assertThrows(BlocklistText.Malformed::class.java) { BlocklistText.parse("player maybe") }
+    }
+}
+
+class HistoryTest {
+    private fun e(url: String, pos: Long, secs: Long = 600, at: Long = 0) =
+        History.Entry(url, "Title\twith tab", "Up", "https://www.youtube.com/channel/U$url", "https://i/$url.jpg", secs, pos, at)
+
+    @Test fun `a video played comes first, once, and the list keeps its cap`() {
+        var h = History()
+        for (i in 1..105) h = h.played(e("v$i", 1000))
+        assertEquals(History.MAX, h.entries.size)
+        assertEquals("v105", h.entries.first().url)
+        h = h.played(e("v50", 30_000))
+        assertEquals(listOf("v50", "v105"), h.entries.take(2).map { it.url })
+        assertEquals(1, h.entries.count { it.url == "v50" })
+    }
+
+    @Test fun `a video resumes where it stopped, from the start when it was finished`() {
+        val h = History().played(e("a", 125_000)).played(e("b", 595_000))
+        assertEquals(125_000, h.positionOf("a"))
+        assertEquals(0, h.positionOf("b"))
+        assertEquals(0, h.positionOf("none"))
+        assertEquals(125f / 600f, h.entries.last().progress, 0.001f)
+    }
+
+    @Test fun `the text reads back, a bad line is left out`() {
+        val h = History().played(e("a", 1)).played(e("b", 2))
+        val back = History.parse(History.render(h) + "\nnot an entry")
+        assertEquals(listOf("b", "a"), back.entries.map { it.url })
+        assertEquals("Title with tab", back.entries.first().title)
+        assertEquals(listOf("Up" to "https://www.youtube.com/channel/Ub", "Up" to "https://www.youtube.com/channel/Ua"), back.creators())
+    }
+}

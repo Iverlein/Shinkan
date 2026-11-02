@@ -12,6 +12,9 @@ data class Blocklist(
     val creators: Set<Creator> = emptySet(),
     val categories: Set<Category> = emptySet(),
     val passes: Set<String> = emptySet(),
+    /** The player's mode (SPEC §7.1): every creator but the blocked [creators], or the [allowed] alone. */
+    val player: PlayerMode = PlayerMode.BLOCK,
+    val allowed: Set<Creator> = emptySet(),
 ) {
     /**
      * True when [host] is a blocked site or under one; else when the [builtin]
@@ -33,18 +36,27 @@ data class Blocklist(
      * exactly.
      */
     fun hidesUploader(url: String?, aliases: Map<String, String> = emptyMap()): Boolean {
-        val ref = Link.creatorRef(url) ?: return false
-        val blocked = creators.filter { it.platform == Platform.YOUTUBE }.map { comparable(it.ref) }.toSet()
-        return comparable(ref) in blocked || aliases[ref]?.let { comparable(it) in blocked } == true
+        val ref = Link.creatorRef(url)
+        if (player == PlayerMode.ALLOW) return ref == null || !listed(ref, allowed, aliases)
+        return ref != null && listed(ref, creators, aliases)
+    }
+
+    private fun listed(ref: String, list: Set<Creator>, aliases: Map<String, String>): Boolean {
+        val refs = list.filter { it.platform == Platform.YOUTUBE }.map { comparable(it.ref) }.toSet()
+        return comparable(ref) in refs || aliases[ref]?.let { comparable(it) in refs } == true
     }
 
     /** The creators whose reference is not a channel id: the player resolves these to one. */
     val unresolvedCreators: List<String>
-        get() = creators.filter { it.platform == Platform.YOUTUBE && !isChannelId(it.ref) }.map { it.ref }
+        get() = (if (player == PlayerMode.ALLOW) allowed else creators)
+            .filter { it.platform == Platform.YOUTUBE && !isChannelId(it.ref) }.map { it.ref }
 
     operator fun plus(site: String) = copy(sites = sites + Host.normalise(site))
     operator fun plus(creator: Creator) = copy(creators = creators + creator)
 }
+
+/** The player's two modes (SPEC §7.1): a block list of creators, or an allow list. */
+enum class PlayerMode { BLOCK, ALLOW }
 
 /** One creator on one platform, by the stable reference the platform gives (a channel id, a handle, an account). */
 data class Creator(val platform: Platform, val ref: String, val name: String = ref)

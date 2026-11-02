@@ -31,6 +31,21 @@ object BlocklistText {
                         ?: throw Malformed(i + 1, line, "unknown platform")
                     list += Creator(platform, parts[2], parts.getOrNull(3) ?: parts[2])
                 }
+                "player" -> {
+                    list = list.copy(
+                        player = when (parts.getOrNull(1)) {
+                            "allow" -> PlayerMode.ALLOW
+                            "block" -> PlayerMode.BLOCK
+                            else -> throw Malformed(i + 1, line, "player is allow or block")
+                        },
+                    )
+                }
+                "allow" -> {
+                    if (parts.size < 3) throw Malformed(i + 1, line, "allow takes platform, reference and name")
+                    val platform = Platform.entries.firstOrNull { it.name.equals(parts[1], ignoreCase = true) }
+                        ?: throw Malformed(i + 1, line, "unknown platform")
+                    list = list.copy(allowed = list.allowed + Creator(platform, parts[2], parts.getOrNull(3) ?: parts[2]))
+                }
                 "category" -> {
                     if (parts.size != 2) throw Malformed(i + 1, line, "category takes one name")
                     val c = Category.byKey(parts[1]) ?: throw Malformed(i + 1, line, "unknown category")
@@ -50,6 +65,10 @@ object BlocklistText {
         list.sites.sorted().forEach { appendLine("site $it") }
         list.creators.sortedWith(compareBy({ it.platform }, { it.ref })).forEach {
             appendLine("creator ${it.platform.name.lowercase()} ${it.ref} ${it.name}")
+        }
+        if (list.player == PlayerMode.ALLOW) appendLine("player allow")
+        list.allowed.sortedWith(compareBy({ it.platform }, { it.ref })).forEach {
+            appendLine("allow ${it.platform.name.lowercase()} ${it.ref} ${it.name}")
         }
         Category.entries.filter { it in list.categories }.forEach { appendLine("category ${it.key}") }
         list.passes.sorted().forEach { appendLine("pass $it") }

@@ -37,7 +37,7 @@ Conventions that hold for every block:
 
 ## Order
 
-**Release 1.0 needs** blocks 1, 2, 3a, 3b, 3e, 3f, 4, 5, 6a, 6b and A3, then 10:
+**Release 1.0 needs** blocks 1, 2, 3a, 3b, 3e, 3f, 4, 5, 6a, 6b, 6e and A3, then 10:
 a child lock that holds the closed device with a filtered browser and a
 player that hides blocked creators, behind a PIN, with the built-in list,
 in English and Russian (the owner, 2026-11-02).
@@ -59,6 +59,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 5 | The browser door | done 2026-11-02 |
 | 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | done 2026-11-02 |
 | 6b | The player: the creator block list applied to every list | done 2026-11-02 |
+| 6e | The player: block and allow modes, Home, Creators and History at the bottom, positions kept | done 2026-11-02 |
 | 6c | The player: a shared video resolved to its creator; the official app held | |
 | 6d | The player: SponsorBlock segments | |
 | 7a | The open device: the launcher kept, the named apps closed | |
@@ -593,6 +594,31 @@ the four videos of *Dinge Erklärt – Kurzgesagt*, and a played video's
 related list had none of *Kurzgesagt – In a Nutshell*. A blocked channel's
 page cannot be reached from inside the player, whose lists never show it;
 its refusal waits for a shared video or channel (6c).
+
+### 6e. The player's modes, screens and history [§7.1.1]
+
+Asked by the owner on 2026-11-02: a block list and an allow list of
+creators, two screens instead of Grayjay's many (Home and Creators), then
+a history with positions, then the three as icons at the bottom.
+
+**As built.** `core/`: `PlayerMode`, `Blocklist.allowed` and the mode in
+`hidesUploader`; `player` and `allow` lines in `BlocklistText`; `History`
+(at most 100, newest first, resume from the stopped position unless within
+ten seconds of the end, tab-separated text), with `PlayerModeTest` and
+`HistoryTest`. `app/`: `player/PlayerHistory` (a file in the app's
+storage), `Creators.allowed`, the bottom bar with `nav_home`,
+`nav_creators`, `nav_history`; the door's block list page has the mode
+and *Clear the player's history*; the share page *Allow in the player*.
+Back from search results returns to Home.
+
+Checked on the emulator, 2026-11-02: in the block mode a video watched 40 s
+appears on History with its progress and its uploader on Creators, and
+reopened plays from 0:39; in the allow mode with `@kurzgesagt` Home lists
+its newest videos, Creators lists it and opens its channel, a search for
+"black holes" shows its videos alone; sharing `youtube.com/@veritasium`
+and tapping *Allow in the player* adds it to the allowed; the door's switch
+back to the block mode keeps the allowed; *Clear the player's history*
+deletes the history.
 
 ### 6c. The player: a shared video; the official app held [§7.3, §6.2, §6.3]
 

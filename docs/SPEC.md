@@ -54,7 +54,9 @@ on F-Droid.
    gives the ownership back; the PIN is the only key, and what happens when
    it is lost is written down (§9.4).
 5. **Nothing about the child leaves the device.** No usage statistics, no
-   query logs beyond the system's, nothing to export.
+   query logs beyond the system's, nothing to export. The one record kept
+   is the player's history (§7.1), for the child's own *History* screen:
+   on the device only, a hundred videos at most, cleared by the parent.
 6. **Decisions are pure.** What is usable when, what a shared link means,
    whether a host is blocked, how a DNS refusal looks: plain Kotlin in
    `core/` with tests; `app/` only applies the result.
@@ -411,6 +413,8 @@ does not load.
 ```
 site tiktok.com
 creator youtube @somehandle Some Name
+player allow
+allow youtube @kurzgesagt Kurzgesagt
 category gambling
 pass example.org
 ```
@@ -453,6 +457,23 @@ without the official app or site, with the parent's block list applied to
 every list the platform returns. The official app is suspended and the
 family's hosts are blocked for every other app (§5.5); the player's own
 connections pass.
+
+### 7.1.1 Modes and screens
+
+The player has two modes, the parent's choice on the door's block list
+page: **block list** (every creator but the blocked ones, §6.3) and **allow
+list** (only the allowed creators). Both lists are kept, so a change of
+mode turns neither into the other (`player allow`, `allow youtube @handle
+Name` lines, §6.4); a shared channel offers *Allow in the player* beside
+*Block*. Three screens, each as the mode makes it, are reached from icons
+at the bottom (a house, a person, a clock): *Home* (a search, filtered by
+the mode; in the allow mode, the newest videos of the allowed creators),
+*Creators* (the allowed creators, or in the block mode the creators of the
+videos watched), *History* (every video played, newest first, with how
+much was watched; a video resumes where it stopped). The bar hides while a
+video plays. The history is a file in the app's storage (`History` in
+`core/`, a hundred videos), never exported; *Clear the player's history* is
+on the door (§2.5).
 
 ### 7.2 Extractor
 

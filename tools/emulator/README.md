@@ -56,7 +56,13 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   some 12 s after it maps; the machine's placer re-applies the geometry for
   that.
 - **`dpm` refuses a device with accounts**, which is why the image has no
-  Play.
+  Play. Right after a snapshot load it may refuse a device with none
+  ("already some accounts"): `provision` retries for a minute.
+- **The host from the beta.** Shinkan's own uid does not reach the
+  emulator's host alias 10.0.2.2 (its SYN goes out on Wi-Fi and is never
+  answered, while root's is), though it reaches the internet. Serve a test
+  page through `adb reverse tcp:8000 tcp:8000` and open
+  `http://127.0.0.1:8000/` (the beta allows cleartext there).
 - **`am force-stop` does not reach a device owner**, and on the closed
   device the home comes back the moment its process ends. To make the app
   read a store written behind its back, `store` writes the file first and

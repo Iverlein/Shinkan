@@ -328,7 +328,18 @@ def cmd_provision(device: Device, args):
     device.need_adb()
     if not device.installed():
         raise Failure(f"{PACKAGE} is not installed: run `install` first")
-    out = device.sh(f"dpm set-device-owner {PACKAGE}/{RECEIVER}")
+    # Just after a snapshot load, Google Play services briefly hold something dpm counts as
+    # an account ("already some accounts on the device") though `dumpsys account` lists none
+    # (2026-11-02); it passes within seconds, so the refusal is retried for a minute.
+    deadline = time.monotonic() + 60
+    while True:
+        try:
+            out = device.sh(f"dpm set-device-owner {PACKAGE}/{RECEIVER}")
+            break
+        except Failure as e:
+            if "already some accounts" not in str(e) or time.monotonic() > deadline:
+                raise
+            time.sleep(3)
     print(out.strip())
     if "Success" not in out:
         raise Failure("dpm did not make Shinkan the device owner")

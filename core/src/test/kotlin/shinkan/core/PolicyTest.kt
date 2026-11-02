@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.DayOfWeek
 import java.time.DayOfWeek.FRIDAY
 import java.time.DayOfWeek.SATURDAY
 import java.time.DayOfWeek.SUNDAY
@@ -129,5 +130,30 @@ class PolicyTest {
         val p = PolicyText.parse("plan sun,sat\n  player 60")
         assertEquals(setOf(SATURDAY, SUNDAY), p.plans[0].days)
         assertEquals("mode closed\nplan sat,sun\n  player 60\n", PolicyText.render(p))
+    }
+
+    @Test fun `a policy built in the editor is checked by its own text`() {
+        val good = Policy(
+            plans = listOf(Plan(setOf(DayOfWeek.MONDAY), listOf(Stage.Budget(setOf(Door.PLAYER), 30, Rest.Parent)))),
+            volumes = mapOf(Door.PLAYER to 40),
+        )
+        assertEquals(null, PolicyText.problem(good))
+        val empty = good.copy(plans = listOf(Plan(setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), emptyList())))
+        val problem = PolicyText.problem(empty)!!
+        assertEquals(2, problem.line)
+        assertEquals("a plan without stages", problem.why)
+        assertEquals("plan mon,fri", problem.text)
+    }
+
+    @Test fun `a typed time is HH colon MM, H colon MM or HHMM`() {
+        assertEquals(LocalTime.of(6, 0), PolicyText.time("06:00"))
+        assertEquals(LocalTime.of(6, 0), PolicyText.time("6:00"))
+        assertEquals(LocalTime.of(6, 0), PolicyText.time("0600"))
+        assertEquals(LocalTime.of(23, 59), PolicyText.time(" 23:59 "))
+        assertEquals(null, PolicyText.time("24:00"))
+        assertEquals(null, PolicyText.time("12:60"))
+        assertEquals(null, PolicyText.time("600"))
+        assertEquals(null, PolicyText.time("noon"))
+        assertEquals("06:00", PolicyText.time(LocalTime.of(6, 0)))
     }
 }

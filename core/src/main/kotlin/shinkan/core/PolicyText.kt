@@ -28,7 +28,20 @@ import java.time.format.DateTimeFormatter
  * malformed lines raise [PolicyText.Malformed] with the line number.
  */
 object PolicyText {
-    class Malformed(val line: Int, text: String, why: String) : IllegalArgumentException("line $line: $why: $text")
+    class Malformed(val line: Int, val text: String, val why: String) : IllegalArgumentException("line $line: $why: $text")
+
+    /**
+     * Why [policy] cannot be stored, or null when it can: its text must read back
+     * as itself, so a policy the parent's editor built (SPEC §8.2) is checked by
+     * the same parser as a pasted one. A plan left without stages is the usual
+     * case.
+     */
+    fun problem(policy: Policy): Malformed? = try {
+        parse(render(policy))
+        null
+    } catch (e: Malformed) {
+        e
+    }
 
     private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
     private val dayNames = DayOfWeek.entries.associateBy { it.name.take(3).lowercase() }
@@ -150,6 +163,21 @@ object PolicyText {
         if (from == to) throw Malformed(n, line, "hours of zero length")
         return from to to
     }
+
+    /**
+     * A time as a parent types it on the door (SPEC §8.2): `HH:MM`, `H:MM` or
+     * `HHMM`, from 00:00 to 23:59; null for anything else.
+     */
+    fun time(text: String): LocalTime? {
+        val m = Regex("""^(\d{1,2}):?(\d{2})$""").matchEntire(text.trim()) ?: return null
+        val h = m.groupValues[1].toInt()
+        val min = m.groupValues[2].toInt()
+        if (m.groupValues[1].length == 1 && ':' !in text) return null
+        return if (h in 0..23 && min in 0..59) LocalTime.of(h, min) else null
+    }
+
+    /** A time as the text writes it, `HH:MM`. */
+    fun time(time: LocalTime): String = time.format(hhmm)
 
     private fun door(name: String): Door? = Door.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
 

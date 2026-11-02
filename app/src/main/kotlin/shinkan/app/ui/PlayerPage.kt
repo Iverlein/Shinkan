@@ -118,18 +118,33 @@ fun PlayerPage(onClose: () -> Unit) {
     val noStream = stringResource(R.string.player_no_stream)
     val blocked = stringResource(R.string.player_blocked)
 
+    val softwareDecoders = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
     val player = remember {
         val http = DefaultHttpDataSource.Factory().setUserAgent(Extractor.OkDownloader.USER_AGENT)
-        // A decoder that fails to start gives way to the next one. The emulator's own H.264 decoder
-        // fails on its first frames; the beta prefers Android's software decoders there
-        // (`setprop debug.shinkan.software_codecs 1`), the release takes the device's own.
+        // A decoder that fails to start gives way to the next one (Media3's fallback); one that
+        // fails while decoding (the emulator's own H.264 decoder does, 2026-11-02) makes the
+        // player prepare again preferring Android's software decoders, from where it was.
         val renderers = androidx.media3.exoplayer.DefaultRenderersFactory(context).setEnableDecoderFallback(true)
-        if (io.github.iverlein.shinkan.BuildConfig.DEBUG && debugProperty("debug.shinkan.software_codecs")) {
-            renderers.setMediaCodecSelector { mime, secure, tunneling ->
-                androidx.media3.exoplayer.mediacodec.MediaCodecUtil.getDecoderInfos(mime, secure, tunneling).sortedBy { if (it.softwareOnly) 0 else 1 }
-            }
+        renderers.setMediaCodecSelector { mime, secure, tunneling ->
+            val all = androidx.media3.exoplayer.mediacodec.MediaCodecUtil.getDecoderInfos(mime, secure, tunneling)
+            if (softwareDecoders.get()) all.sortedBy { if (it.softwareOnly) 0 else 1 } else all
         }
         ExoPlayer.Builder(context, renderers).setMediaSourceFactory(DefaultMediaSourceFactory(http)).build()
+    }
+    // Once the device's decoder has failed, the software decoders first (see the selector above).
+    DisposableEffect(player) {
+        val listener = object : androidx.media3.common.Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                if (error.errorCode in androidx.media3.common.PlaybackException.ERROR_CODE_DECODER_INIT_FAILED..androidx.media3.common.PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED &&
+                    !softwareDecoders.getAndSet(true)
+                ) {
+                    player.prepare()
+                    player.play()
+                }
+            }
+        }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
     }
     val view = remember { PlayerView(context).apply { this.player = player } }
     DisposableEffect(Unit) { onDispose { player.release() } }
@@ -414,11 +429,6 @@ private fun Item(item: StreamInfoItem, onClick: () -> Unit) {
     }
 }
 
-/** A beta's switch for the emulator: the system property [name] set to 1. */
-private fun debugProperty(name: String): Boolean = runCatching {
-    val process = Runtime.getRuntime().exec(arrayOf("getprop", name))
-    process.inputStream.bufferedReader().use { it.readText() }.trim() == "1"
-}.getOrDefault(false)
 
 /** The one player view, taken from the place it was in: portrait's list and landscape's full screen share it. */
 private fun detached(view: PlayerView): PlayerView {

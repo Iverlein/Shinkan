@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -78,6 +79,7 @@ fun BrowserPage(onClose: () -> Unit) {
     var canGoBack by remember { mutableStateOf(false) }
     val page = remember { AtomicReference("") }
     val blockedText = stringResource(R.string.browser_blocked)
+    val paper = MaterialTheme.colorScheme.background
 
     val web = remember {
         WebView(context).apply {
@@ -115,7 +117,7 @@ fun BrowserPage(onClose: () -> Unit) {
 
                 override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                     page.set(android.net.Uri.parse(url).host ?: "")
-                    address = url
+                    address = if (Address.allowed(url)) url else ""
                     loading++
                 }
 
@@ -131,11 +133,18 @@ fun BrowserPage(onClose: () -> Unit) {
 
                 override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
                     page.set(android.net.Uri.parse(url).host ?: "")
-                    address = url
+                    address = if (Address.allowed(url)) url else ""
                     canGoBack = view.canGoBack()
                 }
             }
-            if (start != null) loadUrl(start)
+            // A WebView that has loaded nothing draws no frame, and its window stays white, the
+            // address bar with it (found 2026-11-02): with no start page it shows a blank page of its own.
+            if (start != null) {
+                loadUrl(start)
+            } else {
+                val bg = String.format("#%06X", paper.toArgb() and 0xFFFFFF)
+                loadDataWithBaseURL(null, "<html><body style='background:$bg'></body></html>", "text/html", "utf-8", null)
+            }
         }
     }
     DisposableEffect(Unit) {

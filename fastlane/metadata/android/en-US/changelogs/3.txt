@@ -1,0 +1,1 @@
+The browser door shows its address bar and a blank page when no start page is set, where it showed a white screen. The player plays on when the device's video decoder fails, with Android's own decoders.

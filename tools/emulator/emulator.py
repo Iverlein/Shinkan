@@ -51,6 +51,11 @@ TOKEN = Path.home() / ".emulator_console_auth_token"
 BOOT_TIMEOUT = 240
 SETTLE = 1.5  # seconds for a page transition to finish after a tap or a launch
 PNG = b"\x89PNG\r\n\x1a\n"
+# No Vulkan in the guest: on this host the emulator renders in software and serves Vulkan from
+# lavapipe, where Chromium (the WebView of the browser door, Chrome) draws no page content and
+# then crashes the emulator (kvm_user_backed_ram_map, 2026-11-02). Without it Chromium uses GLES.
+# The snapshot `clean` records the feature set: it was taken again with these flags.
+FLAGS = ["-feature", "-Vulkan"]
 
 
 class Failure(Exception):
@@ -248,7 +253,7 @@ def cmd_start(device: Device, args):
     if AVD not in avds():
         raise Failure(f"no AVD {AVD}: run `create` first")
     # -no-snapshot-save always: `-snapshot NAME` alone saves the state back into NAME on exit.
-    cmd = [str(emulator_bin()), "-avd", AVD, "-port", str(device.port), "-no-boot-anim", "-no-snapshot-save"]
+    cmd = [str(emulator_bin()), "-avd", AVD, "-port", str(device.port), "-no-boot-anim", "-no-snapshot-save", *FLAGS]
     if args.cold or not has_snapshot():
         cmd.append("-no-snapshot-load")
         how = "cold"

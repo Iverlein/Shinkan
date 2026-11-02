@@ -79,6 +79,22 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   cards (*Add a span* on each plan) needs `adb shell input tap X Y`, read
   off a `shot`.
 
+- **Chromium and this host's emulator.** The emulator renders in software
+  (it judges the host's GPU drivers buggy) and serves guest Vulkan from
+  lavapipe: Chromium (the browser door's WebView, Chrome) then draws no
+  page content, and Chrome's Vulkan device crashed the emulator on
+  2026-11-02, after which every boot died with `kvm_user_backed_ram_map:
+  error registering slot: File exists`, through a KVM module reload and a
+  recreated AVD. `start` passes `-feature -Vulkan`; a snapshot records the
+  features it was taken with and is refused under others. The beta draws
+  its WebView in software with `adb shell setprop
+  debug.shinkan.webview_software 1`.
+- **A crashed emulator lingers** at its crash dialog and holds the AVD's
+  lock (`Running multiple emulators with the same AVD`). Stop that one
+  process by its `-avd shinkan-test` command line, never every qemu: another
+  project's emulator may be running.
+- **`-wipe-data` deletes the snapshots** with the data.
+
 ## The checks of SPEC §10
 
 A block's emulator check, in order. Each line is a thing to see, not a log

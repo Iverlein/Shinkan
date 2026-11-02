@@ -238,6 +238,12 @@
     <string name="player_mode">Плеер YouTube</string>
     <string name="player_mode_block">Все авторы, кроме заблокированных</string>
     <string name="player_mode_allow">Только разрешённые авторы</string>
+    <string name="player_history_keep">Хранить историю просмотров</string>
+    <string name="player_keep_off">Не хранить</string>
+    <string name="player_keep_day">Сутки</string>
+    <string name="player_keep_week">Неделю</string>
+    <string name="player_keep_month">Месяц</string>
+    <string name="player_keep_forever">До очистки</string>
     <string name="player_history_clear">Очистить историю плеера</string>
     <string name="player_history_cleared">История очищена.</string>
     <string name="blocklist_text">Блокировки текстом: site, creator, category и pass для имени из встроенного списка, которое нужно пропустить</string>

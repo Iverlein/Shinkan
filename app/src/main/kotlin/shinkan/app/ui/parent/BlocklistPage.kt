@@ -81,6 +81,21 @@ fun BlocklistPage() {
     RadioRow(stringResource(R.string.player_mode_allow), list.player == shinkan.core.net.PlayerMode.ALLOW) {
         save(list.copy(player = shinkan.core.net.PlayerMode.ALLOW))
     }
+    // How long the player keeps its history (SPEC §7.1.1).
+    Spacer(Modifier.height(8.dp))
+    Text(stringResource(R.string.player_history_keep), style = MaterialTheme.typography.bodyMedium)
+    listOf(
+        shinkan.core.net.HistoryKeep.OFF to R.string.player_keep_off,
+        shinkan.core.net.HistoryKeep.DAY to R.string.player_keep_day,
+        shinkan.core.net.HistoryKeep.WEEK to R.string.player_keep_week,
+        shinkan.core.net.HistoryKeep.MONTH to R.string.player_keep_month,
+        shinkan.core.net.HistoryKeep.FOREVER to R.string.player_keep_forever,
+    ).forEach { (keep, label) ->
+        RadioRow(stringResource(label), list.history == keep) {
+            save(list.copy(history = keep))
+            if (keep == shinkan.core.net.HistoryKeep.OFF) shinkan.app.player.PlayerHistory.clear(context)
+        }
+    }
     var cleared by remember { mutableStateOf(false) }
     androidx.compose.material3.TextButton(onClick = {
         shinkan.app.player.PlayerHistory.clear(context)

@@ -234,6 +234,12 @@
     <string name="player_mode">The YouTube player</string>
     <string name="player_mode_block">Every creator but the blocked ones</string>
     <string name="player_mode_allow">Only the allowed creators</string>
+    <string name="player_history_keep">Keep the history of videos watched</string>
+    <string name="player_keep_off">Not at all</string>
+    <string name="player_keep_day">For a day</string>
+    <string name="player_keep_week">For a week</string>
+    <string name="player_keep_month">For a month</string>
+    <string name="player_keep_forever">Until cleared</string>
     <string name="player_history_clear">Clear the player\'s history</string>
     <string name="player_history_cleared">The history is cleared.</string>
     <string name="blocklist_text">The block list as text: site, creator, category, and pass for a built-in name to let through</string>

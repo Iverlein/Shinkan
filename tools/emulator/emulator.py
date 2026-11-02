@@ -54,11 +54,12 @@ TOKEN = Path.home() / ".emulator_console_auth_token"
 BOOT_TIMEOUT = 240
 SETTLE = 1.5  # seconds for a page transition to finish after a tap or a launch
 PNG = b"\x89PNG\r\n\x1a\n"
-# The host's GPU: left to itself the emulator judges this host's drivers buggy and renders in
-# software (lavapipe, SwiftShader), where Chromium (the browser door's WebView, Chrome) draws no
-# page content and Chrome's Vulkan device crashed emulator 37.1.11 (2026-11-02). On the host GPU
-# both WebView and video work. The snapshot `clean` records the GPU mode: it was taken with these.
-FLAGS = ["-gpu", "host"]
+# Software rendering, as the emulator chooses on this host, without guest Vulkan: Chrome's Vulkan
+# device crashed emulator 37.1.11 (2026-11-02). Chromium draws no page content here; the host's
+# GPU (-gpu host) draws it, but loading a snapshot under it crashes the renderer, so checks of the
+# browser and the release run on a wiped cold boot with -gpu host (README). The snapshot `clean`
+# records the GPU mode and features: it is taken with these.
+FLAGS = ["-feature", "-Vulkan"]
 
 
 class Failure(Exception):

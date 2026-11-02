@@ -91,11 +91,15 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   page content, and Chrome's Vulkan device crashed the emulator on
   2026-11-02, after which every boot died with `kvm_user_backed_ram_map:
   error registering slot: File exists`, through a KVM module reload and a
-  recreated AVD, until emulator 37.2.13. `start` passes `-gpu host`, where
-  WebView and video work; a snapshot records the GPU mode and features it
-  was taken with and is refused under others (a wipe and `snapshot` take
-  it again). Without the host GPU the beta draws its WebView in software
-  with `adb shell setprop debug.shinkan.webview_software 1`.
+  recreated AVD, until emulator 37.2.13. `start` passes `-feature -Vulkan`
+  and restores `clean` reliably. On the host's GPU (`-gpu host`) WebView
+  and video work, but a snapshot loaded under it crashes the renderer
+  (`glTexParameteri … null ctx`): check the browser and the release on a
+  wiped cold boot, `emulator -avd shinkan-test -port 5554 -no-boot-anim
+  -no-snapshot-save -no-snapshot-load -wipe-data -gpu host`, which deletes
+  `clean`; take it again afterwards (a wiped boot with the default flags,
+  then `snapshot`). On the software GPU the beta draws its WebView with
+  `adb shell setprop debug.shinkan.webview_software 1`.
 - **Video on the emulator.** Its H.264 decoder (`c2.goldfish.h264.decoder`)
   fails mid-stream; the player then prepares again with Android's software
   decoders by itself (since 1.0.1).

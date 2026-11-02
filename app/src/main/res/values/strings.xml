@@ -99,6 +99,7 @@
     <string name="section_apps">Closed apps</string>
     <string name="section_volumes">Volume</string>
     <string name="section_restrictions">Restrictions</string>
+    <string name="section_blocklist">Block list</string>
     <string name="section_theme">Theme</string>
     <string name="section_text">The policy as text</string>
 
@@ -192,6 +193,20 @@
     <string name="restriction_config_credentials">No changing credentials</string>
     <string name="restriction_config_private_dns">No changing private DNS</string>
     <string name="restriction_config_vpn">No changing the VPN</string>
+
+    <!-- The block list (SPEC §6, §6.5) -->
+    <string name="summary_blocklist">%1$d sites, %2$d creators; %3$s</string>
+    <string name="summary_blocklist_ads">ads and trackers</string>
+    <string name="blocklist_intro">What the filter refuses on the whole device. A site blocks itself and every subdomain; sharing a link to Shinkan adds one. A creator is hidden in the player.</string>
+    <string name="blocklist_ads">Ads and trackers are always blocked, from the list built into Shinkan. Switch on more of it:</string>
+    <string name="category_gambling">Gambling</string>
+    <string name="category_porn">Porn</string>
+    <string name="category_fakenews">Fake news</string>
+    <string name="category_social">Social media</string>
+    <string name="blocklist_text">The block list as text: site, creator, category, and pass for a built-in name to let through</string>
+    <string name="blocklist_save">Save the list</string>
+    <string name="blocklist_saved">Saved; the filter reads it now.</string>
+    <string name="text_reset_list">Back to the list</string>
 
     <!-- Theme (SPEC §8.6) -->
     <string name="theme_system">As the system is set</string>

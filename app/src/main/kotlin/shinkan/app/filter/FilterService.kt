@@ -70,6 +70,9 @@ class FilterService : VpnService() {
     }
 
     private fun loop(fd: ParcelFileDescriptor) {
+        // The built-in list is read here, off the main thread, once per process.
+        val builtin = BuiltinLists.get(this)
+        Log.i(TAG, "built-in list: ${builtin.ads.size} names of ads and trackers")
         val input = FileInputStream(fd.fileDescriptor)
         val output = FileOutputStream(fd.fileDescriptor)
         val buffer = ByteArray(32767)
@@ -79,7 +82,7 @@ class FilterService : VpnService() {
             val datagram = Udp4.parse(buffer, n) ?: continue
             if (datagram.dstPort != 53) continue
             val question = DnsQuestion.parse(datagram.payload)
-            if (question != null && question.isAddressQuery && blocklist.get().blocksHost(question.name)) {
+            if (question != null && question.isAddressQuery && blocklist.get().blocksHost(question.name, builtin)) {
                 Log.d(TAG, "blocked ${question.name}")
                 reply(output, datagram, DnsQuestion.refuse(datagram.payload))
                 continue

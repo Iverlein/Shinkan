@@ -48,6 +48,8 @@ import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
 import shinkan.app.plan.PlanClock
 import shinkan.app.ui.parent.AppsPage
+import shinkan.app.ui.parent.BlocklistPage
+import shinkan.app.ui.parent.blocklistSummary
 import shinkan.app.ui.parent.FormPage
 import shinkan.app.ui.parent.PlansPage
 import shinkan.app.ui.parent.RestrictionsPage
@@ -70,6 +72,7 @@ private enum class Section(val title: Int) {
     APPS(R.string.section_apps),
     VOLUMES(R.string.section_volumes),
     RESTRICTIONS(R.string.section_restrictions),
+    BLOCKLIST(R.string.section_blocklist),
     THEME(R.string.section_theme),
     TEXT(R.string.section_text),
 }
@@ -159,6 +162,7 @@ fun ParentPage(
                 Section.APPS -> AppsPage(draft, hold, edit)
                 Section.VOLUMES -> VolumesPage(draft, edit)
                 Section.RESTRICTIONS -> RestrictionsPage(draft, edit)
+                Section.BLOCKLIST -> BlocklistPage()
                 Section.THEME -> ThemePage(theme, onTheme)
                 Section.TEXT -> TextPage(draft, edit)
             }
@@ -246,6 +250,7 @@ private fun summary(section: Section, policy: Policy, theme: ThemePin): String =
     } else {
         stringResource(R.string.summary_restrictions_count, policy.restrictions.size, Restriction.entries.size)
     }
+    Section.BLOCKLIST -> blocklistSummary()
     Section.THEME -> stringResource(theme.label)
     Section.TEXT -> stringResource(R.string.summary_text)
 }

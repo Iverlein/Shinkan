@@ -186,4 +186,17 @@ class PlanTest {
         assertEquals(emptySet<Door>(), policy.openAt(at(2, "11:00"), stale))
         assertEquals(PlanState(monday, 3, 5), policy.resolve(at(2, "11:00"), stale))
     }
+
+    @Test fun `the stored state reads back as it was`() {
+        val states = listOf(
+            PlanState(),
+            PlanState(monday, 1, 1800, at(2, "12:00")),
+            PlanState(monday, 1, 3600, restParent = true),
+            PlanState(monday, 2, 75),
+        )
+        for (s in states) assertEquals(s, PolicyText.parseState(PolicyText.renderState(s)))
+        assertEquals("day=2026-11-02 stage=1 spent=1800 rest=2026-11-02T12:00", PolicyText.renderState(states[1]))
+        assertEquals(PlanState(), PolicyText.parseState("day=yesterday stage=x"))
+        assertEquals(PlanState(), PolicyText.parseState(""))
+    }
 }

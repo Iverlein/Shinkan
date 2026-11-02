@@ -1,6 +1,8 @@
 package shinkan.core
 
 import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -174,6 +176,38 @@ object PolicyText {
             policy.restrictions == Restriction.DEFAULT -> Unit
             policy.restrictions.isEmpty() -> appendLine("restrict none")
             else -> policy.restrictions.sortedBy { it.ordinal }.forEach { appendLine("restrict ${it.name.lowercase()}") }
+        }
+    }
+
+    /**
+     * The plan state as the app stores it (SPEC §4.7), one line of `key=value`:
+     * `day=2026-11-02 stage=1 spent=1800 rest=2026-11-02T12:00`, with
+     * `rest=parent` for a rest a parent ends. Nothing but these is kept.
+     */
+    fun renderState(state: PlanState): String = buildList {
+        state.day?.let { add("day=$it") }
+        add("stage=${state.stage}")
+        add("spent=${state.spent}")
+        when {
+            state.restParent -> add("rest=parent")
+            state.restEnd != null -> add("rest=${state.restEnd}")
+        }
+    }.joinToString(" ")
+
+    /** The stored plan state; what cannot be read is a fresh state, which the plan then carries to now. */
+    fun parseState(text: String): PlanState {
+        val fields = text.trim().split(Regex("\\s+")).filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
+        return try {
+            val rest = fields["rest"]
+            PlanState(
+                day = fields["day"]?.let(LocalDate::parse),
+                stage = fields["stage"]?.toInt() ?: 0,
+                spent = fields["spent"]?.toLong() ?: 0,
+                restEnd = rest?.takeIf { it != "parent" }?.let(LocalDateTime::parse),
+                restParent = rest == "parent",
+            )
+        } catch (e: Exception) {
+            PlanState()
         }
     }
 

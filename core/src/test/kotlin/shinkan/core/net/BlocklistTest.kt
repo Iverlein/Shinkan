@@ -2,6 +2,7 @@ package shinkan.core.net
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -34,5 +35,66 @@ class BlocklistTest {
         assertEquals("site tiktok.com\ncreator youtube @someone Some One\n", text)
         assertEquals(list, BlocklistText.parse(text))
         assertEquals(Blocklist(), BlocklistText.parse("# nothing\n"))
+    }
+}
+
+class BuiltinListTest {
+    private fun list(vararg names: String) = BuiltinList(("# a header\n" + names.joinToString("\n") + "\n").toByteArray())
+
+    private val ads = list("ads.example.net", "googlesyndication.com", "tracker.io")
+    private val gambling = list("bet365.com", "casino.example")
+    private val builtin = Builtin(ads, mapOf(Category.GAMBLING to gambling))
+
+    @Test fun `the suffix walk finds a name above the host, never beside it`() {
+        assertTrue(ads.blocks("pagead2.googlesyndication.com"))
+        assertTrue(ads.blocks("a.b.Tracker.io."))
+        assertTrue(ads.blocks("ads.example.net"))
+        assertFalse(ads.blocks("example.net"))
+        assertFalse(ads.blocks("notgooglesyndication.com"))
+        assertFalse(ads.blocks("googlesyndication.com.evil.org"))
+        assertEquals(3, ads.size)
+    }
+
+    @Test fun `names out of byte order are refused`() {
+        assertThrows(IllegalArgumentException::class.java) { list("b.com", "a.com") }
+    }
+
+    @Test fun `ads are always on, a category only when switched on`() {
+        val none = Blocklist()
+        assertTrue(none.blocksHost("www.tracker.io", builtin))
+        assertFalse(none.blocksHost("www.bet365.com", builtin))
+        assertTrue(none.copy(categories = setOf(Category.GAMBLING)).blocksHost("www.bet365.com", builtin))
+        assertFalse(none.blocksHost("example.org", builtin))
+    }
+
+    @Test fun `a pass lets a built-in name through, never a parent's site`() {
+        val passed = Blocklist(passes = setOf("tracker.io"))
+        assertFalse(passed.blocksHost("cdn.tracker.io", builtin))
+        assertTrue(passed.blocksHost("pagead2.googlesyndication.com", builtin))
+        val both = passed + "tracker.io"
+        assertTrue(both.blocksHost("cdn.tracker.io", builtin))
+    }
+
+    @Test fun `categories and passes in the text`() {
+        val list = Blocklist(categories = setOf(Category.PORN, Category.GAMBLING), passes = setOf("example.org")) + "tiktok.com"
+        val text = BlocklistText.render(list)
+        assertEquals("site tiktok.com\ncategory gambling\ncategory porn\npass example.org\n", text)
+        assertEquals(list, BlocklistText.parse(text))
+        assertThrows(BlocklistText.Malformed::class.java) { BlocklistText.parse("category knitting") }
+    }
+}
+
+class ShippedListsTest {
+    private val dir = java.io.File("../app/src/main/assets/blocklist")
+
+    @Test fun `the lists refresh_py wrote load in byte order and block what they list`() {
+        val ads = BuiltinList(java.io.File(dir, "ads.txt").readBytes())
+        assertTrue(ads.size > 50_000)
+        assertTrue(ads.blocks("pagead2.googlesyndication.com"))
+        assertFalse(ads.blocks("example.org"))
+        for (c in Category.entries) {
+            assertTrue(BuiltinList(java.io.File(dir, "${c.key}.txt").readBytes()).size > 100, c.key)
+        }
+        assertTrue(BuiltinList(java.io.File(dir, "gambling.txt").readBytes()).blocks("www.bet365.com"))
     }
 }

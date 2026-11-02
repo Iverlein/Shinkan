@@ -2,17 +2,27 @@ package shinkan.core.net
 
 /**
  * What the filter blocks (SPEC §6): sites by registered domain, every
- * subdomain included, and creators on the platforms the built-in player
- * serves. Pure data with the one question the filter asks: [blocksHost].
+ * subdomain included; creators on the platforms the built-in player serves;
+ * the built-in categories the parent switched on (§6.5); and passes, names
+ * the built-in list may not block. Pure data with the one question the filter
+ * asks: [blocksHost].
  */
 data class Blocklist(
     val sites: Set<String> = emptySet(),
     val creators: Set<Creator> = emptySet(),
+    val categories: Set<Category> = emptySet(),
+    val passes: Set<String> = emptySet(),
 ) {
-    /** True when [host] is a blocked domain or a subdomain of one, or belongs to a blocked family. */
-    fun blocksHost(host: String): Boolean {
+    /**
+     * True when [host] is a blocked site or under one; else when the [builtin]
+     * list blocks it (ads and trackers, and the categories switched on) and no
+     * pass covers it. A pass lets a built-in name through, never a parent's site.
+     */
+    fun blocksHost(host: String, builtin: Builtin = Builtin.NONE): Boolean {
         val h = Host.normalise(host)
-        return sites.any { Host.under(h, it) }
+        if (sites.any { Host.under(h, it) }) return true
+        if (!builtin.blocks(h, categories)) return false
+        return passes.none { Host.under(h, it) }
     }
 
     operator fun plus(site: String) = copy(sites = sites + Host.normalise(site))

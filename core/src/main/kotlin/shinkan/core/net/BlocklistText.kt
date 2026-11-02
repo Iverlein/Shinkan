@@ -5,9 +5,14 @@ package shinkan.core.net
  *
  *     site tiktok.com
  *     creator youtube @somehandle Some Name
+ *     category gambling
+ *     pass example.org
+ *
+ * `category` switches on one list of the built-in block list (§6.5); `pass`
+ * lets a name of the built-in list through, with its subdomains.
  */
 object BlocklistText {
-    class Malformed(line: Int, text: String, why: String) : IllegalArgumentException("line $line: $why: $text")
+    class Malformed(val line: Int, val text: String, val why: String) : IllegalArgumentException("line $line: $why: $text")
 
     fun parse(text: String): Blocklist {
         var list = Blocklist()
@@ -26,6 +31,15 @@ object BlocklistText {
                         ?: throw Malformed(i + 1, line, "unknown platform")
                     list += Creator(platform, parts[2], parts.getOrNull(3) ?: parts[2])
                 }
+                "category" -> {
+                    if (parts.size != 2) throw Malformed(i + 1, line, "category takes one name")
+                    val c = Category.byKey(parts[1]) ?: throw Malformed(i + 1, line, "unknown category")
+                    list = list.copy(categories = list.categories + c)
+                }
+                "pass" -> {
+                    if (parts.size != 2) throw Malformed(i + 1, line, "pass takes one domain")
+                    list = list.copy(passes = list.passes + Host.normalise(parts[1]))
+                }
                 else -> throw Malformed(i + 1, line, "unknown statement")
             }
         }
@@ -37,5 +51,7 @@ object BlocklistText {
         list.creators.sortedWith(compareBy({ it.platform }, { it.ref })).forEach {
             appendLine("creator ${it.platform.name.lowercase()} ${it.ref} ${it.name}")
         }
+        Category.entries.filter { it in list.categories }.forEach { appendLine("category ${it.key}") }
+        list.passes.sorted().forEach { appendLine("pass $it") }
     }
 }

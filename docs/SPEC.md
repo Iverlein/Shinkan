@@ -98,7 +98,13 @@ registers as a launcher (`CATEGORY_HOME`) and makes itself the default home
 as device owner (`addPersistentPreferredActivity` with the HOME filter);
 lock task mode (`setLockTaskPackages`, Shinkan alone; `setLockTaskFeatures`
 with none until A1; `startLockTask` from its own activity) keeps the child
-in it: no other launcher, no status-bar settings, no recents. The child's
+in it: no other launcher, no status-bar settings, no recents. The home is
+never behind the device's own lock screen, whether or not a device PIN is
+set: on the held closed device it shows over the keyguard
+(`Activity.setShowWhenLocked`) as soon as the screen comes on. Before the
+first unlock after a boot the doors say they open once a parent has
+unlocked, since the WebView and the player need the credential storage
+that is shut until then. The child's
 page (§8.1) has two doors and nothing else: the browser (§7.6) and the
 player (§7), each usable within its windows; every other launchable package
 is suspended, and so is every other home (the device's own launcher), so
@@ -245,13 +251,16 @@ day. A plan belongs to the day its first stage starts, and a span may cross
 midnight. So "free until ten, then half an hour of YouTube with an hour and
 a half of rest, then two hours of the browser" is three stages.
 
-Use is time the screen is on, the device unlocked and that door in front:
+Use is time the screen is on and that door in front, over the lock screen
+or not:
 the filter's foreground service counts it from `ACTION_SCREEN_ON`,
 `ACTION_SCREEN_OFF`, `ACTION_USER_PRESENT` and the doors' own lifecycle; the
 rest page itself does not count. When a budget is spent, playback stops
 (the player pauses, the browser's page is paused) and, if a rest follows,
-the rest page (§8.7) takes the screen: on the closed device it is the home;
-on the open device Shinkan brings it to the front and pins it with lock
+the rest is shown: on the closed device the home keeps its doors and the
+doors of the spent budget carry a small ensō in its current state with the
+minutes left (§8.1); on the open device the rest page (§8.7) takes the
+screen, Shinkan brings it to the front and pins it with lock
 task (`startLockTask`, allowed to a device owner's own activity without a
 prompt), so the child cannot leave it for another app. On the open device
 the subject of a stage is `device`, the whole screen, since no policy tells
@@ -506,7 +515,11 @@ and *YouTube*, side by side in landscape and one above the other in
 portrait; a door the plan has closed is greyed and says when it opens next
 by the clock alone (`Policy.nextOpening`: "Opens at 16:00" today, "Opens
 Tue 06:00" on another day, "Closed" when not within a week), an open one
-with a budget shows what is left of it. Each door carries its drawn mark
+with a budget shows what is left of it. During a rest the doors of the
+spent budget are greyed and carry, in place of their mark, a small ensō
+in vermilion in its current state, closing as the rest passes, with the
+minutes left under the name; for a rest a parent ends the ring is whole
+and the door says so. Each door carries its drawn mark
 above its name, a globe for the browser and a screen with the play sign
 for the player (`res/drawable/door_*.xml`), in the button's own colour, so
 a greyed door greys its mark. Back does nothing on the home; a
@@ -602,7 +615,8 @@ activity and so close the door.
 
 ### 8.7 Rest
 
-The page the child sees during a rest (§4.7): a brush-drawn ring
+The page the child sees during a rest on the open device (§4.7; on the
+closed device the same ring is drawn small on the doors, §8.1): a brush-drawn ring
 in vermilion, an ensō, that closes as the rest passes, with the time left
 under it in large figures; when the rest is the parent's to end, the ring
 is whole and the page says so. The ring is one stroke from the top,

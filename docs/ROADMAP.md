@@ -37,9 +37,10 @@ Conventions that hold for every block:
 
 ## Order
 
-**Release 1.0 needs** blocks 1, 2, 3a, 3b, 3e, 4, 5, 6a and 6b, then 10:
+**Release 1.0 needs** blocks 1, 2, 3a, 3b, 3e, 3f, 4, 5, 6a, 6b and A3, then 10:
 a child lock that holds the closed device with a filtered browser and a
-player that hides blocked creators, behind a PIN, with the built-in list.
+player that hides blocked creators, behind a PIN, with the built-in list,
+in English and Russian (the owner, 2026-11-02).
 They are built in that order; the other blocks follow 1.0 in the table's
 order. Numbers are identifiers and do not change when the order does.
 
@@ -52,6 +53,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | done 2026-11-01 |
 | 3c | The counter and the rest page | done 2026-11-02 |
 | 3d | The volume ceiling of the doors | done 2026-11-02 |
+| 3f | The home over the lock screen; the ensō on the resting doors | built, emulator check pending: branch `work/home` |
 | 3e | The parent's editor | done 2026-11-02 |
 | 4 | The built-in block list | done 2026-11-02 |
 | 5 | The browser door | done 2026-11-02 |
@@ -72,7 +74,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 12 | IPv6 in the tunnel | |
 | A1 | Lock task features tuned on real devices: notifications, power dialog, keyguard [§4.1] | |
 | A2 | The icon drawn: the crest by default; the gate, the drawn gate and the seal 関 chosen on the parent door [§8.5] | done 2026-11-01 |
-| A3 | Translations: Russian first, Weblate as for Zanshin | |
+| A3 | Translations: Russian first, Weblate as for Zanshin; Russian is in 1.0 | |
 
 ## The blocks
 
@@ -367,6 +369,27 @@ text with `volume player loud` says "Line 10: volume is 0 to 100"; the
 §4.4 text used, applied and read from the store equals §4.4 line for line;
 sumi pinned with the system light; the leave dialog; restrictions with
 both warnings, volume, plans and a stage dialog in landscape.
+
+### 3f. The home over the lock screen; the ensō on the doors [§4.1, §8.1]
+
+Asked by the owner on 2026-11-02: the child's home is never behind the
+device's own lock screen, even with a device PIN; and during a rest the
+doors show a small ensō in its current state.
+
+**Builds.** `MainActivity.setShowWhenLocked` on the held closed device;
+`PlanClock` counts a door in front with the screen on, no keyguard check;
+`DoorPage` says *opens once a parent has unlocked* before the first unlock
+after a boot (`UserManager.isUserUnlocked`). `HomePage` keeps its doors
+during a rest: the spent budget's doors draw `Enso` small in place of
+their mark, with the minutes left, looking again every five seconds;
+`RestPage` stays for the open device (7b).
+
+**Done when.** On the emulator with `adb shell locksettings set-pin 1234`:
+`KEYCODE_SLEEP` then `KEYCODE_WAKEUP` shows Shinkan's home, not the PIN
+pad, and a door opens and counts; after `adb reboot` the home shows over
+the keyguard and a door says it waits for the unlock. With `player 1 rest
+2`: after a minute the player's door is greyed with a small ensō that
+closes over the two minutes, the browser's door says when it opens.
 
 ### 4. The built-in block list [§6.5]
 

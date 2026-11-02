@@ -78,9 +78,13 @@ class MainActivity : ComponentActivity() {
 
     /** Enters lock task on the held closed device once the PIN is set, and leaves it on the open one. */
     private fun holdLockTask() {
-        if (!hold.isOwner || store.pinHash == null) return
-        val dpm = getSystemService(DevicePolicyManager::class.java)
+        val held = hold.isOwner && store.pinHash != null
         val closed = store.policy.mode == Mode.CLOSED
+        // The child's home is never behind the device's own lock screen, PIN or not (SPEC §4.1):
+        // on the held closed device it is shown over the keyguard as soon as the screen comes on.
+        setShowWhenLocked(held && closed)
+        if (!held) return
+        val dpm = getSystemService(DevicePolicyManager::class.java)
         if (closed && !inLockTask() && dpm.isLockTaskPermitted(packageName)) startLockTask()
         if (!closed && inLockTask()) stopLockTask()
     }

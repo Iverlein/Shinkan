@@ -1,6 +1,5 @@
 package shinkan.app.plan
 
-import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -20,8 +19,8 @@ import shinkan.core.PlanState
 import java.time.LocalDateTime
 
 /**
- * The counter of the day plan (SPEC §4.7). Use is time the screen is on, the
- * device unlocked and a door in front: the door pages report when they are
+ * The counter of the day plan (SPEC §4.7). Use is time the screen is on and a
+ * door in front, over the lock screen or not (the closed home shows over it): the door pages report when they are
  * shown and hidden, [Screen] (registered by the filter's foreground service,
  * which always runs) reports the screen, and the count is the elapsed real
  * time between, in whole seconds, added to [PlanState] through
@@ -133,8 +132,8 @@ object PlanClock {
         val app = context.applicationContext
         handler.removeCallbacks(tick)
         val power = app.getSystemService(PowerManager::class.java)
-        val keyguard = app.getSystemService(KeyguardManager::class.java)
-        val counting = door != null && power.isInteractive && !keyguard.isKeyguardLocked
+        // A door page resumed is in front, over the lock screen too (SPEC §4.1): the screen on is enough.
+        val counting = door != null && power.isInteractive
         if (!counting) {
             since = null
             return

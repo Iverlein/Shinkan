@@ -42,6 +42,16 @@ fun DoorPage(door: Door, onClose: () -> Unit, onPause: () -> Unit = {}) {
         }
     }
     LaunchedEffect(door) { PlanClock.pauses.collect { onPause() } }
+    // Before the first unlock after a boot the credential storage the doors need (the WebView's
+    // data, the player's cache) is shut: the door says so instead of opening (SPEC §8.1).
+    if (!context.getSystemService(android.os.UserManager::class.java).isUserUnlocked) {
+        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(doorLabel(door)), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.door_locked), style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onClose) { Text(stringResource(R.string.door_close)) }
+        }
+        return
+    }
     if (door == Door.BROWSER) {
         BrowserPage(onClose)
         return

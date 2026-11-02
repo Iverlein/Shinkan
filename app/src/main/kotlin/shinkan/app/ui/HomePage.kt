@@ -52,7 +52,8 @@ import java.util.Locale
  * browser and the player, one above the other in portrait and side by side in
  * landscape; a door the plan has closed is greyed and says when it opens next.
  * An open door with a budget says what is left of it. During a rest the
- * home is the rest page (§8.7). Back does nothing here: there is nowhere
+ * doors of the spent budget are greyed with a small ensō in its current state
+ * and the minutes left (§8.1, §8.7). Back does nothing here: there is nowhere
  * behind the home. A small *Parent* link leads to the door.
  */
 @Composable
@@ -66,15 +67,12 @@ fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onP
     LaunchedEffect(now) {
         val next = policy.nextChange(now, state)
         val wait = next?.let { Duration.between(LocalDateTime.now(), it).toMillis() } ?: Long.MAX_VALUE
-        delay(wait.coerceIn(1_000, 60_000))
+        // During a rest the ensō on the doors closes as it passes: look again every few seconds.
+        delay(wait.coerceIn(1_000, if (state.resting) 5_000 else 60_000))
         now = LocalDateTime.now()
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { now = LocalDateTime.now() }
     BackHandler {}
-    if (state.resting) {
-        RestPage(policy, state, onParent)
-        return
-    }
 
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     Column(Modifier.fillMaxSize()) {
@@ -82,12 +80,15 @@ fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onP
             for (door in listOf(Door.BROWSER, Door.PLAYER)) {
                 val isOpen = door in open
                 val left = policy.budgetLeft(now, state)?.takeIf { isOpen && door in budgetDoors(policy, state) }
+                val rest = if (door in budgetDoors(policy, state)) restMark(policy, state, now) else null
                 val note = when {
+                    rest != null -> rest.minutes?.let { stringResource(R.string.home_resting, it) }
+                        ?: stringResource(R.string.home_resting_parent)
                     left != null -> stringResource(R.string.home_left, (left + 59) / 60)
                     isOpen -> null
                     else -> opensNote(policy.nextOpening(door, now, state), now)
                 }
-                DoorButton(door, isOpen, note, m) { onDoor(door) }
+                DoorButton(door, isOpen, note, rest, m) { onDoor(door) }
             }
         }
         if (landscape) {
@@ -105,7 +106,7 @@ fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onP
 }
 
 @Composable
-private fun DoorButton(door: Door, open: Boolean, note: String?, modifier: Modifier, onClick: () -> Unit) {
+private fun DoorButton(door: Door, open: Boolean, note: String?, rest: RestMark?, modifier: Modifier, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         enabled = open,
@@ -118,13 +119,32 @@ private fun DoorButton(door: Door, open: Boolean, note: String?, modifier: Modif
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             // The door's mark, tinted as the label is, so a greyed door greys it too.
-            Icon(painterResource(doorMark(door)), contentDescription = null, Modifier.size(96.dp).padding(bottom = 12.dp))
+            if (rest != null) {
+                // The rest's ensō, small and in the gate's colour, in its current state (SPEC §8.1).
+                Enso(rest.passed, MaterialTheme.colorScheme.primary, Modifier.size(96.dp).padding(bottom = 12.dp))
+            } else {
+                Icon(painterResource(doorMark(door)), contentDescription = null, Modifier.size(96.dp).padding(bottom = 12.dp))
+            }
             Text(stringResource(doorLabel(door)), style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
             if (note != null) {
                 Text(note, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 12.dp))
             }
         }
     }
+}
+
+/** A running rest as a door shows it: how much of the ring is drawn, and the minutes left (null: a parent's rest). */
+private class RestMark(val passed: Float, val minutes: Long?)
+
+/** The rest of the running budget at [now], or null when no rest runs. */
+private fun restMark(policy: Policy, state: PlanState, now: LocalDateTime): RestMark? {
+    if (!state.resting) return null
+    if (state.restParent) return RestMark(1f, null)
+    val end = state.restEnd ?: return null
+    val stage = state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage) as? Stage.Budget
+    val total = ((stage?.rest as? shinkan.core.Rest.Minutes)?.minutes ?: 1) * 60L
+    val left = Duration.between(now, end).seconds.coerceAtLeast(0)
+    return RestMark((1f - left.toFloat() / total).coerceIn(0f, 1f), (left + 59) / 60)
 }
 
 /** The doors the running budget counts, or none when no budget runs. */

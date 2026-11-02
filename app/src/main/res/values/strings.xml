@@ -32,6 +32,9 @@
     <string name="door_device">This device</string>
     <string name="door_stub_player">The player is built in block 6a of the roadmap.</string>
     <string name="door_close">Close</string>
+    <string name="door_locked">This door opens once a parent has unlocked the device after it was turned on.</string>
+    <string name="home_resting">%1$d min of rest</string>
+    <string name="home_resting_parent">Rest until a parent opens</string>
     <string name="browser_back">Back a page</string>
     <string name="browser_reload">Reload</string>
     <string name="browser_address">Address or search</string>

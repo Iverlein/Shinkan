@@ -51,7 +51,8 @@ import kotlin.math.sin
  * The rest (SPEC §8.7): an ensō in vermilion that closes clockwise as the rest
  * passes, the minutes left under it in large figures; whole and still when the
  * rest is the parent's to end. Nothing else but the *Parent* link. Back does
- * nothing: on the closed device this page is the home while a rest runs.
+ * nothing. It is the open device's rest (block 7b); on the closed device the
+ * home keeps its doors and the ensō is drawn small on them ([HomePage]).
  */
 @Composable
 fun RestPage(policy: Policy, state: PlanState, onParent: () -> Unit) {
@@ -112,7 +113,7 @@ fun RestPage(policy: Policy, state: PlanState, onParent: () -> Unit) {
  * the circle, not on the time, so the stroke grows without changing shape.
  */
 @Composable
-private fun Enso(passed: Float, colour: Color, modifier: Modifier) {
+internal fun Enso(passed: Float, colour: Color, modifier: Modifier) {
     Canvas(modifier) {
         val base = size.minDimension
         val radius = base * 0.40f

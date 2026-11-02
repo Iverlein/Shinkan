@@ -310,6 +310,11 @@ prompt, and no other: `INTERNET` for the tunnel's forwarding,
 `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE` for the filter,
 `POST_NOTIFICATIONS` for its notice, `RECEIVE_BOOT_COMPLETED` to apply the
 hold at boot (§4.2), `QUERY_ALL_PACKAGES` to see the packages it suspends.
+Beside them the APK declares androidx's own
+`<package>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, a signature
+permission the app gives itself so that only it can reach the receivers
+androidx registers as not exported; it grants nothing and no other app can
+hold it. Media3's `WAKE_LOCK` is removed from the merged manifest.
 
 ### 5.2 The tunnel
 
@@ -784,3 +789,5 @@ writes the policy or the block list into the beta's store and restarts it.
 Versions are tags `v<versionName>`; `versionCode` counts up by one. F-Droid
 builds from the tag with the recipe in `docs/fdroid/` once submitted (ROADMAP
 block 10). Reproducible: `dependenciesInfo` off, no proprietary library.
+The recipe declares the `NonFreeNet` anti-feature, as F-Droid does for
+NewPipe: the player shows videos from YouTube. 1.0 is versionCode 2.

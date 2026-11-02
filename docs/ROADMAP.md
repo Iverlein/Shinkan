@@ -53,7 +53,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | done 2026-11-01 |
 | 3c | The counter and the rest page | done 2026-11-02 |
 | 3d | The volume ceiling of the doors | done 2026-11-02 |
-| 3f | The home over the lock screen; the ensō on the resting doors | built, emulator check pending: branch `work/home` |
+| 3f | The home over the lock screen; the ensō on the resting doors | done 2026-11-02 |
 | 3e | The parent's editor | done 2026-11-02 |
 | 4 | The built-in block list | done 2026-11-02 |
 | 5 | The browser door | done 2026-11-02 |
@@ -390,6 +390,17 @@ pad, and a door opens and counts; after `adb reboot` the home shows over
 the keyguard and a door says it waits for the unlock. With `player 1 rest
 2`: after a minute the player's door is greyed with a small ensō that
 closes over the two minutes, the browser's door says when it opens.
+
+**As built.** The check found that after a reboot nothing could bring up
+the device's lock screen: lock task with no features turns the keyguard
+off, so *Unlock* (`requestDismissKeyguard`) on the locked door did nothing.
+Lock task now keeps `LOCK_TASK_FEATURE_KEYGUARD`, and the home still shows
+over it. Checked on the emulator, 2026-11-02, with `locksettings set-pin
+1234`: the home after a sleep and wake and after `adb reboot`; the player's
+door said it waits for the unlock, *Unlock* brought up the PIN pad, 1234
+unlocked (`RUNNING_UNLOCKED`); with `player 1 rest 2` the YouTube door
+drew the small ensō closing over the rest and the browser's door said when
+it opens.
 
 ### 4. The built-in block list [§6.5]
 

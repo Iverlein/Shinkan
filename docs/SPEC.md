@@ -97,14 +97,18 @@ reset protection. §9.4 lists what a determined child can still do.
 registers as a launcher (`CATEGORY_HOME`) and makes itself the default home
 as device owner (`addPersistentPreferredActivity` with the HOME filter);
 lock task mode (`setLockTaskPackages`, Shinkan alone; `setLockTaskFeatures`
-with none until A1; `startLockTask` from its own activity) keeps the child
+with the keyguard alone, `LOCK_TASK_FEATURE_KEYGUARD`, until A1;
+`startLockTask` from its own activity) keeps the child
 in it: no other launcher, no status-bar settings, no recents. The home is
 never behind the device's own lock screen, whether or not a device PIN is
 set: on the held closed device it shows over the keyguard
 (`Activity.setShowWhenLocked`) as soon as the screen comes on. Before the
 first unlock after a boot the doors say they open once a parent has
 unlocked, since the WebView and the player need the credential storage
-that is shut until then. The child's
+that is shut until then, and offer *Unlock*, which brings up the device's
+lock screen (`KeyguardManager.requestDismissKeyguard`) for the device PIN.
+Lock task keeps the keyguard (its feature) for this alone: without it
+there would be no lock screen to bring up. The child's
 page (§8.1) has two doors and nothing else: the browser (§7.6) and the
 player (§7), each usable within its windows; every other launchable package
 is suspended, and so is every other home (the device's own launcher), so

@@ -94,7 +94,16 @@ fun PlayerPage(onClose: () -> Unit, visible: (List<StreamInfoItem>) -> List<Stre
 
     val player = remember {
         val http = DefaultHttpDataSource.Factory().setUserAgent(Extractor.OkDownloader.USER_AGENT)
-        ExoPlayer.Builder(context).setMediaSourceFactory(DefaultMediaSourceFactory(http)).build()
+        // A decoder that fails to start gives way to the next one. The emulator's own H.264 decoder
+        // fails on its first frames; the beta prefers Android's software decoders there
+        // (`setprop debug.shinkan.software_codecs 1`), the release takes the device's own.
+        val renderers = androidx.media3.exoplayer.DefaultRenderersFactory(context).setEnableDecoderFallback(true)
+        if (io.github.iverlein.shinkan.BuildConfig.DEBUG && debugProperty("debug.shinkan.software_codecs")) {
+            renderers.setMediaCodecSelector { mime, secure, tunneling ->
+                androidx.media3.exoplayer.mediacodec.MediaCodecUtil.getDecoderInfos(mime, secure, tunneling).sortedBy { if (it.softwareOnly) 0 else 1 }
+            }
+        }
+        ExoPlayer.Builder(context, renderers).setMediaSourceFactory(DefaultMediaSourceFactory(http)).build()
     }
     val view = remember { PlayerView(context).apply { this.player = player } }
     DisposableEffect(Unit) { onDispose { player.release() } }
@@ -176,7 +185,7 @@ fun PlayerPage(onClose: () -> Unit, visible: (List<StreamInfoItem>) -> List<Stre
     val playing = stream
     if (landscape && playing != null) {
         // A playing video fills the screen in landscape (SPEC §8.6).
-        AndroidView(factory = { view }, modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black))
+        AndroidView(factory = { detached(view) }, modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black))
         return
     }
 
@@ -206,7 +215,7 @@ fun PlayerPage(onClose: () -> Unit, visible: (List<StreamInfoItem>) -> List<Stre
             when {
                 playing != null -> {
                     item {
-                        AndroidView(factory = { view }, modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(androidx.compose.ui.graphics.Color.Black))
+                        AndroidView(factory = { detached(view) }, modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(androidx.compose.ui.graphics.Color.Black))
                     }
                     item {
                         Column(Modifier.padding(16.dp)) {
@@ -251,4 +260,16 @@ private fun Item(item: StreamInfoItem, onClick: () -> Unit) {
             Text(item.uploaderName.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+/** A beta's switch for the emulator: the system property [name] set to 1. */
+private fun debugProperty(name: String): Boolean = runCatching {
+    val process = Runtime.getRuntime().exec(arrayOf("getprop", name))
+    process.inputStream.bufferedReader().use { it.readText() }.trim() == "1"
+}.getOrDefault(false)
+
+/** The one player view, taken from the place it was in: portrait's list and landscape's full screen share it. */
+private fun detached(view: PlayerView): PlayerView {
+    (view.parent as? android.view.ViewGroup)?.removeView(view)
+    return view
 }

@@ -734,8 +734,9 @@ also reads the parent door's idle time in seconds from the system property
 so the two minutes of §8.2 need not be waited out; the release build has no
 such setting. The beta also draws the browser's WebView in a software
 layer when `debug.shinkan.webview_software` is `1`, for an emulator whose
-software GPU draws no Chromium page content; the release always draws it
-with the GPU. The hold
+software GPU draws no Chromium page content, and prefers Android's software
+video decoders when `debug.shinkan.software_codecs` is `1`, for the
+emulator's H.264 decoder that fails; the release does neither. The hold
 is checked by `adb shell dumpsys device_policy`; the filter by `adb shell
 ping -c 1` of a blocked and an unblocked name (a blocked one says `unknown
 host`; an unblocked one resolves, and under lockdown its packet is then

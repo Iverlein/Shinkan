@@ -95,6 +95,9 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   features it was taken with and is refused under others. The beta draws
   its WebView in software with `adb shell setprop
   debug.shinkan.webview_software 1`.
+- **Video on the emulator.** Its H.264 decoder (`c2.goldfish.h264.decoder`)
+  fails on the first frames of the player's streams: `adb shell setprop
+  debug.shinkan.software_codecs 1` before opening the player.
 - **A crashed emulator lingers** at its crash dialog and holds the AVD's
   lock (`Running multiple emulators with the same AVD`). Stop that one
   process by its `-avd shinkan-test` command line, never every qemu: another

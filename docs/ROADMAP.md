@@ -57,7 +57,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 3e | The parent's editor | done 2026-11-02 |
 | 4 | The built-in block list | done 2026-11-02 |
 | 5 | The browser door | done 2026-11-02 |
-| 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | built, emulator check pending: branch `work/player` |
+| 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | done 2026-11-02 |
 | 6b | The player: the creator block list applied to every list | |
 | 6c | The player: a shared video resolved to its creator; the official app held | |
 | 6d | The player: SponsorBlock segments | |
@@ -539,7 +539,7 @@ permissions` unchanged; the merged manifest shows no new component; with
 `site youtube.com` on the block list the player still plays while `adb
 shell ping -c 1 www.youtube.com` fails to resolve.
 
-**As built (unchecked on the emulator).** No uid lookup in the filter:
+**As built.** No uid lookup in the filter:
 Shinkan is outside its tunnel since block 5. `app/.../player/`
 (`Extractor`, `Media`, `Images`), `ui/PlayerPage.kt`; core-library
 desugaring for the extractor's newer Java APIs; keep rules for Rhino and
@@ -550,6 +550,19 @@ same downloader: a search returned 15 videos with their uploaders'
 20 related videos. `aapt2 dump permissions` shows the seven once Media3's
 `WAKE_LOCK` is removed; the merged manifest has no component from the new
 libraries.
+
+The emulator check found three faults, fixed: the filter did not come back
+after Shinkan's process was killed (the home now starts it); rotating a
+playing video crashed (one player view placed by two `AndroidView`s, now
+detached first); and the emulator's own H.264 decoder fails on its first
+frames, so the beta prefers Android's software decoders when
+`debug.shinkan.software_codecs` is `1`, and decoder fallback is on for
+all. Checked on the emulator, 2026-11-02, with `site youtube.com` on the
+block list and `volume player 20`: `ping www.youtube.com` says unknown
+host while the player's search for "kurzgesagt black holes" lists results
+with thumbnails; the first plays with sound at 3 of 15 through four
+presses up, with its uploader and related videos below; landscape fills
+the screen with the video and portrait comes back.
 
 ### 6b. The player: the creator block list applied [§6.3, §7.1]
 

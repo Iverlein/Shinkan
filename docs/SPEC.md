@@ -474,7 +474,8 @@ Name` lines, §6.4); a shared channel offers *Allow in the player* beside
 at the bottom (a house, a person, a clock): *Home* (a search, filtered by
 the mode; in the allow mode, the newest videos of the allowed creators),
 *Creators* (the allowed creators, or in the block mode the creators of the
-videos watched), *History* (every video played, newest first, with how
+videos watched, each by its avatar first, then its name; the avatar comes
+from the channel through the extractor and is kept in memory), *History* (every video played, newest first, with how
 much was watched; a video resumes where it stopped). The bar hides while a
 video plays. The history is a file in the app's storage (`History` in
 `core/`, a hundred videos), never exported; *Clear the player's history* is

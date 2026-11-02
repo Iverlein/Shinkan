@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -56,6 +58,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.ui.PlayerView
 import io.github.iverlein.shinkan.R
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +76,7 @@ import shinkan.app.player.Images
 import shinkan.app.player.Media
 import shinkan.app.player.PlayerHistory
 import shinkan.core.net.History
+import shinkan.core.net.Quality
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -120,6 +124,13 @@ fun PlayerPage(onClose: () -> Unit) {
     val blocked = stringResource(R.string.player_blocked)
 
     val softwareDecoders = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
+    // The quality asked for: the screen's shorter side, never below 1080 (SPEC §7.2); the child may change it.
+    var quality by remember {
+        val m = context.resources.displayMetrics
+        mutableStateOf(Quality.default(minOf(m.widthPixels, m.heightPixels)))
+    }
+    var streams by remember { mutableStateOf<Media.Streams?>(null) }
+    var playingHeight by remember { mutableStateOf(0) }
     val player = remember {
         val http = DefaultHttpDataSource.Factory().setUserAgent(Extractor.OkDownloader.USER_AGENT)
         // A decoder that fails to start gives way to the next one (Media3's fallback); one that
@@ -220,6 +231,7 @@ fun PlayerPage(onClose: () -> Unit) {
             try {
                 block()
             } catch (e: Exception) {
+                if (io.github.iverlein.shinkan.BuildConfig.DEBUG) android.util.Log.w("Player", "failed: $e", e)
                 error = failed
             } finally {
                 loading = false
@@ -244,6 +256,24 @@ fun PlayerPage(onClose: () -> Unit) {
         }
     }
 
+    /** Plays [s] at the stream [Quality.choose] gives for [height], from [startMs]; false when there is none. */
+    fun playQuality(s: Media.Streams, height: Int, startMs: Long): Boolean {
+        val chosen = Quality.choose(s.options, height) ?: return false
+        val picture = Media.source(s.videos[chosen.id].content)
+        val sound = s.sound
+        // A picture alone is joined with the sound stream; 360p comes with its own.
+        val source = if (!chosen.withSound && sound != null) {
+            MergingMediaSource(picture, Media.source(sound.content))
+        } else {
+            picture
+        }
+        playingHeight = chosen.height
+        player.setMediaSource(source, startMs)
+        player.prepare()
+        player.play()
+        return true
+    }
+
     fun open(url: String) = load {
         val (info, hidden, next) = withContext(Dispatchers.IO) {
             Extractor.init()
@@ -258,14 +288,11 @@ fun PlayerPage(onClose: () -> Unit) {
         stream = info
         related = next
         val resume = withContext(Dispatchers.IO) { PlayerHistory.load(context).positionOf(info.url) }
-        val chosen = Media.bestProgressive(info)
-        if (chosen == null) {
+        val found = Media.streams(info)
+        streams = found
+        if (!playQuality(found, quality, resume)) {
             error = noStream
             player.stop()
-        } else {
-            player.setMediaItem(MediaItem.fromUri(chosen.content), resume)
-            player.prepare()
-            player.play()
         }
     }
 
@@ -344,7 +371,32 @@ fun PlayerPage(onClose: () -> Unit) {
                     item {
                         Column(Modifier.padding(16.dp)) {
                             Text(playing.name, style = MaterialTheme.typography.titleMedium)
-                            TextButton(onClick = { openChannel(playing.uploaderUrl) }) { Text(playing.uploaderName) }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { openChannel(playing.uploaderUrl) }, modifier = Modifier.weight(1f)) { Text(playing.uploaderName) }
+                                // The quality selector (SPEC §7.2): the heights on offer, the one playing marked.
+                                val offered = streams?.let { Quality.heights(it.options) }.orEmpty()
+                                var open by remember { mutableStateOf(false) }
+                                if (offered.isNotEmpty()) {
+                                    Box {
+                                        TextButton(
+                                            onClick = { open = true },
+                                            modifier = Modifier.semantics { contentDescription = context.getString(R.string.player_quality) },
+                                        ) { Text(stringResource(R.string.player_height_open, playingHeight)) }
+                                        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                                            offered.forEach { h ->
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(if (h == playingHeight) R.string.player_height_playing else R.string.player_height, h)) },
+                                                    onClick = {
+                                                        open = false
+                                                        quality = h
+                                                        streams?.let { playQuality(it, h, player.currentPosition) }
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     items(related) { Item(it) { open(it.url) } }

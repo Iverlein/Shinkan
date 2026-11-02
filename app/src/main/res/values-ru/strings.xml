@@ -32,6 +32,10 @@
     <string name="door_player">YouTube</string>
     <string name="door_device">Устройство</string>
     <string name="player_search">Поиск</string>
+    <string name="player_quality">Качество видео</string>
+    <string name="player_height">%1$dp</string>
+    <string name="player_height_open">%1$dp ▾</string>
+    <string name="player_height_playing">%1$dp ✓</string>
     <string name="player_home">Главная</string>
     <string name="player_creators">Авторы</string>
     <string name="player_history">История</string>

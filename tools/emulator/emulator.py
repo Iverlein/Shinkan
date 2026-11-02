@@ -16,6 +16,9 @@ One command, one subcommand per step (ROADMAP block 1, SPEC §10):
   provision    makes Shinkan beta the device owner, then opens it
   shot PATH    a PNG of the screen: by adb when it is up, else by the console
   tap TEXT     taps the centre of the node whose text is TEXT
+  ctap X Y, ctext TEXT, ckey KEY
+               a tap, text or a key through the console, for the release build
+               whose hold cuts adb
   type TEXT    types TEXT (- for stdin) into a text field, lines joined by Enter;
                --field N taps the Nth field first, --clear empties it
   store KEY FILE
@@ -468,6 +471,34 @@ def cmd_type(device: Device, args):
     print(f"typed {len(lines)} line(s)")
 
 
+def cmd_ctap(device: Device, args):
+    """A tap through the console: the release build's hold cuts adb, the console stays."""
+    # `event mouse X Y 0 1` presses on the touch screen at screen pixels, `… 0 0` lifts; raw
+    # multitouch events through `event send` reach the kernel without their positions.
+    c = Console(device.port)
+    try:
+        c.send(f"event mouse {args.x} {args.y} 0 1")
+        time.sleep(0.08)
+        c.send(f"event mouse {args.x} {args.y} 0 0")
+    finally:
+        c.close()
+    time.sleep(SETTLE)
+    print(f"tapped {args.x},{args.y} through the console")
+
+
+def cmd_ctext(device: Device, args):
+    console(device, f"event text {args.text}")
+    print(f"typed {args.text!r} through the console")
+
+
+def cmd_ckey(device: Device, args):
+    key = args.key if args.key.startswith("KEY_") else f"KEY_{args.key.upper()}"
+    for e in (f"EV_KEY:{key}:1", "EV_SYN:0:0", f"EV_KEY:{key}:0", "EV_SYN:0:0"):
+        console(device, f"event send {e}")
+    time.sleep(SETTLE)
+    print(f"pressed {key} through the console")
+
+
 PREFS = f"/data/user_de/0/{PACKAGE}/shared_prefs/shinkan.xml"
 STORE_KEYS = ("policy", "blocklist", "plan")
 
@@ -533,6 +564,16 @@ def main(argv=None) -> int:
     s.add_argument("--desc", action="store_true", help="also match the content description")
     s.add_argument("--timeout", type=float, default=8, help="seconds to wait for the node (default 8)")
     s.set_defaults(run=cmd_tap)
+    s = sub.add_parser("ctap", help="tap at X Y (screen pixels) through the console; works when adb is cut")
+    s.add_argument("x", type=int)
+    s.add_argument("y", type=int)
+    s.set_defaults(run=cmd_ctap)
+    s = sub.add_parser("ctext", help="type TEXT through the console; works when adb is cut")
+    s.add_argument("text")
+    s.set_defaults(run=cmd_ctext)
+    s = sub.add_parser("ckey", help="press a key (ENTER, BACK, …) through the console; works when adb is cut")
+    s.add_argument("key")
+    s.set_defaults(run=cmd_ckey)
     s = sub.add_parser("type", help="type TEXT (- for stdin; lines joined by Enter) into the focused field")
     s.add_argument("text")
     s.add_argument("--field", type=int, help="first tap the Nth text field on screen, from the top")

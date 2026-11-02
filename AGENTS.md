@@ -50,6 +50,7 @@ python3 tools/emulator/emulator.py provision     # make the beta the device owne
 python3 tools/emulator/emulator.py shot out.png  # a screenshot, by adb or else by the console
 python3 tools/emulator/emulator.py tap Parent    # tap the node whose text is "Parent"
 python3 tools/emulator/emulator.py type --field 1 --clear - < policy.txt   # lines typed into a field
+python3 tools/emulator/emulator.py ctap 540 1786 # a tap through the console, for the release whose hold cuts adb
 python3 tools/emulator/emulator.py store policy plan.txt   # the beta's policy (or blocklist, or plan state) written, the app restarted
 python3 tools/emulator/emulator.py stop          # quit; nothing is saved
 ```

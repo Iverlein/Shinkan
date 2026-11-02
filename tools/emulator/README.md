@@ -98,6 +98,12 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
 - **Video on the emulator.** Its H.264 decoder (`c2.goldfish.h264.decoder`)
   fails on the first frames of the player's streams: `adb shell setprop
   debug.shinkan.software_codecs 1` before opening the player.
+- **The release build cuts adb** once its PIN is set. Drive it through the
+  console: `ctap X Y` (the console's `event mouse`; raw multitouch events
+  through `event send` arrive without their positions) and the soft
+  keyboard's keys by `ctap`, since `event text` and console key events
+  reach no field; `shot` and `restore` go through the console by
+  themselves.
 - **A crashed emulator lingers** at its crash dialog and holds the AVD's
   lock (`Running multiple emulators with the same AVD`). Stop that one
   process by its `-avd shinkan-test` command line, never every qemu: another

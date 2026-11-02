@@ -220,3 +220,26 @@ fun TextPage(policy: Policy, onChange: (Policy) -> Unit) {
         }) { Text(stringResource(R.string.text_reset)) }
     }
 }
+
+/**
+ * The browser door's start page (SPEC §7.6): an address, or a host made one,
+ * or nothing, which opens the door on its address bar alone.
+ */
+@Composable
+fun StartPage(policy: Policy, onChange: (Policy) -> Unit) {
+    var text by remember(policy) { mutableStateOf(policy.start ?: "") }
+    Text(stringResource(R.string.start_intro))
+    Spacer(Modifier.height(12.dp))
+    OutlinedTextField(
+        value = text,
+        onValueChange = { text = it },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        label = { Text(stringResource(R.string.start_label)) },
+    )
+    Spacer(Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Button(onClick = { onChange(policy.copy(start = shinkan.core.net.Address.of(text))) }) { Text(stringResource(R.string.start_use)) }
+        OutlinedButton(onClick = { onChange(policy.copy(start = null)) }) { Text(stringResource(R.string.start_none)) }
+    }
+}

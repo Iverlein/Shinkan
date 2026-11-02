@@ -38,3 +38,20 @@ object BuiltinLists {
         return Builtin(read("ads"), Category.entries.associateWith { read(it.key) })
     }
 }
+
+/**
+ * The block list as Shinkan's own pages apply it (SPEC §5.5): Shinkan's traffic
+ * is outside the tunnel, so the browser asks this for every host, as the filter
+ * answers every other app. The stored list is read again at each page, the
+ * built-in lists once per process.
+ */
+object HostCheck {
+    @Volatile private var list: Blocklist = Blocklist()
+
+    /** Reads the stored block list again; called as a page starts. */
+    fun refresh(context: Context) {
+        list = BlocklistStore(context).blocklist
+    }
+
+    fun blocks(context: Context, host: String): Boolean = list.blocksHost(host, BuiltinLists.get(context))
+}

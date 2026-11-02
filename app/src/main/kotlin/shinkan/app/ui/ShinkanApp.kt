@@ -134,7 +134,9 @@ fun ShinkanApp(
             },
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(Modifier.safeDrawingPadding().padding(24.dp)) {
+        // The doors fill the screen; every other page keeps a margin.
+        val door = owner && pinSet && (page == Page.BROWSER || page == Page.PLAYER)
+        Column(Modifier.safeDrawingPadding().padding(if (door) 0.dp else 24.dp)) {
             when {
                 !owner -> SetupPage(hold.provisionCommand)
                 !pinSet -> PinPage(

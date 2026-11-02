@@ -30,9 +30,12 @@
     <string name="door_browser">Browser</string>
     <string name="door_player">YouTube</string>
     <string name="door_device">This device</string>
-    <string name="door_stub_browser">The browser is built in block 5 of the roadmap.</string>
     <string name="door_stub_player">The player is built in block 6a of the roadmap.</string>
     <string name="door_close">Close</string>
+    <string name="browser_back">Back a page</string>
+    <string name="browser_reload">Reload</string>
+    <string name="browser_address">Address or search</string>
+    <string name="browser_blocked">This site is blocked on this device.</string>
     <string name="home_parent">Parent</string>
 
     <!-- The parent door (SPEC §8.2) -->
@@ -98,6 +101,7 @@
     <string name="section_plans">Day plans</string>
     <string name="section_apps">Closed apps</string>
     <string name="section_volumes">Volume</string>
+    <string name="section_browser">Browser start page</string>
     <string name="section_restrictions">Restrictions</string>
     <string name="section_blocklist">Block list</string>
     <string name="section_theme">Theme</string>
@@ -174,6 +178,13 @@
     <string name="volumes_intro">The highest volume of the media stream, as a share of the device\'s maximum. The child may always go lower.</string>
     <string name="volumes_ceiling">Ceiling: %1$d %%</string>
     <string name="volumes_none">No ceiling</string>
+
+    <!-- The browser's start page (SPEC §7.6) -->
+    <string name="start_intro">The page the browser opens on. An address or a site\'s name; anything else becomes a search with safe search on.</string>
+    <string name="start_label">Start page</string>
+    <string name="start_use">Use it</string>
+    <string name="start_none">No start page</string>
+    <string name="start_summary_none">None: the browser opens on its address bar</string>
 
     <!-- Restrictions (SPEC §4.3) -->
     <string name="restrictions_intro">What the device itself may not do. The default set keeps the hold and the filter; USB file transfer and credentials stay open by default and are for stricter homes.</string>

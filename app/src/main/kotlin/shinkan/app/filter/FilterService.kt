@@ -11,6 +11,7 @@ import android.net.NetworkCapabilities
 import android.net.VpnService
 import android.os.ParcelFileDescriptor
 import android.util.Log
+import io.github.iverlein.shinkan.BuildConfig
 import io.github.iverlein.shinkan.R
 import shinkan.app.MainActivity
 import shinkan.app.plan.PlanClock
@@ -61,6 +62,10 @@ class FilterService : VpnService() {
             .addAddress(TUN_ADDRESS, 32)
             .addDnsServer(DNS_ADDRESS)
             .addRoute(DNS_ADDRESS, 32)
+            // Shinkan's own traffic stays out of its tunnel: inside it, the DNS-only route leaves
+            // Shinkan nothing but DNS (lockdown exempts the owner from its drop, not from the route).
+            // Shinkan's pages apply the block list themselves (SPEC §5.5).
+            .addDisallowedApplication(packageName)
             .setBlocking(true)
             .setMetered(false)
             .establish() ?: run { Log.e(TAG, "establish refused"); stopSelf(); return }
@@ -83,7 +88,8 @@ class FilterService : VpnService() {
             if (datagram.dstPort != 53) continue
             val question = DnsQuestion.parse(datagram.payload)
             if (question != null && question.isAddressQuery && blocklist.get().blocksHost(question.name, builtin)) {
-                Log.d(TAG, "blocked ${question.name}")
+                // Only the beta names what it blocked: nothing about the child is logged (SPEC §2.5).
+                if (BuildConfig.DEBUG) Log.d(TAG, "blocked ${question.name}")
                 reply(output, datagram, DnsQuestion.refuse(datagram.payload))
                 continue
             }

@@ -6,13 +6,17 @@ Run by the maintainer before a release, never by the app (SPEC §2.1):
     python3 tools/blocklist/refresh.py            # fetch, normalise, write the assets
     python3 tools/blocklist/refresh.py --check    # only say whether the assets are complete
 
-Sources:
+Sources of the DNS filter's list (app/src/main/assets/blocklist/):
   ads       Hagezi Multi NORMAL, wildcard domains (GPL-3.0): a name blocks itself
             and every subdomain, which is the match of SPEC §6.1
   gambling, porn, fakenews, social
             StevenBlack's hosts, the extension alone (alternates/<name>-only/hosts,
             MIT), itself merged from upstream sources with licences of their own,
             each recorded from its extensions/<name>/.../update.json
+
+Sources of the browser's request filter (app/src/main/assets/filters/, SPEC §7.6):
+  EasyList and EasyPrivacy, as published (GPL-3.0 or CC BY-SA 3.0); the browser
+  keeps their network rules and drops the rest as it reads them
 
 Writes app/src/main/assets/blocklist/: one <list>.txt per list (a header of #
 lines, then the names, lowercase, ASCII, sorted by bytes, without a name that a
@@ -30,6 +34,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "app/src/main/assets/blocklist"
+FILTERS = ROOT / "app/src/main/assets/filters"
+EASYLIST = {"easylist": "https://easylist.to/easylist/easylist.txt", "easyprivacy": "https://easylist.to/easylist/easyprivacy.txt"}
 HAGEZI = "hagezi/dns-blocklists"
 STEVENBLACK = "StevenBlack/hosts"
 CATEGORIES = ("gambling", "porn", "fakenews", "social")
@@ -165,9 +171,35 @@ def refresh():
     )
 
 
+def refresh_filters():
+    """EasyList and EasyPrivacy as published, with their versions in VERSIONS.md."""
+    FILTERS.mkdir(parents=True, exist_ok=True)
+    today = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+    rows = []
+    for name, url in EASYLIST.items():
+        text = fetch(url).decode("utf-8")
+        if not text.startswith("[Adblock Plus") or text.count("\n") < 10_000:
+            raise Failure(f"{name} from {url} is not a filter list of the expected size")
+        (FILTERS / f"{name}.txt").write_text(text, encoding="utf-8")
+        version = header_value(text.replace("! ", "# ", 20), "Version")
+        commit = header_value(text.replace("! ", "# ", 20), "Commit")
+        rows.append(f"| {name} | {version} | `{commit}` | {url} |")
+        print(f"{name}: {text.count(chr(10))} lines, version {version}")
+    (FILTERS / "VERSIONS.md").write_text(
+        "# The browser's filter lists\n\n"
+        f"Fetched {today} by `tools/blocklist/refresh.py` (SPEC §7.6), never by the app.\n"
+        "EasyList and EasyPrivacy are dual licensed, GPL-3.0 (the licence of Shinkan,\n"
+        "`LICENSE` at the repository's root) or CC BY-SA 3.0; https://easylist.to/.\n"
+        "Kept as published; the browser reads the network rules and drops the rest.\n\n"
+        "| List | Version | Commit | Source |\n| --- | --- | --- | --- |\n" + "\n".join(rows) + "\n",
+        encoding="utf-8",
+    )
+
+
 def check() -> int:
     missing = [f for f in ["ads.txt", *(f"{c}.txt" for c in CATEGORIES), "VERSIONS.md", "LICENSE-hagezi.txt", "LICENSE-stevenblack.txt"]
                if not (OUT / f).exists()]
+    missing += [f"filters/{n}.txt" for n in EASYLIST if not (FILTERS / f"{n}.txt").exists()]
     if missing:
         print("missing: " + ", ".join(missing))
         return 1
@@ -183,6 +215,7 @@ def main(argv=None) -> int:
         if args.check:
             return check()
         refresh()
+        refresh_filters()
         return 0
     except Failure as e:
         print(f"refresh.py: {e}", file=sys.stderr)

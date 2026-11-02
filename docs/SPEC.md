@@ -195,13 +195,14 @@ and `rest` with minutes or `parent`), in order (§4.7); `browser` and
 `player` name Shinkan's two doors and `device` the whole screen of the open
 device; `close` names a package of the open device and `window` gives it one
 span on given weekdays, which may cross midnight and then belongs to the day
-it opens; `volume` sets a ceiling (§4.6); `restrict` names one of §4.3 by
+it opens; `volume` sets a ceiling (§4.6); `start` gives the browser door's start
+page, an `http` or `https` address (§7.6); `restrict` names one of §4.3 by
 the enum's name. When no `restrict` line is written the default set applies;
 `restrict none` lifts them all. A `window` line closes its package as a
 `close` line does. A weekday is in one plan at most. A malformed line is
 refused with its number (`PolicyText.Malformed`), and the text is written
 back in this order: `mode`, the plans, each `close` with its windows,
-`volume`, `restrict`.
+`volume`, `start`, `restrict`.
 
 ### 4.5 Permissions of the usable apps
 
@@ -331,12 +332,18 @@ back unchanged. Shinkan brings no resolver and no list of its own.
 
 ### 5.5 Per app
 
-The filter learns which app sent a datagram from
-`ConnectivityManager.getConnectionOwnerUid`, which the active VPN may call
-(block 6a). A query from Shinkan's own uid is answered unfiltered, so the
-player's own connections to a platform pass while the platform's hosts are
-blocked for every other app (§7.1). The same call on TCP carries the pass
-into the full tunnel (block 11d).
+Shinkan's own traffic stays out of its tunnel
+(`VpnService.Builder.addDisallowedApplication` of its own package): inside
+it, the DNS-only route would leave Shinkan nothing but DNS, since lockdown
+exempts the VPN's owner from its drop but not from its route (found on the
+emulator, 2026-11-02). So the player's connections to a platform pass while
+the platform's hosts are blocked for every other app (§7.1), with no lookup
+of the sender. In return Shinkan's own pages apply the block list
+themselves: the browser asks `Blocklist.blocksHost` (the parent's sites,
+the built-in list and its categories, the passes) for every request's host,
+the page itself included, before its filter lists (§7.6), and a blocked
+page shows a page that says so. The filter tells other apps apart, when it
+must, by `ConnectivityManager.getConnectionOwnerUid` (block 11d).
 
 ## 6. The block list
 
@@ -469,7 +476,26 @@ list of §6.5 answer it, and DNS-over-HTTPS does not arise. No browser on
 F-Droid can take the place of this page: Firefox builds ignore managed
 configuration on Android and Cromite ignores enterprise policies, so a
 blocker the child can switch off is not a hold. The browser's volume
-ceiling is §4.6; what it keeps between sessions is decided in block 5.
+ceiling is §4.6.
+
+As built (block 5): the rules of the two lists are read once per process
+from the APK (`core/.../net/FilterList`): host rules, anchors, `*` and `^`,
+exceptions, and the options `third-party`, `domain=` and the request
+types; every other rule (cosmetic, regex, `popup`, `csp`, `redirect`,
+`removeparam` …) is dropped as it is read. A WebView does not say what kind
+a request is, so the type is told from the `Accept` header and the file's
+extension (`FilterList.typeOf`). A blocked request gets an empty 403, so a
+page's own error handling sees it fail. The page keeps first-party cookies
+and storage between sessions and no history list beyond the session's Back;
+third-party cookies, file and content access, downloads and new windows are
+off; only `http` and `https` load, and http only where the platform allows
+cleartext, which the release does not (the browser is HTTPS only). Safe
+Browsing and WebView metrics are off (manifest meta-data), as they would
+send addresses to Google (§2.1). The address bar opens an address, a host
+over HTTPS, or searches DuckDuckGo with safe search strict
+(`core/.../net/Address`). The parent sets a start page (`start` line,
+§4.4); without one the door opens on its address bar. A rest or leaving the
+door pauses the page and its timers.
 
 ## 8. Pages
 
@@ -632,13 +658,17 @@ uninstalled. Release asks for the PIN once more.
 - **Until block 11a**, an app that resolves names by itself over HTTPS or by
   address slips the DNS filter; Shinkan's own browser cannot, it resolves
   through the system (§7.6).
-- **Until block 11a, a held device reaches nothing but DNS.** Lockdown
-  (§5.1) refuses every app's traffic that does not pass through the
-  tunnel, and the tunnel routes DNS alone (§5.2): names resolve, nothing
-  else leaves (found on the emulator 2026-11-01: `dumpsys connectivity`
-  lists every uid but Shinkan's under the lockdown rules, `ping 8.8.8.8`
-  gets `EACCES`). The relay of 11a routes everything through the tunnel and
-  ends it; whether lockdown waits for it is open (ROADMAP, *Open*).
+- **Until block 11a, other apps on a held device reach nothing but DNS.**
+  Lockdown (§5.1) refuses every app's traffic that does not pass through
+  the tunnel, and the tunnel routes DNS alone (§5.2): names resolve,
+  nothing else leaves (found on the emulator 2026-11-01: `dumpsys
+  connectivity` lists every uid but Shinkan's under the lockdown rules,
+  `ping 8.8.8.8` gets `EACCES`). Shinkan's own browser and player are not
+  held back by it: Shinkan is outside its tunnel and exempt from lockdown
+  (§5.5). On the closed device nothing else runs; the open device waits on
+  the relay of 11a, or on lockdown lifted (ROADMAP, *Open*).
+- **The browser's cosmetic filtering** is none: only request rules apply
+  (§7.6).
 - **The volume ceiling of the open device** is one for the device and a
   clamp: a sound may be loud for a moment before it is pulled down, and an
   app that sets the volume itself is pulled down again each time. Per-app
@@ -670,7 +700,10 @@ release build applies it and is checked by eye once per release. The beta
 also reads the parent door's idle time in seconds from the system property
 `debug.shinkan.door_idle` (`adb shell setprop debug.shinkan.door_idle 15`),
 so the two minutes of §8.2 need not be waited out; the release build has no
-such setting. The hold
+such setting. The beta also draws the browser's WebView in a software
+layer when `debug.shinkan.webview_software` is `1`, for an emulator whose
+software GPU draws no Chromium page content; the release always draws it
+with the GPU. The hold
 is checked by `adb shell dumpsys device_policy`; the filter by `adb shell
 ping -c 1` of a blocked and an unblocked name (a blocked one says `unknown
 host`; an unblocked one resolves, and under lockdown its packet is then

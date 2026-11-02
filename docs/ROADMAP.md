@@ -54,8 +54,8 @@ order. Numbers are identifiers and do not change when the order does.
 | 3d | The volume ceiling of the doors | done 2026-11-02 |
 | 3e | The parent's editor | done 2026-11-02 |
 | 4 | The built-in block list | done 2026-11-02 |
-| 5 | The browser door | |
-| 6a | The player: playback and search on NewPipe Extractor; the filter passes Shinkan's own queries | |
+| 5 | The browser door | built, emulator check pending: branch `work/browser` |
+| 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | |
 | 6b | The player: the creator block list applied to every list | |
 | 6c | The player: a shared video resolved to its creator; the official app held | |
 | 6d | The player: SponsorBlock segments | |
@@ -450,6 +450,33 @@ emulator: `https://example.org` renders; a page that loads
 from a local test page) shows the request blocked in the page's own
 error handler; a rest pauses a playing video on the page; the ceiling holds.
 
+**As built (unchecked).** `core/.../net/FilterList` (indexed by host and
+by token; `FilterListTest` with 25 real rules, the exceptions, the dropped
+kinds and the type guess; `ShippedFilterListsTest` on the shipped lists:
+about 108 000 network rules, parsed in 0.2 s on the desktop),
+`core/.../net/Address`, the `start` line, `app/.../browser/Filters`,
+`ui/BrowserPage.kt`, a *Browser start page* section on the door,
+`refresh.py` writing `assets/filters/`. Two findings changed the design:
+Shinkan's own traffic was routed into its DNS-only tunnel and reached
+nothing (`addDisallowedApplication` of itself, and the browser checks every
+host against the block list, SPEC §5.5), which also gives 6a its pass
+without a uid lookup; and the emulator draws no Chromium page content on
+its software GPU (Chrome too), then crashed on Chrome's Vulkan device and,
+from then on, at every boot (`kvm_user_backed_ram_map: error registering
+slot: File exists`; a KVM module reload and a recreated AVD did not help,
+a host reboot is next). `emulator.py start` now passes `-feature -Vulkan`;
+the beta's `debug.shinkan.webview_software` draws the WebView in software.
+
+To check after the reboot: `start --cold` and `snapshot` (the AVD was
+recreated and has no `clean`); serve a test page on the host
+(`python3 -m http.server 8000 --bind 127.0.0.1`: a page loading
+`adsbygoogle.js` with `onload`/`onerror` that write the outcome, a
+first-party script, a looping tone); the beta reaches it as
+`http://10.0.2.2:8000/` (debug-only cleartext for that address);
+`store blocklist` with `pass googlesyndication.com` so DNS lets it through
+and only EasyList blocks it; `start http://10.0.2.2:8000/test.html` and
+`volume browser 20` in the policy. Then the checks above.
+
 ### 6a. The player: playback and search [§7.1, §7.2, §5.5]
 
 **Builds.** Dependencies: NewPipe Extractor (GPL-3.0, JitPack, as NewPipe
@@ -609,11 +636,11 @@ the emulator).
 ## Open
 
 - 2026-11-01: lockdown (SPEC §5.1) with the DNS-only tunnel of blocks 0 to
-  10 refuses every app's traffic but DNS: a held device resolves names and
-  reaches nothing. Either `setAlwaysOnVpnPackage(…, lockdown = false)` until
-  block 11a routes everything (the filter is then bypassed while the VPN is
-  down, which always-on keeps short), or lockdown stays and 11a moves ahead
-  of 5 and 6a, whose browser and player need the network. The owner's call.
+  10 refuses every other app's traffic but DNS. Since block 5 Shinkan is
+  outside its own tunnel and its browser and player reach the network, so
+  the closed device of 1.0 is not held back (SPEC §5.5); the question
+  remains for the open device of block 7: `setAlwaysOnVpnPackage(…,
+  lockdown = false)` until block 11a, or 11a before 7a. The owner's call.
 
 ## Decided
 

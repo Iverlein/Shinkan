@@ -5,5 +5,7 @@
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- adb reverse tcp:8000 tcp:8000: the host's test page on the device's own loopback. -->
+        <domain includeSubdomains="false">127.0.0.1</domain>
     </domain-config>
 </network-security-config>

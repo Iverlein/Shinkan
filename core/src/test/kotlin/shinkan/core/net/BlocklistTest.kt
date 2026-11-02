@@ -96,6 +96,10 @@ class ShippedListsTest {
             assertTrue(BuiltinList(java.io.File(dir, "${c.key}.txt").readBytes()).size > 100, c.key)
         }
         assertTrue(BuiltinList(java.io.File(dir, "gambling.txt").readBytes()).blocks("www.bet365.com"))
+        // Shinkan's own list of Russian state-controlled media is in the fake news category.
+        val fakenews = BuiltinList(java.io.File(dir, "fakenews.txt").readBytes())
+        for (host in listOf("www.gazeta.ru", "lenta.ru", "russian.rt.com", "tass.com", "news.rambler.ru")) assertTrue(fakenews.blocks(host), host)
+        for (host in listOf("rambler.ru", "www.rbc.ru", "rt.ru")) assertFalse(fakenews.blocks(host), host)
     }
 }
 

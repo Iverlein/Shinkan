@@ -30,6 +30,13 @@ data class History(val entries: List<Entry> = emptyList()) {
     fun played(entry: Entry): History =
         History((listOf(entry) + entries.filter { it.url != entry.url }).take(MAX))
 
+    /** The entries watched within [keep] before [now] (epoch ms); none when the history is off. */
+    fun kept(now: Long, keep: HistoryKeep): History = when (keep) {
+        HistoryKeep.OFF -> History()
+        HistoryKeep.FOREVER -> this
+        else -> History(entries.filter { it.watchedAt >= now - keep.millis })
+    }
+
     fun positionOf(url: String): Long = entries.firstOrNull { it.url == url }?.resumeMs ?: 0
 
     /** The uploaders of the history, most recent first, each once: the block mode's creators. */
@@ -52,5 +59,22 @@ data class History(val entries: List<Entry> = emptyList()) {
             listOf(e.url, e.title, e.uploader, e.uploaderUrl, e.thumbnail, e.seconds, e.positionMs, e.watchedAt)
                 .joinToString("\t") { it.toString().replace('\t', ' ').replace('\n', ' ') }
         }
+    }
+}
+
+/**
+ * How long the player keeps its history (SPEC §7.1.1), the parent's choice:
+ * not at all, a day, a week, a month (thirty days), or until cleared, the default.
+ */
+enum class HistoryKeep(val key: String, val millis: Long) {
+    OFF("off", 0),
+    DAY("day", 86_400_000),
+    WEEK("week", 7 * 86_400_000L),
+    MONTH("month", 30 * 86_400_000L),
+    FOREVER("forever", Long.MAX_VALUE),
+    ;
+
+    companion object {
+        fun byKey(key: String): HistoryKeep? = entries.firstOrNull { it.key == key.lowercase() }
     }
 }

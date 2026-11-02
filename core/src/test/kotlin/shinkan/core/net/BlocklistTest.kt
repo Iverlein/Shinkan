@@ -197,3 +197,27 @@ class HistoryTest {
         assertEquals(listOf("Up" to "https://www.youtube.com/channel/Ub", "Up" to "https://www.youtube.com/channel/Ua"), back.creators())
     }
 }
+
+class HistoryKeepTest {
+    private val day = 86_400_000L
+    private fun e(url: String, at: Long) = History.Entry(url, "t", "u", "https://www.youtube.com/channel/U$url", "", 600, 1000, at)
+    private val now = 100 * day
+    private val h = History().played(e("old", now - 40 * day)).played(e("week", now - 5 * day)).played(e("today", now - 3_600_000))
+
+    @Test fun `the history keeps what was watched within the period chosen`() {
+        assertEquals(listOf("today", "week", "old"), h.kept(now, HistoryKeep.FOREVER).entries.map { it.url })
+        assertEquals(listOf("today", "week"), h.kept(now, HistoryKeep.MONTH).entries.map { it.url })
+        assertEquals(listOf("today", "week"), h.kept(now, HistoryKeep.WEEK).entries.map { it.url })
+        assertEquals(listOf("today"), h.kept(now, HistoryKeep.DAY).entries.map { it.url })
+        assertEquals(emptyList<String>(), h.kept(now, HistoryKeep.OFF).entries.map { it.url })
+    }
+
+    @Test fun `the period in the text`() {
+        val list = Blocklist(history = HistoryKeep.WEEK)
+        assertEquals("history week\n", BlocklistText.render(list))
+        assertEquals(list, BlocklistText.parse("history week"))
+        assertEquals(HistoryKeep.FOREVER, BlocklistText.parse("").history)
+        assertEquals("", BlocklistText.render(Blocklist(history = HistoryKeep.FOREVER)))
+        assertThrows(BlocklistText.Malformed::class.java) { BlocklistText.parse("history year") }
+    }
+}

@@ -40,6 +40,11 @@ object BlocklistText {
                         },
                     )
                 }
+                "history" -> {
+                    val keep = parts.getOrNull(1)?.let { HistoryKeep.byKey(it) }
+                    if (parts.size != 2 || keep == null) throw Malformed(i + 1, line, "history is off, day, week, month or forever")
+                    list = list.copy(history = keep)
+                }
                 "allow" -> {
                     if (parts.size < 3) throw Malformed(i + 1, line, "allow takes platform, reference and name")
                     val platform = Platform.entries.firstOrNull { it.name.equals(parts[1], ignoreCase = true) }
@@ -67,6 +72,7 @@ object BlocklistText {
             appendLine("creator ${it.platform.name.lowercase()} ${it.ref} ${it.name}")
         }
         if (list.player == PlayerMode.ALLOW) appendLine("player allow")
+        if (list.history != HistoryKeep.FOREVER) appendLine("history ${list.history.key}")
         list.allowed.sortedWith(compareBy({ it.platform }, { it.ref })).forEach {
             appendLine("allow ${it.platform.name.lowercase()} ${it.ref} ${it.name}")
         }

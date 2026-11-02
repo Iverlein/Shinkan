@@ -15,6 +15,8 @@ data class Blocklist(
     /** The player's mode (SPEC §7.1): every creator but the blocked [creators], or the [allowed] alone. */
     val player: PlayerMode = PlayerMode.BLOCK,
     val allowed: Set<Creator> = emptySet(),
+    /** How long the player keeps its history (SPEC §7.1.1). */
+    val history: HistoryKeep = HistoryKeep.FOREVER,
 ) {
     /**
      * True when [host] is a blocked site or under one; else when the [builtin]

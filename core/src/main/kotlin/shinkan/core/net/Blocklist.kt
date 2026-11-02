@@ -41,6 +41,21 @@ object Host {
     /** True when [host] equals [domain] or ends in ".[domain]". */
     fun under(host: String, domain: String): Boolean = host == domain || host.endsWith(".$domain")
 
+    /**
+     * The site a host belongs to, near enough for telling first party from third
+     * (SPEC §7.6): its last two labels, or three under a two-letter country's
+     * common second level (`example.co.uk`). Without the public suffix list, a
+     * shared hosting domain counts as one site.
+     */
+    fun base(host: String): String {
+        val labels = normalise(host).split('.')
+        if (labels.size <= 2) return labels.joinToString(".")
+        val three = labels.size >= 3 && labels.last().length == 2 && labels[labels.size - 2] in secondLevels
+        return labels.takeLast(if (three) 3 else 2).joinToString(".")
+    }
+
+    private val secondLevels = setOf("co", "com", "net", "org", "gov", "edu", "ac", "ne", "or", "go", "gob", "mil", "nic", "ltd", "plc", "sch")
+
     private val mobilePrefixes = listOf("www.", "m.", "mobile.", "amp.", "touch.")
 
     /** The domain a shared link stands for: the host without the mobile and www prefixes (SPEC §6.2). */

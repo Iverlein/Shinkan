@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter
  *     close com.example.game
  *     window com.example.game sat,sun 10:00-12:00
  *     volume player 40
+ *     start https://www.wikipedia.org
  *     restrict factory_reset
  *
  * A `plan` line takes the indented lines under it as its stages: a span
@@ -55,6 +56,7 @@ object PolicyText {
         val volumes = linkedMapOf<Door, Int>()
         val restrictions = linkedSetOf<Restriction>()
         var restrictionsGiven = false
+        var start: String? = null
         // The plan being read: its line, its days and the stages so far.
         var planLine = 0
         var planDays: Set<DayOfWeek>? = null
@@ -111,6 +113,12 @@ object PolicyText {
                         ?: throw Malformed(n, line, "volume is 0 to 100")
                     volumes[door] = percent
                 }
+                "start" -> {
+                    if (parts.size != 2 || !shinkan.core.net.Address.allowed(parts[1])) {
+                        throw Malformed(n, line, "start takes one http or https address")
+                    }
+                    start = parts[1]
+                }
                 "restrict" -> {
                     if (parts.size != 2) throw Malformed(n, line, "restrict takes one name")
                     restrictionsGiven = true
@@ -122,7 +130,7 @@ object PolicyText {
             }
         }
         closePlan()
-        return Policy(mode, plans, closed, windows, volumes, if (restrictionsGiven) restrictions else Restriction.DEFAULT)
+        return Policy(mode, plans, closed, windows, volumes, if (restrictionsGiven) restrictions else Restriction.DEFAULT, start)
     }
 
     private fun stage(n: Int, line: String, parts: List<String>): Stage {
@@ -200,6 +208,7 @@ object PolicyText {
             }
         }
         Door.entries.forEach { door -> policy.volumes[door]?.let { appendLine("volume ${door.name.lowercase()} $it") } }
+        policy.start?.let { appendLine("start $it") }
         when {
             policy.restrictions == Restriction.DEFAULT -> Unit
             policy.restrictions.isEmpty() -> appendLine("restrict none")

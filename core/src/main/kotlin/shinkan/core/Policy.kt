@@ -15,7 +15,7 @@ import java.time.LocalTime
  * [Mode.OPEN] device the launcher stays, the [closed] packages are suspended
  * outside their [windows], and the plans speak of [Door.DEVICE]. A policy with
  * no plan at all sets no time: every door is open. [volumes] are ceilings in
- * percent of the media stream (§4.6).
+ * percent of the media stream (§4.6); [start] is the browser's start page.
  */
 data class Policy(
     val mode: Mode = Mode.CLOSED,
@@ -24,6 +24,8 @@ data class Policy(
     val windows: List<Window> = emptyList(),
     val volumes: Map<Door, Int> = emptyMap(),
     val restrictions: Set<Restriction> = Restriction.DEFAULT,
+    /** The browser door's start page (SPEC §7.6), http or https; null opens an empty page with the address bar. */
+    val start: String? = null,
 ) {
     init {
         val days = plans.flatMap { it.days }

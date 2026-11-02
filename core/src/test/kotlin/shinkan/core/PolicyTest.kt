@@ -156,4 +156,13 @@ class PolicyTest {
         assertEquals(null, PolicyText.time("noon"))
         assertEquals("06:00", PolicyText.time(LocalTime.of(6, 0)))
     }
+
+    @Test fun `the browser's start page is one http or https address`() {
+        val text = "mode closed\nvolume browser 60\nstart https://www.wikipedia.org\n"
+        val policy = PolicyText.parse(text)
+        assertEquals("https://www.wikipedia.org", policy.start)
+        assertEquals(text, PolicyText.render(policy))
+        assertThrows(PolicyText.Malformed::class.java) { PolicyText.parse("start file:///sdcard/x.html") }
+        assertThrows(PolicyText.Malformed::class.java) { PolicyText.parse("start") }
+    }
 }

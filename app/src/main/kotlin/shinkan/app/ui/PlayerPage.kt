@@ -63,6 +63,7 @@ import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import shinkan.app.plan.PlanClock
+import shinkan.app.player.Creators
 import shinkan.app.player.Extractor
 import shinkan.app.player.Images
 import shinkan.app.player.Media
@@ -73,24 +74,27 @@ private class ChannelView(val name: String, val items: List<StreamInfoItem>)
 /**
  * The player door (SPEC §7): YouTube through NewPipe Extractor, with no account
  * and no official app. A search, its results, a video playing in Media3 with
- * its uploader and related videos, the uploader's channel. Every list passes
- * [visible] before it is shown (the creator block list, block 6b). In
+ * its uploader and related videos, the uploader's channel. Every list leaves
+ * out the videos of blocked creators, and a blocked creator's channel or video
+ * is refused ([Creators], block 6b). In
  * landscape a playing video fills the screen. A rest and leaving the door
  * pause playback; the volume keys keep the door's ceiling (SPEC §4.6).
  */
 @Composable
-fun PlayerPage(onClose: () -> Unit, visible: (List<StreamInfoItem>) -> List<StreamInfoItem> = { it }) {
+fun PlayerPage(onClose: () -> Unit) {
     val context = LocalContext.current
     val focus = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<StreamInfoItem>>(emptyList()) }
     var stream by remember { mutableStateOf<StreamInfo?>(null) }
+    var related by remember { mutableStateOf<List<StreamInfoItem>>(emptyList()) }
     var channel by remember { mutableStateOf<ChannelView?>(null) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val failed = stringResource(R.string.player_error)
     val noStream = stringResource(R.string.player_no_stream)
+    val blocked = stringResource(R.string.player_blocked)
 
     val player = remember {
         val http = DefaultHttpDataSource.Factory().setUserAgent(Extractor.OkDownloader.USER_AGENT)
@@ -130,9 +134,10 @@ fun PlayerPage(onClose: () -> Unit, visible: (List<StreamInfoItem>) -> List<Stre
         load {
             results = withContext(Dispatchers.IO) {
                 Extractor.init()
+                val hides = Creators.check(context)
                 val extractor = ServiceList.YouTube.getSearchExtractor(query.trim())
                 extractor.fetchPage()
-                visible(extractor.initialPage.items.filterIsInstance<StreamInfoItem>())
+                extractor.initialPage.items.filterIsInstance<StreamInfoItem>().filterNot { hides(it.uploaderUrl) }
             }
             stream = null
             channel = null
@@ -141,11 +146,18 @@ fun PlayerPage(onClose: () -> Unit, visible: (List<StreamInfoItem>) -> List<Stre
     }
 
     fun open(url: String) = load {
-        val info = withContext(Dispatchers.IO) {
+        val (info, hidden, next) = withContext(Dispatchers.IO) {
             Extractor.init()
-            StreamInfo.getInfo(ServiceList.YouTube, url)
+            val hides = Creators.check(context)
+            val info = StreamInfo.getInfo(ServiceList.YouTube, url)
+            Triple(info, hides(info.uploaderUrl), info.relatedItems.filterIsInstance<StreamInfoItem>().filterNot { hides(it.uploaderUrl) })
+        }
+        if (hidden) {
+            error = blocked
+            return@load
         }
         stream = info
+        related = next
         val chosen = Media.bestProgressive(info)
         if (chosen == null) {
             error = noStream
@@ -158,14 +170,23 @@ fun PlayerPage(onClose: () -> Unit, visible: (List<StreamInfoItem>) -> List<Stre
     }
 
     fun openChannel(url: String) = load {
-        channel = withContext(Dispatchers.IO) {
+        val shown = withContext(Dispatchers.IO) {
             Extractor.init()
+            val hides = Creators.check(context)
+            // A blocked channel is refused, not loaded (SPEC §6.3).
+            if (hides(url)) return@withContext null
             val info = ChannelInfo.getInfo(ServiceList.YouTube, url)
+            if (hides(info.url)) return@withContext null
             val videos = info.tabs.firstOrNull()?.let { tab ->
                 ChannelTabInfo.getInfo(ServiceList.YouTube, tab).relatedItems.filterIsInstance<StreamInfoItem>()
             }.orEmpty()
-            ChannelView(info.name, visible(videos))
+            ChannelView(info.name, videos.filterNot { hides(it.uploaderUrl) })
         }
+        if (shown == null) {
+            error = blocked
+            return@load
+        }
+        channel = shown
         stream = null
         player.stop()
     }
@@ -223,7 +244,7 @@ fun PlayerPage(onClose: () -> Unit, visible: (List<StreamInfoItem>) -> List<Stre
                             TextButton(onClick = { openChannel(playing.uploaderUrl) }) { Text(playing.uploaderName) }
                         }
                     }
-                    items(visible(playing.relatedItems.filterIsInstance<StreamInfoItem>())) { Item(it) { open(it.url) } }
+                    items(related) { Item(it) { open(it.url) } }
                 }
                 shownChannel != null -> {
                     item { Text(shownChannel.name, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp)) }

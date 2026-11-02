@@ -32,6 +32,7 @@
     <string name="door_device">This device</string>
     <string name="player_search">Search</string>
     <string name="player_error">The platform did not answer. Try again.</string>
+    <string name="player_blocked">This creator is blocked on this device.</string>
     <string name="player_no_stream">This video has no stream the player can play.</string>
     <string name="door_close">Close</string>
     <string name="door_unlock">Unlock</string>

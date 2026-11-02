@@ -1,0 +1,53 @@
+# Shinkan's own list for the Fake news category (SPEC §6.5): Russian news outlets that are
+# owned or controlled by the Russian state (the federal or a regional government, state
+# companies and state banks), or that the EU names as Russian state propaganda in its
+# sanctions (Council Regulation (EU) 833/2014, Article 2f and Annex XV). Privately owned
+# outlets are left out, whatever their line. A name blocks itself and every subdomain.
+# Kept by hand; refresh.py merges it into assets/blocklist/fakenews.txt. GPL-3.0-or-later.
+
+# RT (ANO TV-Novosti, state-funded; EU-sanctioned)
+rt.com
+actualidad-rt.com
+rt.rs
+# Rossiya Segodnya: RIA Novosti, Sputnik, InoSMI, Ukraina.ru (state agency; EU-sanctioned)
+ria.ru
+sputniknews.com
+sputniknews.ru
+sputnikglobe.com
+radiosputnik.ru
+sputnik.by
+inosmi.ru
+ukraina.ru
+# TASS (federal state unitary enterprise)
+tass.ru
+tass.com
+# VGTRK: Rossiya 1, Rossiya 24, Vesti (federal state company; EU-sanctioned)
+vesti.ru
+smotrim.ru
+russia.tv
+# Channel One (Pervyi Kanal, state majority; EU-sanctioned)
+1tv.ru
+1tv.com
+# Rossiyskaya Gazeta (the government's official paper; EU-sanctioned)
+rg.ru
+# Zvezda (the Ministry of Defence's broadcaster)
+tvzvezda.ru
+# Gazprom-Media news: NTV (Gazprom, state-controlled; EU-sanctioned)
+ntv.ru
+# National Media Group news: REN TV, Izvestia, Channel Five (EU-sanctioned REN TV, Izvestia)
+ren.tv
+iz.ru
+5-tv.ru
+# Rambler & Co (owned by Sber, the state bank): Gazeta.ru, Lenta.ru, Rambler News
+gazeta.ru
+lenta.ru
+news.rambler.ru
+# Moscow government: Argumenty i Fakty, Moskva 24
+aif.ru
+m24.ru
+# EU-sanctioned propaganda outlets
+tsargrad.tv
+katehon.com
+journal-neo.su
+orientalreview.su
+voiceofeurope.com

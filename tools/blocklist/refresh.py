@@ -5,6 +5,7 @@ Run by the maintainer before a release, never by the app (SPEC §2.1):
 
     python3 tools/blocklist/refresh.py            # fetch, normalise, write the assets
     python3 tools/blocklist/refresh.py --check    # only say whether the assets are complete
+    python3 tools/blocklist/refresh.py --local    # merge Shinkan's own lists into the assets, fetching nothing
 
 Sources of the DNS filter's list (app/src/main/assets/blocklist/):
   ads       Hagezi Multi NORMAL, wildcard domains (GPL-3.0): a name blocks itself
@@ -13,6 +14,10 @@ Sources of the DNS filter's list (app/src/main/assets/blocklist/):
             StevenBlack's hosts, the extension alone (alternates/<name>-only/hosts,
             MIT), itself merged from upstream sources with licences of their own,
             each recorded from its extensions/<name>/.../update.json
+
+Shinkan's own lists, kept by hand beside this tool and merged into a category:
+  fakenews  state-media.txt, Russian state-controlled media (its header says
+            which outlets and why)
 
 Sources of the browser's request filter (app/src/main/assets/filters/, SPEC §7.6):
   EasyList and EasyPrivacy, as published (GPL-3.0 or CC BY-SA 3.0); the browser
@@ -35,6 +40,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "app/src/main/assets/blocklist"
 FILTERS = ROOT / "app/src/main/assets/filters"
+LOCAL = {"fakenews": Path(__file__).resolve().parent / "state-media.txt"}
+LOCAL_ROW = "| fakenews | Shinkan: Russian state-controlled media | | GPL-3.0-or-later | tools/blocklist/state-media.txt |"
+LOCAL_NOTE = "plus Shinkan's own tools/blocklist/state-media.txt (Russian state-controlled media)"
 EASYLIST = {"easylist": "https://easylist.to/easylist/easylist.txt", "easyprivacy": "https://easylist.to/easylist/easyprivacy.txt"}
 HAGEZI = "hagezi/dns-blocklists"
 STEVENBLACK = "StevenBlack/hosts"
@@ -121,6 +129,29 @@ def stevenblack_sources(category: str) -> list[dict]:
     return found
 
 
+def local_names(category: str) -> list[str]:
+    """The names of Shinkan's own list for [category], or none."""
+    path = LOCAL.get(category)
+    return names_from_domains(path.read_text(encoding="utf-8")) if path else []
+
+
+def merge_local():
+    """Shinkan's own lists merged into the shipped ones as they are; nothing fetched."""
+    for category in LOCAL:
+        path = OUT / f"{category}.txt"
+        lines = path.read_text(encoding="ascii").splitlines()
+        header = [l[2:] for l in lines if l.startswith("# ")]
+        names = [l for l in lines if l and not l.startswith("#")]
+        merged = normalise(names + local_names(category))
+        if LOCAL_NOTE not in header:
+            header.append(LOCAL_NOTE)
+        write_list(category, merged, header)
+    versions = OUT / "VERSIONS.md"
+    text = versions.read_text(encoding="utf-8")
+    if LOCAL_ROW not in text:
+        versions.write_text(text.rstrip("\n") + "\n" + LOCAL_ROW + "\n", encoding="utf-8")
+
+
 def write_list(name: str, names: list[str], comment: list[str]):
     lines = [f"# {c}" for c in comment] + names
     (OUT / f"{name}.txt").write_text("\n".join(lines) + "\n", encoding="ascii")
@@ -146,15 +177,18 @@ def refresh():
     rows = [f"| ads | Hagezi Multi NORMAL | {header_value(text, 'Version')} | GPL-3.0 | https://github.com/hagezi/dns-blocklists |"]
     for category in CATEGORIES:
         hosts = raw(STEVENBLACK, stevenblack_sha, f"alternates/{category}-only/hosts")
-        names = normalise(names_from_hosts(hosts))
+        names = normalise(names_from_hosts(hosts) + local_names(category))
         if len(names) < 100:
             raise Failure(f"StevenBlack {category} has {len(names)} names; the download is wrong")
         write_list(category, names, [
             f"StevenBlack hosts, {category} extension alone (MIT): https://github.com/StevenBlack/hosts",
             f"commit {stevenblack_sha}; the upstream sources and their licences are in VERSIONS.md",
+            *([LOCAL_NOTE] if category in LOCAL else []),
         ])
         for source in stevenblack_sources(category):
             rows.append(f"| {category} | {source['name']} | | {source['license']} | {source['url']} |")
+        if category in LOCAL:
+            rows.append(LOCAL_ROW)
     (OUT / "LICENSE-stevenblack.txt").write_text(raw(STEVENBLACK, stevenblack_sha, "license.txt"), encoding="utf-8")
 
     (OUT / "VERSIONS.md").write_text(
@@ -210,10 +244,14 @@ def check() -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--check", action="store_true", help="only say whether the assets are complete")
+    parser.add_argument("--local", action="store_true", help="merge Shinkan's own lists into the assets; fetch nothing")
     args = parser.parse_args(argv)
     try:
         if args.check:
             return check()
+        if args.local:
+            merge_local()
+            return 0
         refresh()
         refresh_filters()
         return 0

@@ -715,7 +715,8 @@ the aliases and the strings survive), the permission check, the tag.
 
 **Done when.** `aapt2 dump permissions` on the release APK shows the seven
 and nothing else; the release build on a clean emulator provisions, holds,
-filters and plays; the tag is pushed by the owner.
+filters and plays; the tag is pushed by the owner or on the owner's word
+(the owner, 2026-11-02: "pushed on my word counts").
 
 **As released, 2026-11-02.** `v1.0` (versionCode 2) was tagged on
 4eebb7e on the owner's word. The release check then went further on the

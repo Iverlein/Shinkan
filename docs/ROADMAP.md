@@ -67,7 +67,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 7c | The open device: the device ceiling by clamp | |
 | 8 | Permissions of the usable apps | |
 | 9 | QR provisioning | |
-| 10 | Release 1.0 | prepared 2026-11-02 on branch `work/release`: the release build on the emulator, the screenshots and the owner's tag pending |
+| 10 | Release 1.0 | ready 2026-11-02: everything but the owner's signed tag `v1.0` |
 | 11a | The tunnel: all routes through a userspace TCP relay | |
 | 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | |
 | 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | |
@@ -717,18 +717,30 @@ the aliases and the strings survive), the permission check, the tag.
 and nothing else; the release build on a clean emulator provisions, holds,
 filters and plays; the tag is pushed by the owner.
 
-**State, 2026-11-02.** Prepared: versionCode 2, versionName 1.0; the
-changelog `2.txt` in English and Russian; the recipe
+**State, 2026-11-02.** Ready for the owner's tag. versionCode 2,
+versionName 1.0; the changelog `2.txt` in English and Russian; the recipe
 `docs/fdroid/io.github.iverlein.shinkan.yml` (NonFreeNet for the player);
-`assembleRelease` passes R8 with the extractor's keep rules, and `aapt2
-dump permissions` on the unsigned release APK shows the seven and
-androidx's own signature permission (SPEC §5.1). Pending, all on the
-emulator after the host reboot: the release build signed with a key of the
-owner's and checked by eye (provision with the release receiver
-`io.github.iverlein.shinkan/shinkan.app.admin.ShinkanAdmin`, hold, filter,
-browse, play; `no_debugging_features` cuts adb, so the console's
-screenshot and `restore`), the screenshots for `fastlane/` in both
-languages; then the owner signs and pushes the tag `v1.0`.
+screenshots in `fastlane/.../images/phoneScreenshots/` in both languages
+(home, player, parent door, plans; taken from the beta with the emulator's
+switches on). `assembleRelease` passes R8; `aapt2 dump permissions` on the
+release APK shows the seven and androidx's own signature permission.
+
+The release build, signed with the local debug key for the emulator only,
+checked by eye on a clean emulator: provisioned with the release receiver;
+the PIN set through the console (`emulator.py ctap`) applied the hold and
+cut adb at once (`no_debugging_features`); the home with its two doors;
+the player under R8 searched "cats" and resolved a video with its title,
+uploader, length and related videos (the extractor and Rhino survive the
+shrinking); the parent door asked for the PIN. What this emulator cannot
+show of the release, since the beta's switches for it are not in the
+release: page content in the browser (Chromium draws none on its software
+GPU) and video frames (its H.264 decoder fails); both were seen on the
+beta. The DNS filter of the release for other apps cannot be checked once
+adb is cut; the beta's checks of blocks 4 and 6a showed it. A real phone
+is the place to see the release browse and play.
+
+The owner signs the release and pushes the tag `v1.0`; the F-Droid
+submission follows the tag.
 
 ### 11a–11d. The tunnel [§5.2, §5.4, §5.5]
 

@@ -54,7 +54,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 3d | The volume ceiling of the doors | done 2026-11-02 |
 | 3e | The parent's editor | done 2026-11-02 |
 | 4 | The built-in block list | done 2026-11-02 |
-| 5 | The browser door | built, emulator check pending: branch `work/browser` |
+| 5 | The browser door | done 2026-11-02 |
 | 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | |
 | 6b | The player: the creator block list applied to every list | |
 | 6c | The player: a shared video resolved to its creator; the official app held | |
@@ -450,7 +450,7 @@ emulator: `https://example.org` renders; a page that loads
 from a local test page) shows the request blocked in the page's own
 error handler; a rest pauses a playing video on the page; the ceiling holds.
 
-**As built (unchecked).** `core/.../net/FilterList` (indexed by host and
+**As built.** `core/.../net/FilterList` (indexed by host and
 by token; `FilterListTest` with 25 real rules, the exceptions, the dropped
 kinds and the type guess; `ShippedFilterListsTest` on the shipped lists:
 about 108 000 network rules, parsed in 0.2 s on the desktop),
@@ -464,18 +464,20 @@ without a uid lookup; and the emulator draws no Chromium page content on
 its software GPU (Chrome too), then crashed on Chrome's Vulkan device and,
 from then on, at every boot (`kvm_user_backed_ram_map: error registering
 slot: File exists`; a KVM module reload and a recreated AVD did not help,
-a host reboot is next). `emulator.py start` now passes `-feature -Vulkan`;
-the beta's `debug.shinkan.webview_software` draws the WebView in software.
+then emulator 37.2.13 booted again). `emulator.py start` passes `-feature
+-Vulkan`; the beta's `debug.shinkan.webview_software` draws the WebView in
+software, which this emulator needs to show page content.
 
-To check after the reboot: `start --cold` and `snapshot` (the AVD was
-recreated and has no `clean`); serve a test page on the host
-(`python3 -m http.server 8000 --bind 127.0.0.1`: a page loading
-`adsbygoogle.js` with `onload`/`onerror` that write the outcome, a
-first-party script, a looping tone); the beta reaches it as
-`http://10.0.2.2:8000/` (debug-only cleartext for that address);
-`store blocklist` with `pass googlesyndication.com` so DNS lets it through
-and only EasyList blocks it; `start http://10.0.2.2:8000/test.html` and
-`volume browser 20` in the policy. Then the checks above.
+Checked on the emulator (37.2.13), 2026-11-02, with the software WebView
+switch on: a test page from the host through `adb reverse tcp:8000
+tcp:8000` at `http://127.0.0.1:8000/test.html` (the beta's uid does not
+reach 10.0.2.2), with `pass googlesyndication.com` on the block list so
+only EasyList could stop the ad script: the page's own handler said "ad
+script: blocked" (`blocked SCRIPT …adsbygoogle.js` in the beta's log) and
+"first party: loaded"; `https://example.org` rendered; with `volume
+browser 20` the speaker stayed at 3 of 15 through four presses up; with
+`browser 1 rest 2` a tone playing on the page stopped as the budget ran out
+(no player of Shinkan's left in `dumpsys audio`) and the rest page showed.
 
 ### 6a. The player: playback and search [§7.1, §7.2, §5.5]
 

@@ -21,8 +21,7 @@ import shinkan.core.Door
 
 /**
  * A door of the closed device (SPEC §8.1): the browser ([BrowserPage]) or the
- * player of block 6a, until then a stub that names its block; Back and *Close*
- * return to the home. A door fills the screen, without the pages' margin.
+ * player ([PlayerPage]); Back and *Close* return to the home. A door fills the screen, without the pages' margin.
  *
  * While the page is in front its time counts against the plan's budget
  * (SPEC §4.7): it reports itself to [PlanClock] on resume and on pause, and
@@ -57,14 +56,9 @@ fun DoorPage(door: Door, onClose: () -> Unit, onPause: () -> Unit = {}) {
         }
         return
     }
-    if (door == Door.BROWSER) {
-        BrowserPage(onClose)
-        return
-    }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(stringResource(doorLabel(door)), style = MaterialTheme.typography.headlineMedium)
-        Text(stringResource(R.string.door_stub_player), style = MaterialTheme.typography.bodyLarge)
-        Button(onClick = onClose) { Text(stringResource(R.string.door_close)) }
+    when (door) {
+        Door.BROWSER -> BrowserPage(onClose)
+        else -> PlayerPage(onClose)
     }
 }
 

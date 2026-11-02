@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- INTERNET is for the filter (SPEC §5): Shinkan forwards the device's own DNS to the network's
      resolver. It has no endpoint of its own and sends nothing else (SPEC §2.1). -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- The filter forwards a query to the underlying network's own resolver (SPEC §5.3), which it
@@ -15,6 +16,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Media3 ExoPlayer asks for WAKE_LOCK for its wake mode, which the player does not use:
+         the seven above and nothing else (SPEC §5.1). -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" tools:node="remove" />
 
     <application
         android:allowBackup="false"

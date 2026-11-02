@@ -30,7 +30,9 @@
     <string name="door_browser">Browser</string>
     <string name="door_player">YouTube</string>
     <string name="door_device">This device</string>
-    <string name="door_stub_player">The player is built in block 6a of the roadmap.</string>
+    <string name="player_search">Search</string>
+    <string name="player_error">The platform did not answer. Try again.</string>
+    <string name="player_no_stream">This video has no stream the player can play.</string>
     <string name="door_close">Close</string>
     <string name="door_unlock">Unlock</string>
     <string name="door_locked">This door opens once a parent has unlocked the device after it was turned on.</string>

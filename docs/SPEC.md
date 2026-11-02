@@ -493,7 +493,9 @@ its HTTP through OkHttp with a fixed desktop user agent and no cookie jar
 (`app/.../player/Extractor`); Media3 ExoPlayer plays the best stream that
 carries sound and picture in one file, up to 720p (`Media.bestProgressive`;
 the platform often offers 360p alone that way, higher ones as separate
-video and sound, which a later block may merge). The door has a search, its
+video and sound, which a later block may merge). When the device's decoder
+fails while decoding, the player prepares again preferring Android's
+software decoders from the same position (1.0.1). The door has a search, its
 results, a video with its uploader and related videos, and the uploader's
 channel; a playing video fills the screen in landscape; a rest and leaving
 the door pause it; the volume keys keep the door's ceiling. Thumbnails are
@@ -557,7 +559,9 @@ Browsing and WebView metrics are off (manifest meta-data), as they would
 send addresses to Google (§2.1). The address bar opens an address, a host
 over HTTPS, or searches DuckDuckGo with safe search strict
 (`core/.../net/Address`). The parent sets a start page (`start` line,
-§4.4); without one the door opens on its address bar. A rest or leaving the
+§4.4); without one the door opens on its address bar over a blank page of
+its own, since a WebView that has loaded nothing draws no frame and leaves
+its window white (found checking 1.0, fixed in 1.0.1). A rest or leaving the
 door pauses the page and its timers.
 
 ## 8. Pages
@@ -775,9 +779,8 @@ also reads the parent door's idle time in seconds from the system property
 so the two minutes of §8.2 need not be waited out; the release build has no
 such setting. The beta also draws the browser's WebView in a software
 layer when `debug.shinkan.webview_software` is `1`, for an emulator whose
-software GPU draws no Chromium page content, and prefers Android's software
-video decoders when `debug.shinkan.software_codecs` is `1`, for the
-emulator's H.264 decoder that fails; the release does neither. The hold
+software GPU draws no Chromium page content; the release never does. The
+emulator runs on the host's GPU, where neither is needed. The hold
 is checked by `adb shell dumpsys device_policy`; the filter by `adb shell
 ping -c 1` of a blocked and an unblocked name (a blocked one says `unknown
 host`; an unblocked one resolves, and under lockdown its packet is then
@@ -790,4 +793,5 @@ Versions are tags `v<versionName>`; `versionCode` counts up by one. F-Droid
 builds from the tag with the recipe in `docs/fdroid/` once submitted (ROADMAP
 block 10). Reproducible: `dependenciesInfo` off, no proprietary library.
 The recipe declares the `NonFreeNet` anti-feature, as F-Droid does for
-NewPipe: the player shows videos from YouTube. 1.0 is versionCode 2.
+NewPipe: the player shows videos from YouTube. 1.0 is versionCode 2, 1.0.1 versionCode 3; F-Droid is submitted with
+1.0.1.

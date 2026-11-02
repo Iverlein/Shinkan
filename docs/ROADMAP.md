@@ -67,7 +67,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 7c | The open device: the device ceiling by clamp | |
 | 8 | Permissions of the usable apps | |
 | 9 | QR provisioning | |
-| 10 | Release 1.0 | done 2026-11-02: tag `v1.0` on 4eebb7e |
+| 10 | Release 1.0 | done 2026-11-02: tags `v1.0`, then `v1.0.1` with the two fixes of the release check |
 | 11a | The tunnel: all routes through a userspace TCP relay | |
 | 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | |
 | 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | |
@@ -717,31 +717,24 @@ the aliases and the strings survive), the permission check, the tag.
 and nothing else; the release build on a clean emulator provisions, holds,
 filters and plays; the tag is pushed by the owner.
 
-**State, 2026-11-02.** Ready for the owner's tag. versionCode 2,
-versionName 1.0; the changelog `2.txt` in English and Russian; the recipe
-`docs/fdroid/io.github.iverlein.shinkan.yml` (NonFreeNet for the player);
-screenshots in `fastlane/.../images/phoneScreenshots/` in both languages
-(home, player, parent door, plans; taken from the beta with the emulator's
-switches on). `assembleRelease` passes R8; `aapt2 dump permissions` on the
-release APK shows the seven and androidx's own signature permission.
-
-The release build, signed with the local debug key for the emulator only,
-checked by eye on a clean emulator: provisioned with the release receiver;
-the PIN set through the console (`emulator.py ctap`) applied the hold and
-cut adb at once (`no_debugging_features`); the home with its two doors;
-the player under R8 searched "cats" and resolved a video with its title,
-uploader, length and related videos (the extractor and Rhino survive the
-shrinking); the parent door asked for the PIN. What this emulator cannot
-show of the release, since the beta's switches for it are not in the
-release: page content in the browser (Chromium draws none on its software
-GPU) and video frames (its H.264 decoder fails); both were seen on the
-beta. The DNS filter of the release for other apps cannot be checked once
-adb is cut; the beta's checks of blocks 4 and 6a showed it. A real phone
-is the place to see the release browse and play.
-
-The annotated tag `v1.0` (the changelog as its message) was pushed on
-2026-11-02 on the owner's word; the F-Droid submission of the recipe
-follows it.
+**As released, 2026-11-02.** `v1.0` (versionCode 2) was tagged on
+4eebb7e on the owner's word. The release check then went further on the
+emulator booted on the host's GPU (`-gpu host`; the software GPU it chose
+for itself draws no Chromium content and its decoder fails): the release
+build, signed with the local debug key for the emulator alone, on a wiped
+device, provisioned with the release receiver, the PIN set through the
+console (`ctap`) applying the hold and cutting adb. It found two faults
+that would reach phones: the browser door with no start page was entirely
+white (a WebView that has loaded nothing draws no frame), and the player
+stayed at 0:00 when the decoder failed mid-stream (Media3's fallback covers
+a decoder that fails to start, not one that fails while decoding). Both
+fixed in `v1.0.1` (versionCode 3): a blank page of the door's own, and a
+second preparation with the software decoders. The fixed release, held,
+showed the address bar, searched DuckDuckGo (safe search strict) and drew
+its page; searched "cats" in the player and played a video, its frames
+moving between two screenshots. `aapt2 dump permissions`: the seven and
+androidx's own. The recipe in `docs/fdroid/` builds 1.0.1; the F-Droid
+submission follows.
 
 ### 11a–11d. The tunnel [§5.2, §5.4, §5.5]
 

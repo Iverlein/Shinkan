@@ -101,6 +101,7 @@ fun ParentPage(
     onRelease: () -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = androidx.compose.ui.platform.LocalResources.current
     var stored by remember { mutableStateOf(store.policy) }
     var draft by remember { mutableStateOf(stored) }
     var section by remember { mutableStateOf<Section?>(null) }
@@ -112,7 +113,7 @@ fun ParentPage(
     fun applyDraft(): Boolean {
         val problem = PolicyText.problem(draft)
         if (problem != null) {
-            message = context.getString(R.string.edit_problem, problem.line, problem.why)
+            message = resources.getString(R.string.edit_problem, problem.line, problem.why)
             return false
         }
         val clean = PolicyText.parse(PolicyText.render(draft))
@@ -123,7 +124,7 @@ fun ParentPage(
         hold.apply()
         PlanClock.refresh(context)
         onApplied()
-        message = context.getString(R.string.edit_applied)
+        message = resources.getString(R.string.edit_applied)
         return true
     }
 

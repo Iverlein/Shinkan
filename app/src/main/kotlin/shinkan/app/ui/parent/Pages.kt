@@ -179,6 +179,7 @@ fun ThemePage(theme: ThemePin, onTheme: (ThemePin) -> Unit) {
 @Composable
 fun TextPage(policy: Policy, onChange: (Policy) -> Unit) {
     val context = LocalContext.current
+    val resources = androidx.compose.ui.platform.LocalResources.current
     var text by remember(policy) { mutableStateOf(PolicyText.render(policy).trimEnd()) }
     var note by remember { mutableStateOf<String?>(null) }
     var wrong by remember { mutableStateOf(false) }
@@ -204,10 +205,10 @@ fun TextPage(policy: Policy, onChange: (Policy) -> Unit) {
             try {
                 onChange(PolicyText.parse(text))
                 wrong = false
-                note = context.getString(R.string.text_used)
+                note = resources.getString(R.string.text_used)
             } catch (e: PolicyText.Malformed) {
                 wrong = true
-                note = context.getString(R.string.text_malformed, e.line, "${e.why}: ${e.text}")
+                note = resources.getString(R.string.text_malformed, e.line, "${e.why}: ${e.text}")
             } catch (e: IllegalArgumentException) {
                 wrong = true
                 note = e.message

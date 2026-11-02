@@ -99,6 +99,8 @@ class MainActivity : ComponentActivity() {
      * dispatchKeyEvent, ahead of any view of the door's (a WebView, a player), and
      * left to the system on every other page.
      */
+    // Lint takes the override's calls to super for calls into androidx's restricted API; they are Activity's own.
+    @android.annotation.SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val up = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP
         if (!up && event.keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) return super.dispatchKeyEvent(event)

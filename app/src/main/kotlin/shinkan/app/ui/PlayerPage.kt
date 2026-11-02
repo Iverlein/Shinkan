@@ -80,9 +80,11 @@ private class ChannelView(val name: String, val items: List<StreamInfoItem>)
  * landscape a playing video fills the screen. A rest and leaving the door
  * pause playback; the volume keys keep the door's ceiling (SPEC §4.6).
  */
+@androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 @Composable
 fun PlayerPage(onClose: () -> Unit) {
     val context = LocalContext.current
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val focus = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
@@ -212,7 +214,7 @@ fun PlayerPage(onClose: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose, modifier = Modifier.semantics { contentDescription = context.getString(R.string.door_close) }) {
+            TextButton(onClick = onClose, modifier = Modifier.semantics { contentDescription = resources.getString(R.string.door_close) }) {
                 Text("✕", style = MaterialTheme.typography.titleLarge)
             }
             OutlinedTextField(
@@ -225,7 +227,7 @@ fun PlayerPage(onClose: () -> Unit) {
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { search() }),
             )
-            TextButton(onClick = { search() }, modifier = Modifier.semantics { contentDescription = context.getString(R.string.player_search) }) {
+            TextButton(onClick = { search() }, modifier = Modifier.semantics { contentDescription = resources.getString(R.string.player_search) }) {
                 Text("⌕", style = MaterialTheme.typography.titleLarge)
             }
         }

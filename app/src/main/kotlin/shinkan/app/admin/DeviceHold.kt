@@ -59,7 +59,8 @@ class DeviceHold(private val context: Context) {
      */
     private fun applyFilter() {
         try {
-            dpm.setGlobalPrivateDnsModeOpportunistic(admin)
+            // Private DNS is a setting from Android 10 (API 29); Android 9 has none to lock.
+            if (android.os.Build.VERSION.SDK_INT >= 29) dpm.setGlobalPrivateDnsModeOpportunistic(admin)
             dpm.setAlwaysOnVpnPackage(admin, context.packageName, true)
         } catch (e: Exception) {
             Log.e(TAG, "always-on VPN not set: $e")
@@ -164,7 +165,8 @@ class DeviceHold(private val context: Context) {
         // So the alarm is exact only where the system allows it, inexact otherwise; while the
         // device is awake the process times the edge itself, and the screen coming on applies
         // the hold again (PlanClock), so the child never sees a stale edge.
-        if (alarms.canScheduleExactAlarms()) {
+        // Below Android 12 (API 31) an exact alarm needs no permission.
+        if (android.os.Build.VERSION.SDK_INT < 31 || alarms.canScheduleExactAlarms()) {
             alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
         } else {
             alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)

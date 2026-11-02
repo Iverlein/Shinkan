@@ -66,8 +66,8 @@ class FilterService : VpnService() {
             // Shinkan nothing but DNS (lockdown exempts the owner from its drop, not from the route).
             // Shinkan's pages apply the block list themselves (SPEC §5.5).
             .addDisallowedApplication(packageName)
+            .also { if (android.os.Build.VERSION.SDK_INT >= 29) it.setMetered(false) }
             .setBlocking(true)
-            .setMetered(false)
             .establish() ?: run { Log.e(TAG, "establish refused"); stopSelf(); return }
         tun = fd
         worker = Thread({ loop(fd) }, "shinkan-filter").also { it.start() }

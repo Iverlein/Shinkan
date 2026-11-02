@@ -44,6 +44,7 @@ import shinkan.core.net.Category
 @Composable
 fun BlocklistPage() {
     val context = LocalContext.current
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val store = remember { BlocklistStore(context) }
     var list by remember { mutableStateOf(store.blocklist) }
     var text by remember(list) { mutableStateOf(BlocklistText.render(list).trimEnd()) }
@@ -94,10 +95,10 @@ fun BlocklistPage() {
             try {
                 save(BlocklistText.parse(text))
                 wrong = false
-                note = context.getString(R.string.blocklist_saved)
+                note = resources.getString(R.string.blocklist_saved)
             } catch (e: BlocklistText.Malformed) {
                 wrong = true
-                note = context.getString(R.string.text_malformed, e.line, "${e.why}: ${e.text}")
+                note = resources.getString(R.string.text_malformed, e.line, "${e.why}: ${e.text}")
             }
         }) { Text(stringResource(R.string.blocklist_save)) }
         OutlinedButton(onClick = {

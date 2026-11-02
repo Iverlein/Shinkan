@@ -45,7 +45,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
-import java.util.Locale
 
 /**
  * The child's home on the closed device (SPEC §8.1): two large doors, the
@@ -171,6 +170,6 @@ private fun opensNote(at: LocalDateTime?, now: LocalDateTime): String {
     if (at == null) return stringResource(R.string.home_closed)
     val time = at.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
     if (at.toLocalDate() == now.toLocalDate()) return stringResource(R.string.home_opens_at, time)
-    val day = at.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+    val day = at.dayOfWeek.getDisplayName(TextStyle.SHORT, LocalConfiguration.current.locales[0])
     return stringResource(R.string.home_opens_on, day, time)
 }

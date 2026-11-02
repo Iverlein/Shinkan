@@ -214,9 +214,12 @@ The parent caps how loud the device may play, as a share of the media
 stream's maximum (`volume` lines, §4.4). On the closed device the ceiling is
 **per door**: `volume browser` and `volume player` each hold while that door
 is in front. The doors are Shinkan's own pages, so Shinkan handles the
-volume keys itself (`onKeyDown` on `KEYCODE_VOLUME_UP` and `_DOWN`,
-`AudioManager.setStreamVolume` on `STREAM_MUSIC`, never above the ceiling)
-and sets the stream to the ceiling when a door opens above it; in lock task
+volume keys itself (`dispatchKeyEvent` on `KEYCODE_VOLUME_UP` and `_DOWN`,
+ahead of any view of the door's, `AudioManager.setStreamVolume` on
+`STREAM_MUSIC`, one step a press, never above the ceiling, which is the
+share of `getStreamMaxVolume` rounded down: `Volume` in `core/`) and sets
+the stream to the ceiling when a door opens above it; on the home and the
+other pages the keys are the system's; in lock task
 mode the status bar's slider is not reachable. On the open device no
 platform policy tells Shinkan which app is in front (usage access cannot be
 granted by a device owner), so the ceiling is **one for the device**

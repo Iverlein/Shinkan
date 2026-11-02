@@ -51,7 +51,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 3a | The engine: forms, day plans, stages, rests, ceilings, in `core/` | done 2026-11-01 |
 | 3b | The closed home: lock task, the two doors as stubs, landscape, sumi | done 2026-11-01 |
 | 3c | The counter and the rest page | done 2026-11-02 |
-| 3d | The volume ceiling of the doors | |
+| 3d | The volume ceiling of the doors | done 2026-11-02 |
 | 3e | The parent's editor | |
 | 4 | The built-in block list | |
 | 5 | The browser door | |
@@ -310,6 +310,18 @@ ceiling comes from `Policy.volumes[door]`.
 **Done when.** With `volume player 20`: inside the player stub, volume up
 stops at 20 % (`adb shell dumpsys audio | grep -A3 STREAM_MUSIC` shows the
 index), volume down works; on the home page the keys are the system's.
+
+**As built.** The arithmetic is `Volume` in `core/` (`ceiling`, `step`,
+`opening`, with `VolumeTest`); the keys are taken in
+`MainActivity.dispatchKeyEvent`, not `onKeyDown`, so the browser's WebView
+and the player's views of blocks 5 and 6a cannot take them first;
+`PlanClock.front` says which door is in front; `ui/DoorVolume` sets the
+stream control and brings the stream down as a door opens. Checked on the
+emulator, 2026-11-02: the speaker's music stream (15 steps) at 5 came down
+to 3 as the player stub opened, three presses up kept 3, one down gave 2;
+on the home the system's volume dialog took the keys. `cmd media_session
+volume --set` sets the "default" device, not the speaker: read the
+speaker's index in `dumpsys audio`.
 
 ### 3e. The parent's editor [§8.2, §4.4]
 

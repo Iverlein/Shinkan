@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A budget in a plan (SPEC §4.7): an hourglass. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M13,5H35 M13,43H35 M16,5V9C16,16 24,19 24,24C24,29 16,32 16,39V43 M32,5V9C32,16 24,19 24,24C24,29 32,32 32,39V43"
+        android:strokeWidth="2.5"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

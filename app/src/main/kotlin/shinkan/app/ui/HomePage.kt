@@ -131,10 +131,11 @@ private fun DoorButton(door: Door, open: Boolean, note: String?, modifier: Modif
 private fun budgetDoors(policy: Policy, state: PlanState): Set<Door> =
     (state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage) as? Stage.Budget)?.doors.orEmpty()
 
-/** The drawn mark of a door: a globe for the browser, a screen with the play sign for the player. */
+/** The drawn mark of a door: a globe for the browser, a screen with the play sign for the player, a phone for the open device. */
 fun doorMark(door: Door): Int = when (door) {
     Door.BROWSER -> R.drawable.door_browser
-    else -> R.drawable.door_player
+    Door.PLAYER -> R.drawable.door_player
+    Door.DEVICE -> R.drawable.door_device
 }
 
 /** The name of a door as the child reads it. */

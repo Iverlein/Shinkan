@@ -3,15 +3,24 @@ package shinkan.app
 import android.app.ActivityManager
 import android.app.admin.DevicePolicyManager
 import android.media.AudioManager
+import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
 import shinkan.app.ui.ShinkanApp
 import shinkan.app.ui.ShinkanTheme
+import shinkan.app.ui.ThemePin
 import shinkan.app.plan.PlanClock
 import shinkan.core.Mode
 import shinkan.core.Volume
@@ -32,9 +41,22 @@ class MainActivity : ComponentActivity() {
         hold = DeviceHold(this)
         store = PolicyStore(this)
         setContent {
-            ShinkanTheme {
+            var pin by remember { mutableStateOf(ThemePin.of(store.theme)) }
+            val dark = pin.dark(isSystemInDarkTheme())
+            // The bars' icons follow the theme drawn, not the system's setting.
+            LaunchedEffect(dark) {
+                val style = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark }
+                enableEdgeToEdge(style, style)
+            }
+            ShinkanTheme(dark) {
                 ShinkanApp(
                     hold, store,
+                    theme = pin,
+                    onTheme = {
+                        store.theme = it.key
+                        pin = it
+                    },
+                    onApplied = { holdLockTask() },
                     onSetUp = {
                         // The setup of SPEC §8.3 is complete: the hold is applied (§3.1).
                         hold.apply()

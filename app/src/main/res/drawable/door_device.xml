@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The open device's mark in a plan (SPEC §4.7): a phone, tinted by its text. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M18,4H30A4,4 0 0,1 34,8V40A4,4 0 0,1 30,44H18A4,4 0 0,1 14,40V8A4,4 0 0,1 18,4Z M21,38H27"
+        android:strokeWidth="2.5"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

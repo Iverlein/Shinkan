@@ -20,7 +20,7 @@
     <!-- The day plan on the parent door (SPEC §8.2) -->
     <string name="plan_none">No day plan: the doors are open at any time.</string>
     <string name="plan_done">The day plan is over; the doors open with the next plan day.</string>
-    <string name="plan_stage">Now: %1$s</string>
+    <string name="plan_now">Now</string>
     <string name="plan_left">%1$d min left of this budget</string>
     <string name="plan_rest_until">Resting until %1$s</string>
     <string name="plan_rest_parent">Resting until a parent opens.</string>
@@ -80,4 +80,128 @@
     <!-- The filter (SPEC §5) -->
     <string name="filter_channel">Filter</string>
     <string name="filter_notice">Shinkan filters this device</string>
+    <!-- The parent's editor (SPEC §8.2, §4.4) -->
+    <string name="edit_title">The policy</string>
+    <string name="edit_back">Back to the door</string>
+    <string name="edit_apply">Apply now</string>
+    <string name="edit_discard">Discard changes</string>
+    <string name="edit_unsaved">Changes not yet applied.</string>
+    <string name="edit_applied">Applied.</string>
+    <string name="edit_problem">Not applied. Line %1$d of the text: %2$s</string>
+    <string name="edit_leave_title">Apply the changes?</string>
+    <string name="edit_leave_body">What is not applied is dropped when the door closes.</string>
+    <string name="edit_keep">Keep editing</string>
+    <string name="edit_done">Done</string>
+    <string name="edit_cancel">Cancel</string>
+
+    <string name="section_form">Form</string>
+    <string name="section_plans">Day plans</string>
+    <string name="section_apps">Closed apps</string>
+    <string name="section_volumes">Volume</string>
+    <string name="section_restrictions">Restrictions</string>
+    <string name="section_theme">Theme</string>
+    <string name="section_text">The policy as text</string>
+
+    <string name="summary_form_closed">The closed device</string>
+    <string name="summary_form_open">The open device</string>
+    <string name="summary_plans_none">None: the doors are open at any time</string>
+    <plurals name="summary_plans">
+        <item quantity="one">%1$d plan</item>
+        <item quantity="other">%1$d plans</item>
+    </plurals>
+    <plurals name="summary_apps">
+        <item quantity="one">%1$d app closed</item>
+        <item quantity="other">%1$d apps closed</item>
+    </plurals>
+    <string name="summary_volumes_none">No ceiling</string>
+    <string name="summary_restrictions_default">The default set</string>
+    <string name="summary_restrictions_count">%1$d of %2$d</string>
+    <string name="summary_text">Read, copy or paste the whole policy</string>
+
+    <!-- Form (SPEC §4.1) -->
+    <string name="form_closed">The closed device</string>
+    <string name="form_closed_body">Shinkan is the whole home: the browser and the player, at the hours of the day plan. Every other app is suspended.</string>
+    <string name="form_open">The open device</string>
+    <string name="form_open_body">The device keeps its launcher; the apps you name are closed, always or outside their windows.</string>
+
+    <!-- Day plans (SPEC §4.7) -->
+    <string name="plans_intro">One plan per set of weekdays. Its stages run in order: a span of clock time with the doors open in it, or a budget of minutes of use with an optional rest after it.</string>
+    <string name="plans_add">Add a plan</string>
+    <string name="plans_remove">Remove this plan</string>
+    <string name="plans_no_stage">A plan needs at least one stage.</string>
+    <string name="plans_add_span">Add a span</string>
+    <string name="plans_add_budget">Add a budget</string>
+    <string name="stage_up">Move up</string>
+    <string name="stage_down">Move down</string>
+    <string name="stage_edit">Edit</string>
+    <string name="stage_remove">Remove</string>
+    <string name="stage_span">A span of clock time</string>
+    <string name="stage_budget">A budget of minutes</string>
+    <string name="stage_from">From (HH:MM)</string>
+    <string name="stage_to">To (HH:MM)</string>
+    <string name="stage_doors">Open in it</string>
+    <string name="stage_budget_doors">Counted on</string>
+    <string name="stage_minutes">Minutes of use</string>
+    <string name="stage_rest_none">No rest after it</string>
+    <string name="stage_rest_minutes">A rest of minutes</string>
+    <string name="stage_rest_parent">A rest until a parent opens</string>
+    <string name="stage_rest_length">Minutes of rest</string>
+    <string name="stage_closed">Doors closed</string>
+    <string name="minutes_short">%1$d min</string>
+    <string name="stage_bad_time">A time is HH:MM, from 00:00 to 23:59.</string>
+    <string name="stage_same_time">The span starts and ends at the same time.</string>
+    <string name="stage_no_door">Choose at least one door.</string>
+    <string name="stage_bad_minutes">Minutes are a whole number above zero.</string>
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+    <string name="day_sun">Sun</string>
+
+    <!-- Closed apps of the open device (SPEC §4.2) -->
+    <string name="apps_intro">On the open device, a closed app is suspended always, or outside the windows given to it.</string>
+    <string name="apps_closed_form">The closed device suspends every app; what is set here holds once the form is the open device.</string>
+    <string name="apps_window_add">Add a window</string>
+    <string name="apps_window_remove">Remove</string>
+    <string name="apps_always">Closed at all times</string>
+    <string name="apps_window_title">A window in which %1$s is usable</string>
+    <string name="apps_no_day">Choose at least one day.</string>
+
+    <!-- Volume (SPEC §4.6) -->
+    <string name="volumes_intro">The highest volume of the media stream, as a share of the device\'s maximum. The child may always go lower.</string>
+    <string name="volumes_ceiling">Ceiling: %1$d %%</string>
+    <string name="volumes_none">No ceiling</string>
+
+    <!-- Restrictions (SPEC §4.3) -->
+    <string name="restrictions_intro">What the device itself may not do. The default set keeps the hold and the filter; USB file transfer and credentials stay open by default and are for stricter homes.</string>
+    <string name="restrictions_default">Back to the default set</string>
+    <string name="restrictions_warn_hold">A way out of the hold is open: the child could wipe the device, boot it without Shinkan, add an unheld user or use a computer as a shell.</string>
+    <string name="restrictions_warn_filter">A way around the filter is open: the child could set up another VPN or a private DNS server.</string>
+    <string name="restriction_factory_reset">No factory reset from Settings</string>
+    <string name="restriction_safe_boot">No safe boot</string>
+    <string name="restriction_add_user">No new users</string>
+    <string name="restriction_install_apps">No installing apps</string>
+    <string name="restriction_install_unknown_sources">No apps from unknown sources</string>
+    <string name="restriction_uninstall_apps">No uninstalling apps</string>
+    <string name="restriction_modify_accounts">No adding or removing accounts</string>
+    <string name="restriction_config_date_time">No changing the date, time or zone</string>
+    <string name="restriction_debugging_features">No USB debugging</string>
+    <string name="restriction_usb_file_transfer">No USB file transfer</string>
+    <string name="restriction_config_credentials">No changing credentials</string>
+    <string name="restriction_config_private_dns">No changing private DNS</string>
+    <string name="restriction_config_vpn">No changing the VPN</string>
+
+    <!-- Theme (SPEC §8.6) -->
+    <string name="theme_system">As the system is set</string>
+    <string name="theme_paper">Rice paper, light</string>
+    <string name="theme_sumi">Sumi, dark</string>
+
+    <!-- The policy as text (SPEC §4.4) -->
+    <string name="text_intro">The whole policy, one statement per line, as SPEC §4.4 of Shinkan writes it. Edit or paste, then use it; Apply now on the door applies it.</string>
+    <string name="text_use">Use this text</string>
+    <string name="text_reset">Back to the policy</string>
+    <string name="text_used">Read. Apply it on the door.</string>
+    <string name="text_malformed">Line %1$d: %2$s</string>
 </resources>

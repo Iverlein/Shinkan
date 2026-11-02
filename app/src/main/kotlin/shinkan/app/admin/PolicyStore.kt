@@ -42,7 +42,13 @@ class PolicyStore(context: Context) {
         get() = prefs.getString(KEY_ICON, null)
         set(value) = prefs.edit().putString(KEY_ICON, value).apply()
 
+    /** The theme the parent pinned (SPEC §8.6), by `ThemePin.key`; null follows the system. */
+    var theme: String?
+        get() = prefs.getString(KEY_THEME, null)
+        set(value) = prefs.edit().putString(KEY_THEME, value).apply()
+
     private companion object {
+        const val KEY_THEME = "theme"
         const val KEY_POLICY = "policy"
         const val KEY_PIN = "pin"
         const val KEY_ICON = "icon"

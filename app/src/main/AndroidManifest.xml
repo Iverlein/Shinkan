@@ -27,9 +27,12 @@
              lock task mode can pin it (SPEC §4.1). The launcher entry is on the aliases below.
              Direct-boot aware, so it is the home before the first unlock too: otherwise the system
              starts the device's own launcher at boot and keeps its task after the unlock. Its pages
-             read only device-protected storage (SPEC §9.2). -->
+             read only device-protected storage (SPEC §9.2). It takes rotation, size and night mode
+             itself: Compose redraws, and the parent door, the PIN and an edit in progress are not
+             recreated (a recreation stops the activity, which closes the door). -->
         <activity
             android:name="shinkan.app.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density"
             android:directBootAware="true"
             android:exported="true"
             android:launchMode="singleTask"

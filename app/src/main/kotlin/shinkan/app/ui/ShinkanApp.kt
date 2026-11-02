@@ -73,10 +73,19 @@ private enum class Page { HOME, BROWSER, PLAYER, DOOR_PIN, DOOR, RELEASE_PIN }
  * the PIN (§8.2, §9.1), which closes to the home after [DoorIdle] without a
  * touch and whenever Shinkan leaves the screen; release behind the PIN once
  * more (§9.3). [onSetUp] runs once the PIN is set and applies the hold;
- * [onRelease] hands the device back. The policy editor is ROADMAP block 3e.
+ * [onRelease] hands the device back; [onApplied] follows the editor's
+ * *Apply now* (the form may have changed); [onTheme] pins the theme.
  */
 @Composable
-fun ShinkanApp(hold: DeviceHold, store: PolicyStore, onSetUp: () -> Unit, onRelease: () -> Unit) {
+fun ShinkanApp(
+    hold: DeviceHold,
+    store: PolicyStore,
+    theme: ThemePin,
+    onTheme: (ThemePin) -> Unit,
+    onApplied: () -> Unit,
+    onSetUp: () -> Unit,
+    onRelease: () -> Unit,
+) {
     var page by remember { mutableStateOf(Page.HOME) }
     var owner by remember { mutableStateOf(hold.isOwner) }
     var pinSet by remember { mutableStateOf(store.pinHash != null) }
@@ -141,7 +150,7 @@ fun ShinkanApp(hold: DeviceHold, store: PolicyStore, onSetUp: () -> Unit, onRele
                     onDone = { page = Page.DOOR }, onCancel = { page = Page.HOME },
                 )
                 page == Page.DOOR -> ParentPage(
-                    hold, store, counted,
+                    hold, store, counted, theme, onTheme, onApplied,
                     onBack = { page = Page.HOME }, onRelease = { page = Page.RELEASE_PIN },
                 )
                 page == Page.RELEASE_PIN -> PinPage(
@@ -174,99 +183,4 @@ private fun SetupPage(command: String) = Column(Modifier.verticalScroll(remember
     Text(command, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium)
     Spacer(Modifier.height(16.dp))
     Text(stringResource(R.string.setup_after))
-}
-
-@Composable
-private fun ParentPage(
-    hold: DeviceHold,
-    store: PolicyStore,
-    counted: PlanState,
-    onBack: () -> Unit,
-    onRelease: () -> Unit,
-) = Column(Modifier.verticalScroll(rememberScrollState())) {
-    BackHandler(onBack = onBack)
-    val context = LocalContext.current
-    Text(stringResource(R.string.parent_title), style = MaterialTheme.typography.headlineSmall)
-    Spacer(Modifier.height(16.dp))
-    Text(stringResource(R.string.parent_status_held))
-    val form = if (store.policy.mode == Mode.CLOSED) R.string.parent_mode_closed else R.string.parent_mode_open
-    Text(stringResource(form))
-    Spacer(Modifier.height(16.dp))
-    PlanNow(store.policy, counted) {
-        // *Open now* (SPEC §8.2): the rest ends, the next stage begins, the hold follows.
-        val now = LocalDateTime.now()
-        store.planState = store.policy.openNow(now, store.policy.resolve(now, store.planState))
-        hold.apply(now)
-        PlanClock.refresh(context)
-    }
-    Spacer(Modifier.height(24.dp))
-    IconChoice(store)
-    Spacer(Modifier.height(24.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Button(onClick = onBack) { Text(stringResource(R.string.parent_back)) }
-        OutlinedButton(onClick = onRelease) { Text(stringResource(R.string.release_button)) }
-    }
-}
-
-/** The day plan's current stage, what is left of it, and *Open now* during a rest (SPEC §8.2, §4.7). */
-@Composable
-private fun PlanNow(policy: Policy, counted: PlanState, onOpenNow: () -> Unit) {
-    val now = LocalDateTime.now()
-    val state = policy.resolve(now, counted)
-    val stage = state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage)
-    val line = when {
-        policy.plans.isEmpty() -> stringResource(R.string.plan_none)
-        stage == null -> stringResource(R.string.plan_done)
-        else -> stringResource(R.string.plan_stage, PolicyText.render(stage))
-    }
-    Text(line)
-    when {
-        state.restParent -> Text(stringResource(R.string.plan_rest_parent))
-        state.restEnd != null -> Text(stringResource(R.string.plan_rest_until, state.restEnd!!.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))))
-        else -> policy.budgetLeft(now, state)?.let { Text(stringResource(R.string.plan_left, (it + 59) / 60)) }
-    }
-    if (state.resting) {
-        Spacer(Modifier.height(8.dp))
-        Button(onClick = onOpenNow) { Text(stringResource(R.string.plan_open_now)) }
-    }
-}
-
-/** The launcher icon (SPEC §8.5): each shown as the launcher's round mask shows it. */
-@Composable
-private fun IconChoice(store: PolicyStore) {
-    var chosen by remember { mutableStateOf(LauncherIcon.chosen(store)) }
-    Text(stringResource(R.string.parent_icon), style = MaterialTheme.typography.titleMedium)
-    Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        LauncherIcon.entries.forEach { icon ->
-            val selected = icon == chosen
-            Column(
-                Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .selectable(selected = selected, role = Role.RadioButton) {
-                        store.icon = icon.key
-                        chosen = icon
-                    }
-                    .padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                val ring = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-                Box(
-                    Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(colorResource(R.color.paper))
-                        .border(if (selected) 2.dp else 1.dp, ring, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    // An adaptive icon shows the middle 66 of its 108 units: draw the foreground larger than the circle.
-                    Image(painterResource(icon.foreground), contentDescription = null, Modifier.requiredSize(92.dp))
-                }
-                Spacer(Modifier.height(4.dp))
-                Text(stringResource(icon.label), style = MaterialTheme.typography.labelMedium)
-            }
-        }
-    }
-    Spacer(Modifier.height(8.dp))
-    Text(stringResource(R.string.parent_icon_hint), style = MaterialTheme.typography.bodySmall)
 }

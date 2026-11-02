@@ -73,6 +73,21 @@ fun BlocklistPage() {
         }
     }
     Spacer(Modifier.height(16.dp))
+    // The player's mode (SPEC §7.1): a block list or an allow list of creators, both kept.
+    Text(stringResource(R.string.player_mode), style = MaterialTheme.typography.titleSmall)
+    RadioRow(stringResource(R.string.player_mode_block), list.player == shinkan.core.net.PlayerMode.BLOCK) {
+        save(list.copy(player = shinkan.core.net.PlayerMode.BLOCK))
+    }
+    RadioRow(stringResource(R.string.player_mode_allow), list.player == shinkan.core.net.PlayerMode.ALLOW) {
+        save(list.copy(player = shinkan.core.net.PlayerMode.ALLOW))
+    }
+    var cleared by remember { mutableStateOf(false) }
+    androidx.compose.material3.TextButton(onClick = {
+        shinkan.app.player.PlayerHistory.clear(context)
+        cleared = true
+    }) { Text(stringResource(R.string.player_history_clear)) }
+    if (cleared) Text(stringResource(R.string.player_history_cleared), style = MaterialTheme.typography.bodySmall)
+    Spacer(Modifier.height(16.dp))
     Text(stringResource(R.string.blocklist_text), style = MaterialTheme.typography.titleSmall)
     Spacer(Modifier.height(8.dp))
     OutlinedTextField(

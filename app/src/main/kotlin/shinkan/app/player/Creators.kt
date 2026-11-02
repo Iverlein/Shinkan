@@ -30,4 +30,15 @@ object Creators {
         val known = HashMap(aliases)
         return { url -> list.hidesUploader(url, known) }
     }
+
+    /** The allowed creators of the allow mode, by name and channel address. */
+    fun allowed(context: Context): List<Pair<String, String>> =
+        BlocklistStore(context).blocklist.allowed.map { it.name to channelUrl(it.ref) }
+
+    /** Whether the player is in its allow mode. */
+    fun allowMode(context: Context): Boolean = BlocklistStore(context).blocklist.player == shinkan.core.net.PlayerMode.ALLOW
+
+    /** The channel page of a reference: `channel/UC…` for an id, the handle or name as it is. */
+    fun channelUrl(ref: String): String =
+        "https://www.youtube.com/" + if (ref.length == 24 && ref.startsWith("UC")) "channel/$ref" else ref
 }

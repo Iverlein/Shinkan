@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -67,6 +70,18 @@ import shinkan.app.player.Creators
 import shinkan.app.player.Extractor
 import shinkan.app.player.Images
 import shinkan.app.player.Media
+import shinkan.app.player.PlayerHistory
+import shinkan.core.net.History
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+
+/** The player's two screens. */
+private enum class Tab(val label: Int, val icon: Int) {
+    HOME(R.string.player_home, R.drawable.nav_home),
+    CREATORS(R.string.player_creators, R.drawable.nav_creators),
+    HISTORY(R.string.player_history, R.drawable.nav_history),
+}
 
 /** A channel as the player shows it: its name and its videos. */
 private class ChannelView(val name: String, val items: List<StreamInfoItem>)
@@ -93,6 +108,11 @@ fun PlayerPage(onClose: () -> Unit) {
     var related by remember { mutableStateOf<List<StreamInfoItem>>(emptyList()) }
     var channel by remember { mutableStateOf<ChannelView?>(null) }
     var loading by remember { mutableStateOf(false) }
+    var tab by remember { mutableStateOf(Tab.HOME) }
+    var history by remember { mutableStateOf(History()) }
+    var allowMode by remember { mutableStateOf(false) }
+    var feed by remember { mutableStateOf<List<StreamInfoItem>>(emptyList()) }
+    var allowed by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     val failed = stringResource(R.string.player_error)
     val noStream = stringResource(R.string.player_no_stream)
@@ -113,8 +133,68 @@ fun PlayerPage(onClose: () -> Unit) {
     }
     val view = remember { PlayerView(context).apply { this.player = player } }
     DisposableEffect(Unit) { onDispose { player.release() } }
-    LifecycleResumeEffect(Unit) { onPauseOrDispose { player.pause() } }
-    LaunchedEffect(Unit) { PlanClock.pauses.collect { player.pause() } }
+
+    /** Where the playing video stands, written into the history (SPEC §7.1). */
+    fun keepPlace() {
+        val info = stream ?: return
+        val entry = History.Entry(
+            info.url, info.name, info.uploaderName.orEmpty(), info.uploaderUrl.orEmpty(),
+            Media.thumbnail(info.thumbnails).orEmpty(), info.duration, player.currentPosition, System.currentTimeMillis(),
+        )
+        scope.launch {
+            history = withContext(Dispatchers.IO) {
+                PlayerHistory.played(context, entry)
+                PlayerHistory.load(context)
+            }
+        }
+    }
+
+    LifecycleResumeEffect(Unit) {
+        onPauseOrDispose {
+            keepPlace()
+            player.pause()
+        }
+    }
+    LaunchedEffect(Unit) {
+        PlanClock.pauses.collect {
+            keepPlace()
+            player.pause()
+        }
+    }
+    // The history, the mode and, in the allow mode, the newest videos of the allowed creators.
+    LaunchedEffect(Unit) {
+        val (h, allow, list) = withContext(Dispatchers.IO) {
+            Triple(PlayerHistory.load(context), Creators.allowMode(context), Creators.allowed(context))
+        }
+        history = h
+        allowMode = allow
+        allowed = list
+        if (allow && list.isNotEmpty()) {
+            feed = runCatching {
+                withContext(Dispatchers.IO) {
+                    Extractor.init()
+                    list.map { (_, url) ->
+                        async {
+                            runCatching {
+                                val info = ChannelInfo.getInfo(ServiceList.YouTube, url)
+                                info.tabs.firstOrNull()?.let { ChannelTabInfo.getInfo(ServiceList.YouTube, it).relatedItems.filterIsInstance<StreamInfoItem>() }.orEmpty()
+                            }.getOrDefault(emptyList())
+                        }
+                    }.awaitAll().flatten()
+                        .sortedByDescending { it.uploadDate?.offsetDateTime() }
+                        .take(40)
+                }
+            }.getOrDefault(emptyList())
+        }
+    }
+    // A playing video's place is kept every few seconds, and as it leaves.
+    LaunchedEffect(stream?.url) {
+        if (stream == null) return@LaunchedEffect
+        while (true) {
+            delay(5_000)
+            if (player.isPlaying) keepPlace()
+        }
+    }
 
     fun load(block: suspend () -> Unit) {
         scope.launch {
@@ -160,12 +240,13 @@ fun PlayerPage(onClose: () -> Unit) {
         }
         stream = info
         related = next
+        val resume = withContext(Dispatchers.IO) { PlayerHistory.load(context).positionOf(info.url) }
         val chosen = Media.bestProgressive(info)
         if (chosen == null) {
             error = noStream
             player.stop()
         } else {
-            player.setMediaItem(MediaItem.fromUri(chosen.content))
+            player.setMediaItem(MediaItem.fromUri(chosen.content), resume)
             player.prepare()
             player.play()
         }
@@ -196,10 +277,13 @@ fun PlayerPage(onClose: () -> Unit) {
     BackHandler {
         when {
             stream != null -> {
+                keepPlace()
                 player.stop()
                 stream = null
             }
             channel != null -> channel = null
+            // Search results give way to Home before the door closes.
+            results.isNotEmpty() -> results = emptyList()
             else -> onClose()
         }
     }
@@ -252,7 +336,52 @@ fun PlayerPage(onClose: () -> Unit) {
                     item { Text(shownChannel.name, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp)) }
                     items(shownChannel.items) { Item(it) { open(it.url) } }
                 }
-                else -> items(results) { Item(it) { open(it.url) } }
+                results.isNotEmpty() -> items(results) { Item(it) { open(it.url) } }
+                // The player's three screens (SPEC §7.1), each of the mode set: Home, Creators, History.
+                tab == Tab.HOME -> {
+                    if (allowMode) {
+                        item { Heading(stringResource(R.string.player_newest)) }
+                        items(feed) { Item(it) { open(it.url) } }
+                    } else {
+                        item { Note(stringResource(R.string.player_start)) }
+                    }
+                }
+                tab == Tab.HISTORY -> {
+                    if (history.entries.isEmpty()) item { Note(stringResource(R.string.player_no_history)) }
+                    items(history.entries) { HistoryItem(it) { open(it.url) } }
+                }
+                else -> {
+                    run {
+                        val creators = if (allowMode) allowed else history.creators()
+                        if (creators.isEmpty()) {
+                            item { Note(stringResource(if (allowMode) R.string.player_no_allowed else R.string.player_no_recent)) }
+                        }
+                        items(creators) { (name, url) ->
+                            Text(
+                                name,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.fillMaxWidth().clickable { openChannel(url) }.padding(horizontal = 16.dp, vertical = 14.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        if (playing == null) {
+            // Home, Creators and History at the bottom, as Grayjay has them; hidden while a video plays.
+            NavigationBar {
+                Tab.entries.forEach { t ->
+                    NavigationBarItem(
+                        selected = tab == t && results.isEmpty() && shownChannel == null,
+                        onClick = {
+                            tab = t
+                            results = emptyList()
+                            channel = null
+                        },
+                        icon = { androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(t.icon), contentDescription = null, Modifier.size(26.dp)) },
+                        label = { Text(stringResource(t.label)) },
+                    )
+                }
             }
         }
     }
@@ -295,4 +424,39 @@ private fun debugProperty(name: String): Boolean = runCatching {
 private fun detached(view: PlayerView): PlayerView {
     (view.parent as? android.view.ViewGroup)?.removeView(view)
     return view
+}
+
+@Composable
+private fun Heading(text: String) =
+    Text(text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp))
+
+@Composable
+private fun Note(text: String) =
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
+
+/** A video of the history: its thumbnail with how much was watched, its title and uploader. */
+@Composable
+private fun HistoryItem(entry: History.Entry, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.width(144.dp)) {
+            Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                val bitmap by produceState<android.graphics.Bitmap?>(null, entry.thumbnail) {
+                    value = entry.thumbnail.takeIf { it.isNotEmpty() }?.let { Images.load(it) }
+                }
+                bitmap?.let { Image(it.asImageBitmap(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+            }
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { entry.progress },
+                modifier = Modifier.fillMaxWidth().height(3.dp),
+                drawStopIndicator = {},
+            )
+        }
+        Column(Modifier.weight(1f)) {
+            Text(entry.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(entry.uploader, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
 }

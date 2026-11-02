@@ -31,6 +31,15 @@
     <string name="door_player">YouTube</string>
     <string name="door_device">This device</string>
     <string name="player_search">Search</string>
+    <string name="player_home">Home</string>
+    <string name="player_creators">Creators</string>
+    <string name="player_history">History</string>
+    <string name="player_no_history">The videos you watch show here, with where you stopped.</string>
+    <string name="player_continue">Continue watching</string>
+    <string name="player_newest">Newest from your creators</string>
+    <string name="player_start">Search for a video.</string>
+    <string name="player_no_allowed">No creator is allowed yet. A parent adds them on the door or by sharing a channel to Shinkan.</string>
+    <string name="player_no_recent">The creators of the videos you watch show here.</string>
     <string name="player_error">The platform did not answer. Try again.</string>
     <string name="player_blocked">This creator is blocked on this device.</string>
     <string name="player_no_stream">This video has no stream the player can play.</string>
@@ -86,6 +95,7 @@
     <string name="share_item_later">This is a single video or post. Blocking its creator from it needs the player\'s lookup, which is not built yet; share the channel page instead.</string>
     <string name="share_cancel">Cancel</string>
     <string name="share_block">Block</string>
+    <string name="share_allow">Allow in the player</string>
 
     <!-- The filter (SPEC §5) -->
     <string name="filter_channel">Filter</string>
@@ -221,6 +231,11 @@
     <string name="category_porn">Porn</string>
     <string name="category_fakenews">Fake news</string>
     <string name="category_social">Social media</string>
+    <string name="player_mode">The YouTube player</string>
+    <string name="player_mode_block">Every creator but the blocked ones</string>
+    <string name="player_mode_allow">Only the allowed creators</string>
+    <string name="player_history_clear">Clear the player\'s history</string>
+    <string name="player_history_cleared">The history is cleared.</string>
     <string name="blocklist_text">The block list as text: site, creator, category, and pass for a built-in name to let through</string>
     <string name="blocklist_save">Save the list</string>
     <string name="blocklist_saved">Saved; the filter reads it now.</string>

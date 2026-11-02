@@ -81,6 +81,15 @@ class ShareActivity : ComponentActivity() {
                                     finish()
                                 }) { Text(stringResource(R.string.share_block)) }
                             }
+                            // A creator may be allowed instead, for the player's allow mode (SPEC §7.1).
+                            if (link is Link.CreatorLink) {
+                                Spacer(Modifier.width(16.dp))
+                                Button(onClick = {
+                                    val list = store.blocklist
+                                    store.blocklist = list.copy(allowed = list.allowed + link.creator)
+                                    finish()
+                                }) { Text(stringResource(R.string.share_allow)) }
+                            }
                         }
                     }
                 }

@@ -32,6 +32,15 @@
     <string name="door_player">YouTube</string>
     <string name="door_device">Устройство</string>
     <string name="player_search">Поиск</string>
+    <string name="player_home">Главная</string>
+    <string name="player_creators">Авторы</string>
+    <string name="player_history">История</string>
+    <string name="player_no_history">Здесь появятся видео, которые вы смотрите, с местом, где вы остановились.</string>
+    <string name="player_continue">Продолжить просмотр</string>
+    <string name="player_newest">Новое от ваших авторов</string>
+    <string name="player_start">Найдите видео.</string>
+    <string name="player_no_allowed">Ни один автор пока не разрешён. Родитель добавляет их в разделе для родителей или поделившись каналом с Shinkan.</string>
+    <string name="player_no_recent">Здесь появятся авторы видео, которые вы смотрите.</string>
     <string name="player_error">Платформа не ответила. Попробуйте ещё раз.</string>
     <string name="player_blocked">Этот автор заблокирован на устройстве.</string>
     <string name="player_no_stream">У этого видео нет потока, который может воспроизвести плеер.</string>
@@ -85,6 +94,7 @@
     <string name="share_item_later">Это отдельное видео или пост. Чтобы заблокировать по нему автора, нужен поиск плеера, которого пока нет; поделитесь страницей канала.</string>
     <string name="share_cancel">Отмена</string>
     <string name="share_block">Заблокировать</string>
+    <string name="share_allow">Разрешить в плеере</string>
 
     <!-- The filter (SPEC §5) -->
     <string name="filter_channel">Фильтр</string>
@@ -225,6 +235,11 @@
     <string name="category_porn">Порнография</string>
     <string name="category_fakenews">Фейковые новости</string>
     <string name="category_social">Соцсети</string>
+    <string name="player_mode">Плеер YouTube</string>
+    <string name="player_mode_block">Все авторы, кроме заблокированных</string>
+    <string name="player_mode_allow">Только разрешённые авторы</string>
+    <string name="player_history_clear">Очистить историю плеера</string>
+    <string name="player_history_cleared">История очищена.</string>
     <string name="blocklist_text">Блокировки текстом: site, creator, category и pass для имени из встроенного списка, которое нужно пропустить</string>
     <string name="blocklist_save">Сохранить список</string>
     <string name="blocklist_saved">Сохранено; фильтр уже читает список.</string>

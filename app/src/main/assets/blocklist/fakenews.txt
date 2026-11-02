@@ -1,10 +1,14 @@
 # StevenBlack hosts, fakenews extension alone (MIT): https://github.com/StevenBlack/hosts
 # commit 6d56ab44f2b3d27de062b5194eb51bcd8115a773; the upstream sources and their licences are in VERSIONS.md
+# plus Shinkan's own tools/blocklist/state-media.txt (Russian state-controlled media)
 100percentfedup.com
+1tv.com
+1tv.ru
 20minutenews.com
 21stcenturywire.com
 365usanews.com
 4threvolutionarywar.wordpress.com
+5-tv.ru
 5galert.com
 70news.wordpress.com
 abcnews.com.co
@@ -13,7 +17,7 @@ abolishsocialism.com
 abortions.news
 abqtimes.com
 absurd.news
-actualidad.rt.com
+actualidad-rt.com
 adairmadisonnews.com
 adamscountytimes.com
 adareporter.com
@@ -22,6 +26,7 @@ addiction.news
 adobochronicles.com
 africannewsupdates.com
 ahtribune.com
+aif.ru
 aikentimes.com
 akbusinessdaily.com
 akronreporter.com
@@ -63,7 +68,6 @@ anotherdayintheempire.com
 antelopevalleytoday.com
 anticancer.news
 apopkatimes.com
-arabic.rt.com
 arbusinessdaily.com
 areyouasleep.com
 aroostooknews.com
@@ -375,7 +379,6 @@ depressionsymptoms.news
 desmoinesguide.com
 desmoinessun.com
 detroitcitywire.com
-deutsch.rt.com
 dewittreview.com
 diabetescure.news
 diabetessciencenews.com
@@ -545,7 +548,6 @@ fortsmithtimes.com
 foxcitiesnews.com
 fprnradio.com
 fracking.news
-francais.rt.com
 fredericksburgleader.com
 freebeacon.com
 freedom-articles.toolsforfreedom.com
@@ -574,6 +576,7 @@ gardenstatetimes.com
 gastoniatimes.com
 gatesofvienna.net
 gatewayreporter.com
+gazeta.ru
 gemstatewire.com
 gender.news
 geneseenews.com
@@ -704,6 +707,7 @@ indystandard.com
 info.kopp-verlag.de
 infowars.com
 ingredients.news
+inosmi.ru
 insuranceratereporter.com
 intellihub.com
 interioralaskanews.com
@@ -719,6 +723,7 @@ irishufology.net
 ironictimes.com
 islamicanews.com
 itaglive.com
+iz.ru
 jacksoncoguide.com
 jacksonpurchasenews.com
 jacksonreporter.com
@@ -742,6 +747,7 @@ jonesborotimes.com
 jonescountynews.com
 jonesreport.com
 journal-neo.org
+journal-neo.su
 justtrumpit.us
 kalamazootimes.com
 kanecountyreporter.com
@@ -804,6 +810,7 @@ leetoday.com
 leftcult.com
 legalnewsline.com
 lehightimes.com
+lenta.ru
 lewistontimes.com
 lgis.co
 liberaldarkness.com
@@ -841,6 +848,7 @@ luzernetimes.com
 lycomingnews.com
 lynchburgreporter.com
 lynwoodtimes.com
+m24.ru
 mabeltoday.com
 mabusinessdaily.com
 macombtoday.com
@@ -1046,6 +1054,7 @@ newenergyreport.com
 newisconsinnews.com
 newobserveronline.com
 newrivervalleytimes.com
+news.rambler.ru
 news4ktla.com
 newsbiscuit.com
 newsbreakers.org
@@ -1166,6 +1175,7 @@ novitimes.com
 now8news.com
 npr.news
 nsnbc.me
+ntv.ru
 nuclear.news
 nuclearweapons.news
 nutrients.news
@@ -1236,6 +1246,7 @@ organharvesting.news
 organicfarming.news
 organics.news
 orientalreview.org
+orientalreview.su
 orlandostandard.com
 ottumwaguide.com
 ourshiftingperspective.com
@@ -1334,6 +1345,7 @@ quincyreporter.com
 racerelations.news
 racinesun.com
 radiation.news
+radiosputnik.ru
 randolphcountynews.com
 rbth.com
 readconservatives.news
@@ -1345,11 +1357,14 @@ reddingtoday.com
 redstatewatcher.com
 redwoodempirenews.com
 regated.com
+ren.tv
 renoreporter.com
 rense.com
 reporter.bz
 research.news
 revolt.news
+rg.ru
+ria.ru
 ribusinessdaily.com
 richardpan.news
 richmondleader.com
@@ -1378,11 +1393,13 @@ rockymounttoday.com
 romereporter.com
 ronpaulinstitute.org
 rowannews.com
-rtd.rt.com
+rt.com
+rt.rs
 rumormillnews.com
 ruptly.tv
 rushmorestatenews.com
 russia-insider.com
+russia.tv
 rutherfordtimes.com
 sacoriverguide.com
 sacorridornews.com
@@ -1499,6 +1516,7 @@ sloreporter.com
 smartmeters.news
 smhwtfnews.com
 smokymountaintoday.com
+smotrim.ru
 snopes.news
 socalrecord.com
 solanosun.com
@@ -1599,7 +1617,10 @@ springfieldrecord.com
 springfieldstandard.com
 springstimes.com
 spurguide.com
+sputnik.by
+sputnikglobe.com
 sputniknews.com
+sputniknews.ru
 stanislausnews.com
 starbuckswatch.news
 statenislandreporter.com
@@ -1674,6 +1695,8 @@ tallahasseesun.com
 tamaguide.com
 tamparepublic.com
 tapwater.news
+tass.com
+tass.ru
 techgiants.news
 technocrats.news
 texasbusinesscoalition.com
@@ -1768,18 +1791,21 @@ truthfeed.com
 truthfrequencyradio.com
 truthkings.com
 truthpoliticsnews.com
+tsargrad.tv
 tucsonstandard.com
 tularetimes.com
 tulsastandard.com
 turmeric.news
 tuscaloosaleader.com
 tuscarawasnews.com
+tvzvezda.ru
 twitchy.com
 txbusinessdaily.com
 tylerreporter.com
 uconservative.com
 ufoholic.com
 ufos.news
+ukraina.ru
 ultimateflashnews.com
 unclesamsmisguidedchildren.com
 unconfirmedsources.com
@@ -1825,6 +1851,7 @@ vaclib.org
 vallianttoday.com
 vancouverreporter.com
 verdugosnews.com
+vesti.ru
 veteranstoday.news
 victorvalleytimes.com
 vigilantcitizen.com
@@ -1839,6 +1866,7 @@ viralpropaganda.com
 viralspeech.com
 viralstuppid.com
 vitamind.news
+voiceofeurope.com
 volunteerstatenews.com
 vtbusinessdaily.com
 wabusinessdaily.com
@@ -2090,7 +2118,6 @@ www.renegadetribune.com
 www.revolutions2040.com
 www.ridiculously.com
 www.rockcitytimes.com
-www.rt.com
 www.russia-direct.org
 www.satiratribune.com
 www.satirewire.com

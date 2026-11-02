@@ -22,3 +22,4 @@ itself and every subdomain.
 | porn | Tiuxo hostlist - pornography | | CC BY 4.0 | https://github.com/tiuxo/hosts |
 | fakenews | Fake News | | MIT | https://github.com/marktron/fakenews |
 | social | Sinfonietta's social media blocking hosts file | | MIT | https://github.com/Sinfonietta/hostfiles |
+| fakenews | Shinkan: Russian state-controlled media | | GPL-3.0-or-later | tools/blocklist/state-media.txt |

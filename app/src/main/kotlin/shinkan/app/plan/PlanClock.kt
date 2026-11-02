@@ -44,6 +44,9 @@ object PlanClock {
     val pauses: SharedFlow<Unit> = pausing
 
     private var door: Door? = null
+
+    /** The door page in front now, or null; the volume keys read it (SPEC §4.6). */
+    val front: Door? get() = door
     private var since: Long? = null
     private var context: Context? = null
     private val handler = Handler(Looper.getMainLooper())

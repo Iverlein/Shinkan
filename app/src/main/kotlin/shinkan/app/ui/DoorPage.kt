@@ -34,7 +34,11 @@ fun DoorPage(door: Door, onClose: () -> Unit, onPause: () -> Unit = {}) {
     BackHandler(onBack = onClose)
     LifecycleResumeEffect(door) {
         PlanClock.doorShown(context, door)
-        onPauseOrDispose { PlanClock.doorHidden(context) }
+        DoorVolume.open(context, door)
+        onPauseOrDispose {
+            PlanClock.doorHidden(context)
+            DoorVolume.close(context)
+        }
     }
     LaunchedEffect(door) { PlanClock.pauses.collect { onPause() } }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {

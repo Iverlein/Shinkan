@@ -2,7 +2,9 @@ package shinkan.app
 
 import android.app.ActivityManager
 import android.app.admin.DevicePolicyManager
+import android.media.AudioManager
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,7 +12,9 @@ import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
 import shinkan.app.ui.ShinkanApp
 import shinkan.app.ui.ShinkanTheme
+import shinkan.app.plan.PlanClock
 import shinkan.core.Mode
+import shinkan.core.Volume
 
 /**
  * The one activity: the child's home, the parent door, or the setup page before
@@ -57,6 +61,26 @@ class MainActivity : ComponentActivity() {
         val closed = store.policy.mode == Mode.CLOSED
         if (closed && !inLockTask() && dpm.isLockTaskPermitted(packageName)) startLockTask()
         if (!closed && inLockTask()) stopLockTask()
+    }
+
+    /**
+     * The volume keys while a door is in front (SPEC §4.6): Shinkan sets the media
+     * stream itself, one step a press, never above the door's ceiling. Taken in
+     * dispatchKeyEvent, ahead of any view of the door's (a WebView, a player), and
+     * left to the system on every other page.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val up = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP
+        if (!up && event.keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) return super.dispatchKeyEvent(event)
+        val door = PlanClock.front ?: return super.dispatchKeyEvent(event)
+        val ceiling = store.policy.volumes[door] ?: return super.dispatchKeyEvent(event)
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            val audio = getSystemService(AudioManager::class.java)
+            val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val next = Volume.step(audio.getStreamVolume(AudioManager.STREAM_MUSIC), max, ceiling, up)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, next, AudioManager.FLAG_SHOW_UI)
+        }
+        return true
     }
 
     private fun inLockTask(): Boolean =

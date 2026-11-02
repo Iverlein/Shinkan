@@ -101,7 +101,12 @@ with none until A1; `startLockTask` from its own activity) keeps the child
 in it: no other launcher, no status-bar settings, no recents. The child's
 page (§8.1) has two doors and nothing else: the browser (§7.6) and the
 player (§7), each usable within its windows; every other launchable package
-is suspended.
+is suspended, and so is every other home (the device's own launcher), so
+that a crash of Shinkan's process falls back to Shinkan and not to the
+launcher's old task. Shinkan's home is direct-boot aware: before the first
+unlock after a boot it is the home already, where otherwise the system
+would start the launcher and keep its task (both found on the emulator,
+2026-11-02).
 
 **The open device** (blocks 7a to 7c, the second form). The device keeps
 its own launcher (`clearPackagePersistentPreferredActivities`) and Shinkan
@@ -128,9 +133,14 @@ What is open when is the day plan of §4.7: a door of the closed device is
 open in the stages that name it; a closed app of the open device with
 windows is usable inside them and suspended outside (`Policy.openAt` for
 the doors, `Policy.closedPackagesAt` for the closed apps). The policy is
-applied again at boot, when the clock or the zone changes, and by an exact
-alarm at the next edge (`Policy.nextChange`). The clock is
-protected by `no_config_date_time`.
+applied again at boot, when the clock or the zone changes, when the screen
+comes on, and at the next edge (`Policy.nextChange`): an alarm, exact only
+where the system grants it (an exact alarm needs `SCHEDULE_EXACT_ALARM`
+even from a device owner, and it is not among the permissions of §5.1),
+and a timer in Shinkan's own process, which lives as long as the filter.
+While the device sleeps neither is sure to be on time; the screen coming
+on applies the policy before the child sees it. The clock is protected by
+`no_config_date_time`.
 
 ### 4.3 Device restrictions
 
@@ -453,7 +463,10 @@ and *YouTube*, side by side in landscape and one above the other in
 portrait; a door the plan has closed is greyed and says when it opens next
 by the clock alone (`Policy.nextOpening`: "Opens at 16:00" today, "Opens
 Tue 06:00" on another day, "Closed" when not within a week), an open one
-with a budget shows what is left of it. Back does nothing on the home; a
+with a budget shows what is left of it. Each door carries its drawn mark
+above its name, a globe for the browser and a screen with the play sign
+for the player (`res/drawable/door_*.xml`), in the button's own colour, so
+a greyed door greys its mark. Back does nothing on the home; a
 door returns to it on Back or *Close*.
 On the open device Shinkan is opened like any app and shows the closed apps
 with their next window. A small *Parent* link leads to §8.2.
@@ -520,7 +533,10 @@ is `values/themes.xml` and `values-night/themes.xml`.
 The page the child sees during a rest (§4.7): a brush-drawn ring
 in vermilion, an ensō, that closes as the rest passes, with the time left
 under it in large figures; when the rest is the parent's to end, the ring
-is whole and the page says so. Nothing else is on it but the small *Parent*
+is whole and the page says so. The ring is one stroke from the top,
+clockwise, wide where the brush lands and thinning as it travels, with a
+dry trail beside it, over a faint whole circle that shows what is left to
+close. Nothing else is on it but the small *Parent*
 link. It is drawn for both orientations, and in both themes.
 
 ## 9. The parent

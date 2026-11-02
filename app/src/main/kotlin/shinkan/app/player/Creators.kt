@@ -31,6 +31,25 @@ object Creators {
         return { url -> list.hidesUploader(url, known) }
     }
 
+    private val avatars = ConcurrentHashMap<String, String>()
+
+    /** Keeps a channel's avatar address, from a ChannelInfo the player loaded anyway. */
+    fun keepAvatar(channelUrl: String, images: List<org.schabi.newpipe.extractor.Image>) {
+        Media.thumbnail(images, 88)?.let { avatars[channelUrl] = it }
+    }
+
+    /**
+     * The avatar address of the channel at [channelUrl], from memory or through
+     * the extractor once (the creator lookup of SPEC §7.3); null when it cannot be had.
+     * Called off the main thread.
+     */
+    fun avatar(channelUrl: String): String? = avatars[channelUrl] ?: runCatching {
+        Extractor.init()
+        val info = ChannelInfo.getInfo(ServiceList.YouTube, channelUrl)
+        keepAvatar(channelUrl, info.avatars)
+        avatars[channelUrl]
+    }.getOrNull()
+
     /** The allowed creators of the allow mode, by name and channel address. */
     fun allowed(context: Context): List<Pair<String, String>> =
         BlocklistStore(context).blocklist.allowed.map { it.name to channelUrl(it.ref) }

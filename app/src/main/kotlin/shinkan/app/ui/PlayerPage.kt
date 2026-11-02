@@ -38,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -192,6 +193,7 @@ fun PlayerPage(onClose: () -> Unit) {
                         async {
                             runCatching {
                                 val info = ChannelInfo.getInfo(ServiceList.YouTube, url)
+                                Creators.keepAvatar(url, info.avatars)
                                 info.tabs.firstOrNull()?.let { ChannelTabInfo.getInfo(ServiceList.YouTube, it).relatedItems.filterIsInstance<StreamInfoItem>() }.orEmpty()
                             }.getOrDefault(emptyList())
                         }
@@ -372,11 +374,15 @@ fun PlayerPage(onClose: () -> Unit) {
                             item { Note(stringResource(if (allowMode) R.string.player_no_allowed else R.string.player_no_recent)) }
                         }
                         items(creators) { (name, url) ->
-                            Text(
-                                name,
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.fillMaxWidth().clickable { openChannel(url) }.padding(horizontal = 16.dp, vertical = 14.dp),
-                            )
+                            // Each creator by its avatar first, then its name.
+                            Row(
+                                Modifier.fillMaxWidth().clickable { openChannel(url) }.padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                Avatar(url)
+                                Text(name, style = MaterialTheme.typography.titleMedium)
+                            }
                         }
                     }
                 }
@@ -468,5 +474,18 @@ private fun HistoryItem(entry: History.Entry, onClick: () -> Unit) {
             Text(entry.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(entry.uploader, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+/** A creator's avatar in a circle, loaded off the main thread; a plain circle until it comes. */
+@Composable
+private fun Avatar(channelUrl: String) {
+    val bitmap by produceState<android.graphics.Bitmap?>(null, channelUrl) {
+        value = withContext(Dispatchers.IO) { Creators.avatar(channelUrl) }?.let { Images.load(it) }
+    }
+    Box(
+        Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        bitmap?.let { Image(it.asImageBitmap(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
     }
 }

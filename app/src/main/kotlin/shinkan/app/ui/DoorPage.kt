@@ -48,6 +48,11 @@ fun DoorPage(door: Door, onClose: () -> Unit, onPause: () -> Unit = {}) {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(doorLabel(door)), style = MaterialTheme.typography.headlineMedium)
             Text(stringResource(R.string.door_locked), style = MaterialTheme.typography.bodyLarge)
+            // The device's lock screen is behind the home: Unlock brings it up for the device PIN.
+            Button(onClick = {
+                val activity = context.findActivity() ?: return@Button
+                activity.getSystemService(android.app.KeyguardManager::class.java).requestDismissKeyguard(activity, null)
+            }) { Text(stringResource(R.string.door_unlock)) }
             Button(onClick = onClose) { Text(stringResource(R.string.door_close)) }
         }
         return
@@ -61,4 +66,10 @@ fun DoorPage(door: Door, onClose: () -> Unit, onPause: () -> Unit = {}) {
         Text(stringResource(R.string.door_stub_player), style = MaterialTheme.typography.bodyLarge)
         Button(onClick = onClose) { Text(stringResource(R.string.door_close)) }
     }
+}
+
+private tailrec fun android.content.Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

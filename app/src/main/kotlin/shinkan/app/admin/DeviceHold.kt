@@ -95,7 +95,9 @@ class DeviceHold(private val context: Context) {
                 }
                 dpm.addPersistentPreferredActivity(admin, home, ComponentName(context, MainActivity::class.java))
                 dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
-                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+                // The keyguard stays, behind the home (which shows over it), so a parent can unlock with the
+                // device PIN from a door after a boot (SPEC §4.1); nothing else of the system in lock task.
+                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_KEYGUARD)
             }
             Mode.OPEN -> {
                 dpm.clearPackagePersistentPreferredActivities(admin, context.packageName)

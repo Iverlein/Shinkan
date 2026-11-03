@@ -46,6 +46,8 @@
     <string name="player_no_allowed">Ни один автор пока не разрешён. Родитель добавляет их в разделе для родителей или поделившись каналом с Shinkan.</string>
     <string name="player_no_recent">Здесь появятся авторы видео, которые вы смотрите.</string>
     <string name="player_error">Платформа не ответила. Попробуйте ещё раз.</string>
+    <string name="player_more">Показать ещё</string>
+    <string name="player_more_failed">Платформа не ответила. Нажмите, чтобы повторить.</string>
     <string name="player_blocked">Этот автор заблокирован на устройстве.</string>
     <string name="player_no_stream">У этого видео нет потока, который может воспроизвести плеер.</string>
     <string name="door_close">Закрыть</string>

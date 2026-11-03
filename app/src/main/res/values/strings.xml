@@ -45,6 +45,8 @@
     <string name="player_no_allowed">No creator is allowed yet. A parent adds them on the door or by sharing a channel to Shinkan.</string>
     <string name="player_no_recent">The creators of the videos you watch show here.</string>
     <string name="player_error">The platform did not answer. Try again.</string>
+    <string name="player_more">Show more</string>
+    <string name="player_more_failed">The platform did not answer. Tap to try again.</string>
     <string name="player_blocked">This creator is blocked on this device.</string>
     <string name="player_no_stream">This video has no stream the player can play.</string>
     <string name="door_close">Close</string>

@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
@@ -74,6 +77,7 @@ import shinkan.app.player.Creators
 import shinkan.app.player.Extractor
 import shinkan.app.player.Images
 import shinkan.app.player.Media
+import shinkan.app.player.Pages
 import shinkan.app.player.PlayerHistory
 import shinkan.core.net.History
 import shinkan.core.net.Quality
@@ -88,8 +92,26 @@ private enum class Tab(val label: Int, val icon: Int) {
     HISTORY(R.string.player_history, R.drawable.nav_history),
 }
 
+/**
+ * A list on screen and the rest of it, fetched a page at a time as the child
+ * nears its end ([Pages]); where it was scrolled to, kept while a video plays.
+ */
+private class Listing(val rest: Pages, first: List<StreamInfoItem>) {
+    val items = mutableStateListOf<StreamInfoItem>().apply { addAll(first) }
+    var fetching by mutableStateOf(false)
+    var failed by mutableStateOf(false)
+    /** A page came with nothing to show: the next waits for the child's tap. */
+    var stalled by mutableStateOf(false)
+    var ended by mutableStateOf(rest.ended)
+    var index = 0
+    var offset = 0
+}
+
 /** A channel as the player shows it: its name and its videos. */
-private class ChannelView(val name: String, val items: List<StreamInfoItem>)
+private class ChannelView(val name: String, val videos: Listing)
+
+/** How many rows before a list's end its next page is fetched. */
+private const val AHEAD = 5
 
 /**
  * The player door (SPEC §7): YouTube through NewPipe Extractor, with no account
@@ -108,7 +130,7 @@ fun PlayerPage(onClose: () -> Unit) {
     val focus = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
-    var results by remember { mutableStateOf<List<StreamInfoItem>>(emptyList()) }
+    var results by remember { mutableStateOf<Listing?>(null) }
     var stream by remember { mutableStateOf<StreamInfo?>(null) }
     var related by remember { mutableStateOf<List<StreamInfoItem>>(emptyList()) }
     var channel by remember { mutableStateOf<ChannelView?>(null) }
@@ -116,7 +138,7 @@ fun PlayerPage(onClose: () -> Unit) {
     var tab by remember { mutableStateOf(Tab.HOME) }
     var history by remember { mutableStateOf(History()) }
     var allowMode by remember { mutableStateOf(false) }
-    var feed by remember { mutableStateOf<List<StreamInfoItem>>(emptyList()) }
+    var feed by remember { mutableStateOf<Listing?>(null) }
     var allowed by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     val failed = stringResource(R.string.player_error)
@@ -197,22 +219,23 @@ fun PlayerPage(onClose: () -> Unit) {
         allowMode = allow
         allowed = list
         if (allow && list.isNotEmpty()) {
-            feed = runCatching {
+            // Each allowed creator's videos tab, merged newest first and fetched a page at a time.
+            runCatching {
                 withContext(Dispatchers.IO) {
                     Extractor.init()
-                    list.map { (_, url) ->
+                    val tabs = list.map { (_, url) ->
                         async {
                             runCatching {
                                 val info = ChannelInfo.getInfo(ServiceList.YouTube, url)
                                 Creators.keepAvatar(url, info.avatars)
-                                info.tabs.firstOrNull()?.let { ChannelTabInfo.getInfo(ServiceList.YouTube, it).relatedItems.filterIsInstance<StreamInfoItem>() }.orEmpty()
-                            }.getOrDefault(emptyList())
+                                info.tabs.firstOrNull()
+                            }.getOrNull()
                         }
-                    }.awaitAll().flatten()
-                        .sortedByDescending { it.uploadDate?.offsetDateTime() }
-                        .take(40)
+                    }.awaitAll().filterNotNull()
+                    val pages = Pages.Merged(tabs)
+                    pages to pages.next()
                 }
-            }.getOrDefault(emptyList())
+            }.onSuccess { (pages, first) -> feed = Listing(pages, first) }
         }
     }
     // A playing video's place is kept every few seconds, and as it leaves.
@@ -243,13 +266,17 @@ fun PlayerPage(onClose: () -> Unit) {
         if (query.isBlank()) return
         focus.clearFocus()
         load {
-            results = withContext(Dispatchers.IO) {
+            val (pages, first) = withContext(Dispatchers.IO) {
                 Extractor.init()
                 val hides = Creators.check(context)
+                val keep = { item: StreamInfoItem -> !hides(item.uploaderUrl) }
                 val extractor = ServiceList.YouTube.getSearchExtractor(query.trim())
                 extractor.fetchPage()
-                extractor.initialPage.items.filterIsInstance<StreamInfoItem>().filterNot { hides(it.uploaderUrl) }
+                val initial = extractor.initialPage
+                Pages.Of(initial.nextPage, keep) { extractor.getPage(it) } to
+                    initial.items.filterIsInstance<StreamInfoItem>().filter(keep)
             }
+            results = Listing(pages, first)
             stream = null
             channel = null
             player.stop()
@@ -304,18 +331,42 @@ fun PlayerPage(onClose: () -> Unit) {
             if (hides(url)) return@withContext null
             val info = ChannelInfo.getInfo(ServiceList.YouTube, url)
             if (hides(info.url)) return@withContext null
-            val videos = info.tabs.firstOrNull()?.let { tab ->
-                ChannelTabInfo.getInfo(ServiceList.YouTube, tab).relatedItems.filterIsInstance<StreamInfoItem>()
-            }.orEmpty()
-            ChannelView(info.name, videos.filterNot { hides(it.uploaderUrl) })
+            val keep = { item: StreamInfoItem -> !hides(item.uploaderUrl) }
+            val tab = info.tabs.firstOrNull()
+            val first = tab?.let { ChannelTabInfo.getInfo(ServiceList.YouTube, it) }
+            val pages = if (tab != null && first != null) Pages.Of.channel(tab, first, keep) else Pages.Of(null, keep) { error("no tab") }
+            Triple(info.name, pages, first?.relatedItems.orEmpty().filterIsInstance<StreamInfoItem>().filter(keep))
         }
         if (shown == null) {
             error = blocked
             return@load
         }
-        channel = shown
+        channel = ChannelView(shown.first, Listing(shown.second, shown.third))
         stream = null
         player.stop()
+    }
+
+    /** The next page of [list], once at a time; a failure or a page with nothing shown waits for the child's tap. */
+    fun more(list: Listing) {
+        if (list.fetching || list.ended) return
+        list.fetching = true
+        list.failed = false
+        list.stalled = false
+        scope.launch {
+            try {
+                val got = withContext(Dispatchers.IO) { list.rest.next() }
+                list.items.addAll(got)
+                list.stalled = got.isEmpty()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (io.github.iverlein.shinkan.BuildConfig.DEBUG) android.util.Log.w("Player", "more failed: $e", e)
+                list.failed = true
+            } finally {
+                list.ended = list.rest.ended
+                list.fetching = false
+            }
+        }
     }
 
     BackHandler {
@@ -327,7 +378,7 @@ fun PlayerPage(onClose: () -> Unit) {
             }
             channel != null -> channel = null
             // Search results give way to Home before the door closes.
-            results.isNotEmpty() -> results = emptyList()
+            results != null -> results = null
             else -> onClose()
         }
     }
@@ -362,7 +413,51 @@ fun PlayerPage(onClose: () -> Unit) {
         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp))
         error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
         val shownChannel = channel
-        LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
+        val shownResults = results
+        val shownFeed = feed
+        // The list on screen that has more pages, if any.
+        val paged = when {
+            playing != null -> null
+            shownChannel != null -> shownChannel.videos
+            shownResults != null -> shownResults
+            tab == Tab.HOME && allowMode -> shownFeed
+            else -> null
+        }
+        val listState = rememberLazyListState()
+        LaunchedEffect(paged, playing?.url) {
+            // Back from a video, a list is where it was left; anything else starts at the top.
+            listState.scrollToItem(paged?.index ?: 0, paged?.offset ?: 0)
+            val list = paged ?: return@LaunchedEffect
+            launch {
+                snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+                    .collect { (i, o) -> list.index = i; list.offset = o }
+            }
+            // The next page as the last rows come into view, again after each page while they still show.
+            snapshotFlow {
+                val info = listState.layoutInfo
+                val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+                last >= info.totalItemsCount - AHEAD && !list.fetching && !list.ended && !list.failed && !list.stalled
+            }.collect { near -> if (near) more(list) }
+        }
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState) {
+            /** The end of a paged list: a bar while a page comes, a retry when one failed, a button when one showed nothing. */
+            fun footer(list: Listing) {
+                if (list.fetching) {
+                    item { LinearProgressIndicator(Modifier.fillMaxWidth().padding(16.dp).height(2.dp)) }
+                } else if (list.failed) {
+                    item {
+                        TextButton(onClick = { more(list) }, modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                            Text(stringResource(R.string.player_more_failed), color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                } else if (list.stalled && !list.ended) {
+                    item {
+                        TextButton(onClick = { more(list) }, modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                            Text(stringResource(R.string.player_more))
+                        }
+                    }
+                }
+            }
             when {
                 playing != null -> {
                     item {
@@ -403,14 +498,21 @@ fun PlayerPage(onClose: () -> Unit) {
                 }
                 shownChannel != null -> {
                     item { Text(shownChannel.name, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp)) }
-                    items(shownChannel.items) { Item(it) { open(it.url) } }
+                    items(shownChannel.videos.items) { Item(it) { open(it.url) } }
+                    footer(shownChannel.videos)
                 }
-                results.isNotEmpty() -> items(results) { Item(it) { open(it.url) } }
+                shownResults != null -> {
+                    items(shownResults.items) { Item(it) { open(it.url) } }
+                    footer(shownResults)
+                }
                 // The player's three screens (SPEC §7.1), each of the mode set: Home, Creators, History.
                 tab == Tab.HOME -> {
                     if (allowMode) {
                         item { Heading(stringResource(R.string.player_newest)) }
-                        items(feed) { Item(it) { open(it.url) } }
+                        if (shownFeed != null) {
+                            items(shownFeed.items) { Item(it) { open(it.url) } }
+                            footer(shownFeed)
+                        }
                     } else {
                         item { Note(stringResource(R.string.player_start)) }
                     }
@@ -445,10 +547,10 @@ fun PlayerPage(onClose: () -> Unit) {
             NavigationBar {
                 Tab.entries.forEach { t ->
                     NavigationBarItem(
-                        selected = tab == t && results.isEmpty() && shownChannel == null,
+                        selected = tab == t && shownResults == null && shownChannel == null,
                         onClick = {
                             tab = t
-                            results = emptyList()
+                            results = null
                             channel = null
                         },
                         icon = { androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(t.icon), contentDescription = null, Modifier.size(26.dp)) },

@@ -630,6 +630,23 @@ and tapping *Allow in the player* adds it to the allowed; the door's switch
 back to the block mode keeps the allowed; *Clear the player's history*
 deletes the history.
 
+**Lists by the page** (asked by the owner on 2026-11-03: Home and a
+creator's channel stopped at about twenty videos, Home at forty). `core/`:
+`Feed`, the merge of several creators' pages newest first that stops where
+a creator's next page is needed, with `FeedTest`. `app/`: `player/Pages`
+(`Pages.Of` for a search or a channel's tab through the extractor's next
+page, at most three requests for one video shown; `Pages.Merged` for Home);
+`PlayerPage` fetches the next page five rows before the end, shows a bar
+while it comes, a retry when it fails and *Show more* when a page brought
+nothing, and keeps a list's place while a video plays. Checked on the
+emulator, 2026-11-03: in the allow mode with `@kurzgesagt` and
+`@veritasium`, Home ran past 100 videos in 14 swipes and Kurzgesagt's
+channel past 70 in 10; in the block mode the search "black holes" past 70
+in 12; in the allow mode the search "pasta recipe" stopped on *Show more*;
+a video opened from deep in Home and closed returned to the same rows.
+Channel videos carry dates only as "1 year ago", so Home's order within
+such a span follows the creators' order.
+
 ### 6c. The player: a shared video; the official app held [§7.3, §6.2, §6.3]
 
 **Builds.** `ShareActivity` for `Link.Item`: the extractor's `StreamInfo`

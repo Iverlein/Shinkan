@@ -485,7 +485,15 @@ the mode; in the allow mode, the newest videos of the allowed creators),
 videos watched, each by its avatar first, then its name; the avatar comes
 from the channel through the extractor and is kept in memory), *History* (every video played, newest first, with how
 much was watched; a video resumes where it stopped). The bar hides while a
-video plays. The history is a file in the app's storage (`History` in
+video plays. A search, a channel's videos and Home's newest videos are
+fetched a page at a time (the platform answers about twenty a request) as
+the child nears the end of the list, with no end but the platform's
+(2026-11-03). Home merges the allowed creators' pages newest first
+(`Feed` in `core/`), fetching a creator's next page before going past its
+last video in hand. A page that brings nothing to show (in the allow mode
+most of a search is left out) or fails waits for a tap on *Show more* or
+the retry, so a list never pages on by itself. Back from a video, a list
+is where it was left. The history is a file in the app's storage (`History` in
 `core/`, a hundred videos), never exported. On the door's block list page
 the parent chooses how long it is kept (`history` line: not at all, a day,
 a week, a month, or until cleared, the default), older entries dropped

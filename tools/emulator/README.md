@@ -123,6 +123,43 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   project's emulator may be running.
 - **`-wipe-data` deletes the snapshots** with the data.
 
+## The stand of the QR flow
+
+`stand.py` runs SPEC §3.2 on the AVD `shinkan-stand`, `emulator-5560`, separate
+from `shinkan-test` and wiped by every `reset`. Run them one at a time: the
+window layout has one place for an emulator.
+
+```bash
+python3 tools/emulator/stand.py create
+python3 tools/emulator/stand.py reset    # about a minute
+python3 tools/emulator/stand.py flow     # the debug APK; --apk and --package for another
+python3 tools/emulator/stand.py stop
+```
+
+`flow` serves the APK from the host, writes the code, reads it back with
+`zbarimg`, starts the system's provisioning, taps its three pages, finalizes and
+prints ten checks; it fails when one does. What it took to get there:
+
+- **No image has a wizard**, Play or not. The stand plays its two parts: the
+  hand-off and `PROVISION_FINALIZATION`. Without the second, provisioning stops
+  on the launcher with the owner set and the hold not applied.
+- **A finished setup is recorded twice.** `device_provisioned` and
+  `user_setup_complete` are settings; `setup-complete` in
+  `/data/system/device_policies.xml` (binary: `abx2xml`, `xml2abx`) is the
+  system's own and is never cleared, so the settings alone give "device is
+  already set up". Hence root, so the image is `google_apis`: the Play images
+  are user builds.
+- **Settings reach the disk late.** Stopping the framework right after
+  `settings put` brings the old values back, which writes the record again.
+  `reset` waits five seconds, and it waits for the first-boot setup to end
+  before clearing anything: that comes after `boot_completed`.
+- **`--ecn`, not `--es`, for the component.** A string is refused as "Invalid
+  parameter found!", which reads as a fault of the payload.
+- **The host is its LAN address**, not 10.0.2.2: the download runs under an
+  app's uid, and 10.0.2.2 answers root's shell alone.
+- **Never tap *Reset*** on "Can't set up device" in a script: `reset` is the way
+  back.
+
 ## The checks of SPEC §10
 
 A block's emulator check, in order. Each line is a thing to see, not a log

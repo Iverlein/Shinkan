@@ -353,8 +353,9 @@ hold it. Media3's `WAKE_LOCK` is removed from the merged manifest.
 The tunnel's address is 10.111.0.1, its resolver 10.111.0.2, and its route
 all of IPv4 (0.0.0.0/0, since block 11a). The service reads what enters: an
 IPv4/UDP datagram to port 53 (`Udp4`) is answered or forwarded and its reply
-written back with checksums set (`Checksum`, RFC 1071); a TCP segment
-(`Tcp4`) goes to the relay; other UDP and ICMP are dropped until block 11b.
+written back with checksums set (`Checksum`, RFC 1071), whatever address it
+was sent to, so a resolver named by address gets the filter's answer; a TCP
+segment (`Tcp4`) and any other datagram go to the relay; ICMP is dropped.
 
 The relay ends each connection in the service and carries it on over a
 protected socket: `TcpFlow` in `core/` is the connection as a state machine
@@ -365,9 +366,17 @@ connection the far side refuses reaches the app as refused; ten minutes of
 silence ends one. IPv6 has no route until block 12: lockdown refuses it, and
 an app falls back to IPv4.
 
-Block 11b relays UDP and drops QUIC to blocked hosts, 11c reads TLS server
-names and blocks hard-coded resolvers by address, 11d tells apps apart by
-connection (`ConnectivityManager.getConnectionOwnerUid`).
+Datagrams go on over a protected socket per sender and address, closed after
+a minute of silence. A datagram shows an address and no name, so the filter
+keeps the addresses of the answers it forwards, by the name asked for, the
+newest 4096 in memory (`SeenHosts`; nothing stored, §2.5), and drops port 443
+to a name the list blocks (`Blocklist.dropsDatagram`): that is QUIC, and the
+app falls back to TLS. The address of a name refused from the start is never
+learned, and needs no drop: the app has no address to use.
+
+Block 11c reads TLS server names and blocks hard-coded resolvers by address,
+11d tells apps apart by connection
+(`ConnectivityManager.getConnectionOwnerUid`).
 
 ### 5.3 Answers
 
@@ -384,8 +393,8 @@ back unchanged. Shinkan brings no resolver and no list of its own.
 | --- | --- |
 | DNS-over-TLS by the system | private DNS opportunistic and locked (§5.1) |
 | DNS-over-HTTPS by a browser | Shinkan's browser is a WebView and resolves through the system, so the filter answers it (§7.6); known DoH hosts are on the built-in block list (block 11c) |
-| a resolver by IP address | block 11c, by address |
-| QUIC (HTTP/3) | block 11b: UDP 443 to blocked hosts dropped, TLS falls back |
+| a resolver by IP address | on port 53 over UDP it gets the filter's own answer (§5.2); other ways, block 11c |
+| QUIC (HTTP/3) | UDP 443 to blocked hosts dropped, TLS falls back; an address the filter never saw answered goes through, until 11c reads the name TLS shows |
 | Encrypted Client Hello | no SNI to read; DNS already refused the name, and the HTTPS record that carries the ECH key is refused with it |
 | a VPN app | `no_config_vpn`, and only one VPN runs |
 | a browser's built-in proxy or "VPN" | it is a host too; its family is blocked by sharing one of its links |
@@ -837,9 +846,8 @@ uninstalled. Release asks for the PIN once more.
 - **Until block 11c**, an app that resolves names by itself over HTTPS or by
   address slips the DNS filter; Shinkan's own browser cannot, it resolves
   through the system (§7.6).
-- **Until block 11b, other apps on a held device have TCP alone**, and until
-  block 12 IPv4 alone: QUIC falls back to TLS, and what needs UDP (a call, a
-  game) does not work.
+- **Until block 12, other apps on a held device have IPv4 alone**, and no
+  ICMP at all.
 - **The browser's cosmetic filtering** is none: only request rules apply
   (§7.6).
 - **The volume ceiling of the open device** is one for the device and a

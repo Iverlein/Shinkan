@@ -69,7 +69,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 9 | QR provisioning | built 2026-11-04, the flow itself not run on any device: *Done when* still open |
 | 10 | Release 1.0 | done 2026-11-02: tags `v1.0`, then `v1.0.1` with the two fixes of the release check |
 | 11a | The tunnel: all routes through a userspace TCP relay | done 2026-11-04 |
-| 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | |
+| 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | done 2026-11-04 |
 | 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | |
 | 11d | The tunnel: the per-app pass for the player over TCP | |
 | 12 | IPv6 in the tunnel | |
@@ -957,6 +957,17 @@ over TLS, 1.7 MB through `tun0`. On the closed form the parent's site and an ad
 name were refused, `www.wikipedia.org` resolved, and the player played at
 1080p from outside the tunnel. toybox `nc` to example.org printed nothing, the
 same on a clean device with no relay.
+
+**11b as built.** `core/`: `SeenHosts` (the A records of an answer, read past
+CNAMEs and compression) and `dropsDatagram`. `Relay` holds the datagrams'
+sockets beside the connections. Checked on the emulator, 2026-11-04: echoes
+through a server on the host's LAN address came back; a query sent straight
+to 8.8.8.8:53 got the filter's NXDOMAIN (`85 83`) for a blocked name and an
+answer (`81 80`) for another. With www.wikipedia.org looked up and then
+blocked by the share page, UDP to its address on 443 was dropped and named in
+the beta's log, on 3478 not; to www.mozilla.org and to an address never
+looked up, on 443, not. Not checked: this block's speed, for want of a UDP
+file transfer, and a browser really speaking QUIC through the relay.
 
 ### 12. IPv6 in the tunnel [§5.2]
 

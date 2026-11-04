@@ -90,7 +90,7 @@ class FilterService : VpnService() {
         Log.i(TAG, "built-in list: ${builtin.ads.size} names of ads and trackers")
         val input = FileInputStream(fd.fileDescriptor)
         val output = FileOutputStream(fd.fileDescriptor).also { this.output = it }
-        val tcp = Relay(this, ::toTunnel).also { relay = it }
+        val tcp = Relay(this, { blocklist.get().blocksHost(it, builtin) }, { blocklist.get().refusesPort(it) }, ::toTunnel).also { relay = it }
         Thread(tcp, "shinkan-relay").start()
         val buffer = ByteArray(32767)
         while (!Thread.interrupted()) {

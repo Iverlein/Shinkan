@@ -3,6 +3,8 @@ package shinkan.app.filter
 import android.net.VpnService
 import android.os.SystemClock
 import android.util.Log
+import io.github.iverlein.shinkan.BuildConfig
+import shinkan.core.net.ClientHello
 import shinkan.core.net.Tcp4
 import shinkan.core.net.TcpFlow
 import shinkan.core.net.Udp4
@@ -23,12 +25,21 @@ import java.util.concurrent.ConcurrentLinkedQueue
  * silent. One thread and a selector; the tun device's reader hands packets in by
  * [accept]. The sockets carry the device's traffic and nothing of Shinkan's own (§2.1).
  */
-class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -> Unit) : Runnable {
+class Relay(
+    private val service: VpnService,
+    private val blocks: (String) -> Boolean,
+    private val refusesPort: (Int) -> Boolean,
+    private val toTunnel: (ByteArray) -> Unit,
+) : Runnable {
     private class Connection(val flow: TcpFlow, val channel: SocketChannel) {
         val pending = ArrayDeque<ByteBuffer>()
         var pendingBytes = 0
         var shutdownAfterWrites = false
         var serverEnded = false
+
+        /** A TLS connection's first bytes, held until the name in them is read (SPEC §5.4); null once it is. */
+        var hello: ByteArray? = null
+        var refused = false
     }
 
     private data class Key(val address: Int, val srcPort: Int, val dstPort: Int)
@@ -143,17 +154,16 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
         val key = keyOf(t)
         val connection = connections[key]
         if (connection == null) {
-            if (t.has(Tcp4.SYN) && !t.has(Tcp4.ACK)) open(key, t) else if (!t.has(Tcp4.RST)) refuse(t)
+            val opening = t.has(Tcp4.SYN) && !t.has(Tcp4.ACK)
+            if (opening && !refusesPort(t.dstPort)) open(key, t) else if (!t.has(Tcp4.RST)) refuse(t)
             return
         }
         val now = SystemClock.elapsedRealtime()
         apply(key, connection, connection.flow.segment(t, connection.pendingBytes < MAX_PENDING, now))
     }
 
-    /** A segment of no connection known: the device is told, and stops. */
-    private fun refuse(t: Tcp4) = toTunnel(
-        Tcp4.build(t.dst, t.src, t.dstPort, t.srcPort, t.ack, (t.seq + t.payload.size) and 0xffffffffL, Tcp4.RST or Tcp4.ACK, 0),
-    )
+    /** A segment of no connection known, or a port refused: the device is told, and stops. */
+    private fun refuse(t: Tcp4) = toTunnel(t.reset())
 
     private fun open(key: Key, syn: Tcp4) {
         val flow = TcpFlow(syn, random.nextInt().toLong() and 0xffffffffL, SystemClock.elapsedRealtime())
@@ -167,6 +177,7 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
             // Every socket of the service's is protected, or it loops into the tunnel (app rule).
             if (!service.protect(channel.socket())) throw IllegalStateException("not protected")
             val connection = Connection(flow, channel)
+            if (syn.dstPort == TLS_PORT) connection.hello = ByteArray(0)
             connections[key] = connection
             channel.register(selector, SelectionKey.OP_CONNECT, key)
             channel.connect(InetSocketAddress(InetAddress.getByAddress(syn.dst), syn.dstPort))
@@ -220,6 +231,30 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
         }
     }
 
+    /**
+     * [data] as it may go on now: all of it, once the hello's name is read and allowed;
+     * null while more is needed, or when the name is blocked, which sets [Connection.refused].
+     */
+    private fun held(connection: Connection, data: ByteArray, ending: Boolean): ByteArray? {
+        val before = connection.hello ?: return data
+        val all = before + data
+        when (val hello = ClientHello.read(all)) {
+            ClientHello.NeedMore -> if (!ending && all.size < ClientHello.MAX) {
+                connection.hello = all
+                return null
+            }
+            ClientHello.Nameless -> Unit
+            is ClientHello.Name -> if (blocks(hello.host)) {
+                if (BuildConfig.DEBUG) Log.d(TAG, "refused tls to ${hello.host}")
+                connection.refused = true
+                connection.hello = null
+                return null
+            }
+        }
+        connection.hello = null
+        return all
+    }
+
     private fun apply(id: Key, connection: Connection, step: TcpFlow.Step) {
         step.packets.forEach(toTunnel)
         if (step.close) {
@@ -228,7 +263,12 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
             return
         }
         try {
-            step.write?.let {
+            val data = step.write?.let { held(connection, it, step.shutdown) ?: return@let null }
+            if (connection.hello == null && connection.refused) {
+                apply(id, connection, connection.flow.failed())
+                return
+            }
+            data?.let {
                 connection.pending.addLast(ByteBuffer.wrap(it))
                 connection.pendingBytes += it.size
             }
@@ -253,6 +293,7 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
         const val READ_SIZE = 32 * 1024
         const val MAX_PENDING = 256 * 1024
         const val MAX_CONNECTIONS = 1024
+        const val TLS_PORT = 443
         const val MAX_EXCHANGES = 512
         const val UDP_IDLE_MS = 60_000L
 

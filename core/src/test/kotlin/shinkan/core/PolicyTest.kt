@@ -237,6 +237,33 @@ class PolicyTest {
         assertEquals(null, Policy(mode = Mode.OPEN).deviceCeiling)
     }
 
+    @Test fun `permission lines read back as they were written`() {
+        val text = "mode open\nclose com.b\npermission com.a deny camera\npermission com.a deny location\npermission com.b deny microphone\nvolume device 70\n"
+        val policy = PolicyText.parse(text)
+        assertEquals(mapOf("com.a" to setOf(Capability.CAMERA, Capability.LOCATION), "com.b" to setOf(Capability.MICROPHONE)), policy.denied)
+        assertEquals(text, PolicyText.render(policy))
+    }
+
+    @Test fun `a wrong permission line names its line`() {
+        for (line in listOf("permission com.a deny contacts", "permission com.a allow camera", "permission com.a deny", "permission")) {
+            val e = org.junit.jupiter.api.Assertions.assertThrows(PolicyText.Malformed::class.java) { PolicyText.parse("mode open\n$line") }
+            assertEquals(2, e.line)
+        }
+    }
+
+    @Test fun `a denial is added and taken off one at a time`() {
+        val one = Policy().denying("com.a", Capability.CAMERA, true)
+        val two = one.denying("com.a", Capability.LOCATION, true)
+        assertEquals(setOf(Capability.CAMERA, Capability.LOCATION), two.denied["com.a"])
+        assertEquals(one, two.denying("com.a", Capability.LOCATION, false))
+        assertEquals(emptyMap<String, Set<Capability>>(), one.denying("com.a", Capability.CAMERA, false).denied)
+    }
+
+    @Test fun `location stands for all its permissions`() {
+        assertEquals(3, Capability.LOCATION.permissions.size)
+        assertTrue("android.permission.ACCESS_BACKGROUND_LOCATION" in Capability.LOCATION.permissions)
+    }
+
     @Test fun `the closed device is always pinned`() {
         assertTrue(Policy().pinnedAt(LocalDateTime.of(2026, 11, 4, 15, 0)))
     }

@@ -26,6 +26,8 @@ data class Policy(
     val restrictions: Set<Restriction> = Restriction.DEFAULT,
     /** The browser door's start page (SPEC §7.6), http or https; null opens an empty page with the address bar. */
     val start: String? = null,
+    /** What a package is refused whatever it asks (SPEC §4.5), by package. */
+    val denied: Map<String, Set<Capability>> = emptyMap(),
 ) {
     init {
         val days = plans.flatMap { it.days }
@@ -192,6 +194,12 @@ data class Policy(
     fun pinnedAt(now: LocalDateTime, state: PlanState = PlanState()): Boolean =
         mode == Mode.CLOSED || resolve(now, state).resting
 
+    /** This policy with [capability] of [pkg] refused or not; a package left with nothing is dropped. */
+    fun denying(pkg: String, capability: Capability, deny: Boolean): Policy {
+        val now = denied[pkg].orEmpty().let { if (deny) it + capability else it - capability }
+        return copy(denied = if (now.isEmpty()) denied - pkg else denied + (pkg to now))
+    }
+
     /** The ceiling of the whole device in percent (SPEC §4.6): the open device's alone, a `volume device` line means nothing on the closed one. */
     val deviceCeiling: Int? get() = volumes[Door.DEVICE].takeIf { mode == Mode.OPEN }
 
@@ -231,6 +239,25 @@ data class Policy(
             is Rest.Minutes -> s.copy(spent = stage.seconds, restEnd = ranOut.plusMinutes(rest.minutes.toLong()))
             Rest.Parent -> s.copy(spent = stage.seconds, restParent = true)
         }
+}
+
+/** What the parent may refuse a usable app (SPEC §4.5), with the runtime permissions it stands for. */
+enum class Capability(val key: String, val permissions: List<String>) {
+    CAMERA("camera", listOf("android.permission.CAMERA")),
+    MICROPHONE("microphone", listOf("android.permission.RECORD_AUDIO")),
+    LOCATION(
+        "location",
+        listOf(
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.ACCESS_COARSE_LOCATION",
+            "android.permission.ACCESS_BACKGROUND_LOCATION",
+        ),
+    ),
+    ;
+
+    companion object {
+        fun byKey(key: String): Capability? = entries.firstOrNull { it.key == key }
+    }
 }
 
 /** A package closed now, and the next start of a window of its within a week, or null when it has none. */

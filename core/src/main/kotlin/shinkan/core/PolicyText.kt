@@ -17,6 +17,7 @@ import java.time.format.DateTimeFormatter
  *       browser 120
  *     close com.example.game
  *     window com.example.game sat,sun 10:00-12:00
+ *     permission com.example.game deny camera
  *     volume player 40
  *     start https://www.wikipedia.org
  *     restrict factory_reset
@@ -57,6 +58,7 @@ object PolicyText {
         val restrictions = linkedSetOf<Restriction>()
         var restrictionsGiven = false
         var start: String? = null
+        val denied = linkedMapOf<String, Set<Capability>>()
         // The plan being read: its line, its days and the stages so far.
         var planLine = 0
         var planDays: Set<DayOfWeek>? = null
@@ -106,6 +108,11 @@ object PolicyText {
                     windows += Window(parts[1], days(n, line, parts[2]), from, to)
                     closed += parts[1]
                 }
+                "permission" -> {
+                    if (parts.size != 4 || parts[2] != "deny") throw Malformed(n, line, "permission takes a package, deny and what")
+                    val capability = Capability.byKey(parts[3]) ?: throw Malformed(n, line, "permission is camera, microphone or location")
+                    denied[parts[1]] = denied[parts[1]].orEmpty() + capability
+                }
                 "volume" -> {
                     if (parts.size != 3) throw Malformed(n, line, "volume takes a door and a percentage")
                     val door = door(parts[1]) ?: throw Malformed(n, line, "unknown door '${parts[1]}'")
@@ -130,7 +137,7 @@ object PolicyText {
             }
         }
         closePlan()
-        return Policy(mode, plans, closed, windows, volumes, if (restrictionsGiven) restrictions else Restriction.DEFAULT, start)
+        return Policy(mode, plans, closed, windows, volumes, if (restrictionsGiven) restrictions else Restriction.DEFAULT, start, denied)
     }
 
     private fun stage(n: Int, line: String, parts: List<String>): Stage {
@@ -206,6 +213,9 @@ object PolicyText {
             policy.windows.filter { it.pkg == pkg }.forEach { w ->
                 appendLine("window ${w.pkg} ${days(w.days)} ${w.from.format(hhmm)}-${w.to.format(hhmm)}")
             }
+        }
+        policy.denied.keys.sorted().forEach { pkg ->
+            Capability.entries.filter { it in policy.denied.getValue(pkg) }.forEach { appendLine("permission $pkg deny ${it.key}") }
         }
         Door.entries.forEach { door -> policy.volumes[door]?.let { appendLine("volume ${door.name.lowercase()} $it") } }
         policy.start?.let { appendLine("start $it") }

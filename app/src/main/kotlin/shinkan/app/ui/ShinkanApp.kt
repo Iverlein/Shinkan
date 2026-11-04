@@ -74,7 +74,8 @@ private enum class Page { HOME, BROWSER, PLAYER, DOOR_PIN, DOOR, RELEASE_PIN }
  * touch and whenever Shinkan leaves the screen; release behind the PIN once
  * more (§9.3). [onSetUp] runs once the PIN is set and applies the hold;
  * [onRelease] hands the device back; [onApplied] follows the editor's
- * *Apply now* (the form may have changed); [onTheme] pins the theme.
+ * *Apply now* (the form may have changed); [onRest] follows the open device's
+ * rest starting or ending; [onTheme] pins the theme.
  */
 @Composable
 fun ShinkanApp(
@@ -83,6 +84,7 @@ fun ShinkanApp(
     theme: ThemePin,
     onTheme: (ThemePin) -> Unit,
     onApplied: () -> Unit,
+    onRest: () -> Unit,
     onSetUp: () -> Unit,
     onRelease: () -> Unit,
 ) {
@@ -100,6 +102,15 @@ fun ShinkanApp(
             else -> return@LaunchedEffect
         }
         if (door !in store.policy.doorsAt(LocalDateTime.now(), counted)) page = Page.HOME
+    }
+    // The open device's rest (SPEC §4.7): pinned while it runs; at its end the task steps back,
+    // and whatever was in front comes back, unless a parent is on the door.
+    val resting = store.policy.mode == Mode.OPEN && counted.resting
+    var rested by remember { mutableStateOf(false) }
+    LaunchedEffect(resting) {
+        onRest()
+        if (rested && !resting && page == Page.HOME) (context as? android.app.Activity)?.moveTaskToBack(true)
+        rested = resting
     }
     val behindPin = page == Page.DOOR || page == Page.DOOR_PIN || page == Page.RELEASE_PIN
 
@@ -166,6 +177,7 @@ fun ShinkanApp(
                 )
                 page == Page.BROWSER -> DoorPage(Door.BROWSER, onClose = { page = Page.HOME })
                 page == Page.PLAYER -> DoorPage(Door.PLAYER, onClose = { page = Page.HOME })
+                resting -> RestPage(store.policy, counted, onParent = { page = Page.DOOR_PIN })
                 else -> HomePage(
                     store, counted,
                     onDoor = { page = if (it == Door.BROWSER) Page.BROWSER else Page.PLAYER },

@@ -24,12 +24,14 @@ import shinkan.app.ui.ThemePin
 import shinkan.app.plan.PlanClock
 import shinkan.core.Mode
 import shinkan.core.Volume
+import java.time.LocalDateTime
 
 /**
  * The one activity: the child's home, the parent door, or the setup page before
  * the device is held (SPEC §8). On the closed device it is the default home and
  * holds itself in lock task (SPEC §4.1): a device owner whose package is in
- * `setLockTaskPackages` starts it from its own activity without a prompt.
+ * `setLockTaskPackages` starts it from its own activity without a prompt. On the
+ * open device it is an app, and holds the screen for a rest alone (§4.7).
  */
 class MainActivity : ComponentActivity() {
     private lateinit var store: PolicyStore
@@ -57,6 +59,7 @@ class MainActivity : ComponentActivity() {
                         pin = it
                     },
                     onApplied = { holdLockTask() },
+                    onRest = { holdLockTask() },
                     onSetUp = {
                         // The setup of SPEC §8.3 is complete: the hold is applied (§3.1).
                         hold.apply()
@@ -76,7 +79,7 @@ class MainActivity : ComponentActivity() {
         holdLockTask()
     }
 
-    /** Enters lock task on the held closed device once the PIN is set, and leaves it on the open one. */
+    /** Enters lock task on the held closed device once the PIN is set and on the open one for a rest, and leaves it otherwise. */
     private fun holdLockTask() {
         val held = hold.isOwner && store.pinHash != null
         val closed = store.policy.mode == Mode.CLOSED
@@ -89,8 +92,9 @@ class MainActivity : ComponentActivity() {
         // down is no network at all. Starting a running filter only reads its list again.
         shinkan.app.filter.FilterService.start(this)
         val dpm = getSystemService(DevicePolicyManager::class.java)
-        if (closed && !inLockTask() && dpm.isLockTaskPermitted(packageName)) startLockTask()
-        if (!closed && inLockTask()) stopLockTask()
+        val pinned = store.policy.pinnedAt(LocalDateTime.now(), store.planState)
+        if (pinned && !inLockTask() && dpm.isLockTaskPermitted(packageName)) startLockTask()
+        if (!pinned && inLockTask()) stopLockTask()
     }
 
     /**

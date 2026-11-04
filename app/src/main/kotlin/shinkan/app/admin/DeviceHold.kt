@@ -51,6 +51,11 @@ class DeviceHold(private val context: Context) {
         applyFilter()
         scheduleNext(policy, state, now)
         PlanClock.refresh(context)
+        PlanClock.watch(context)
+        // A rest takes the screen, and takes it back on every application: the screen coming on, a boot (SPEC §4.7).
+        if (policy.mode == Mode.OPEN && policy.pinnedAt(now, state)) {
+            context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
     }
 
     /**
@@ -86,7 +91,8 @@ class DeviceHold(private val context: Context) {
      * device owner itself, and the only package lock task may pin, with none of
      * the system's lock task features (no home, no recents, no notifications)
      * until block A1 tunes them. [shinkan.app.MainActivity] starts lock task.
-     * On the open device the device's launcher is the home and nothing is pinned.
+     * On the open device the device's launcher is the home, and Shinkan pins
+     * itself for a rest alone (§4.7).
      */
     private fun applyHome(policy: Policy) {
         val home = IntentFilter(Intent.ACTION_MAIN).apply {
@@ -107,7 +113,12 @@ class DeviceHold(private val context: Context) {
                 // Shinkan is a home too, by its manifest, so with the preference gone the Home key
                 // would ask which: the device's own launcher is named instead (SPEC §4.1).
                 deviceHome()?.let { dpm.addPersistentPreferredActivity(admin, home, it) }
-                dpm.setLockTaskPackages(admin, emptyArray())
+                // Permitted on this form all the time, which pins nothing by itself: a locked task that
+                // loses the permission is terminated by the system, which would throw a parent off the
+                // door at *Open now* (found 2026-11-04). MainActivity leaves lock task itself.
+                dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
+                // The keyguard stays: the rest page is under it, and the lock screen keeps its emergency call.
+                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_KEYGUARD)
             }
         }
     }

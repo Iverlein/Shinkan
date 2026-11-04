@@ -1,5 +1,6 @@
 package shinkan.app.plan
 
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -15,12 +16,14 @@ import kotlinx.coroutines.flow.StateFlow
 import shinkan.app.admin.DeviceHold
 import shinkan.app.admin.PolicyStore
 import shinkan.core.Door
+import shinkan.core.Mode
 import shinkan.core.PlanState
 import java.time.LocalDateTime
 
 /**
  * The counter of the day plan (SPEC §4.7). Use is time the screen is on and a
- * door in front, over the lock screen or not (the closed home shows over it): the door pages report when they are
+ * door in front, over the lock screen or not (the closed home shows over it); on
+ * the open device, time the screen is on and unlocked, as [Door.DEVICE]. The door pages report when they are
  * shown and hidden, [Screen] (registered by the filter's foreground service,
  * which always runs) reports the screen, and the count is the elapsed real
  * time between, in whole seconds, added to [PlanState] through
@@ -47,6 +50,9 @@ object PlanClock {
     /** The door page in front now, or null; the volume keys read it (SPEC §4.6). */
     val front: Door? get() = door
     private var since: Long? = null
+
+    /** What the seconds since [since] are use of. Kept, so a flush as the screen goes off still adds them. */
+    private var counting: Door? = null
     private var context: Context? = null
     private val handler = Handler(Looper.getMainLooper())
     private val tick = Runnable { context?.let { flush(it); resume(it) } }
@@ -110,7 +116,7 @@ object PlanClock {
         val before = policy.resolve(now, store.planState)
         var after = before
         val start = since
-        val front = door
+        val front = counting
         if (start != null && front != null) {
             val seconds = (SystemClock.elapsedRealtime() - start) / 1000
             if (seconds > 0) {
@@ -127,20 +133,30 @@ object PlanClock {
         }
     }
 
+    /** Counts from now as things stand: for the hold just applied, with no screen or door event to start it. */
+    fun watch(context: Context) = resume(context)
+
+    /** What is in use now: on the open device the unlocked screen, on the closed one the door in front. */
+    private fun inUse(app: Context, store: PolicyStore): Door? {
+        if (!app.getSystemService(PowerManager::class.java).isInteractive) return null
+        val policy = store.policy
+        if (policy.mode == Mode.CLOSED) return door // over the lock screen too (SPEC §4.1): the screen on is enough
+        // The rest page does not count (SPEC §4.7), nor would its last seconds go to the stage after it.
+        if (policy.resolve(LocalDateTime.now(), current.value).resting) return null
+        return Door.DEVICE.takeUnless { app.getSystemService(KeyguardManager::class.java).isKeyguardLocked }
+    }
+
     /** Starts or stops counting as the door, the screen and the lock now stand, and sets the next tick. */
     private fun resume(context: Context) {
         val app = context.applicationContext
         handler.removeCallbacks(tick)
-        val power = app.getSystemService(PowerManager::class.java)
-        // A door page resumed is in front, over the lock screen too (SPEC §4.1): the screen on is enough.
-        val counting = door != null && power.isInteractive
-        if (!counting) {
-            since = null
-            return
-        }
+        val store = PolicyStore(app)
+        val use = inUse(app, store)
+        if (use != counting) since = null
+        counting = use
+        if (use == null) return
         if (since == null) since = SystemClock.elapsedRealtime()
         // Flush at least every fifteen seconds, and just after the budget runs out.
-        val store = PolicyStore(app)
         val left = store.policy.budgetLeft(LocalDateTime.now(), current.value)
         val delay = minOf(TICK_MS, left?.let { it * 1000 + 200 } ?: TICK_MS)
         handler.postDelayed(tick, delay.coerceAtLeast(200))

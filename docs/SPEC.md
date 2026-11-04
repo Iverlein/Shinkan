@@ -153,13 +153,14 @@ parent door; changing it applies the policy at once.
 At every application of the policy (`DeviceHold.apply`), each launchable
 package is either usable now, and resumed, or not, and **suspended**
 (`setPackagesSuspended`): on the closed device every package but Shinkan;
-on the open device the closed ones outside their windows, and the other
-homes are resumed. Installs and
+on the open device the closed ones outside their windows, and every app but
+the homes while the budget is used up with no rest (§4.7); the other homes are
+resumed. Installs and
 uninstalls are blocked by restriction (§4.3), so the set of packages changes
 only through the parent.
 
 What is open when is the day plan of §4.7: a door of the closed device is
-open in the stages that name it; a closed app of the open device with
+open in the spans that name it; a closed app of the open device with
 windows is usable inside them and suspended outside (`Policy.openAt` for
 the doors, `Policy.closedPackagesAt` for the closed apps). The policy is
 applied again at boot, when the clock or the zone changes, when the screen
@@ -219,12 +220,10 @@ volume device 70
 ```
 
 `mode` is `closed` or `open` (§4.1); `plan` opens a day plan for the
-weekdays named and the indented lines are its stages, in order (§4.7): a span
+weekdays named and the indented lines are its spans, in order (§4.7): a span
 is `HH:MM-HH:MM` and the doors open in it, a door free unless minutes follow
 it, then `rest` with minutes or `parent`, and doors joined by a comma
-(`browser,player 45`) share their minutes; a line with no hours (the doors,
-the minutes, the rest) is a budget standing as a stage, as 1.0 wrote it, which
-still reads and runs; `browser` and
+(`browser,player 45`) share their minutes; `browser` and
 `player` name Shinkan's two doors and `device` the whole screen of the open
 device; `close` names a package of the open device and `window` gives it one
 span on given weekdays, which may cross midnight and then belongs to the day
@@ -237,6 +236,17 @@ the enum's name. When no `restrict` line is written the default set applies;
 refused with its number (`PolicyText.Malformed`), and the text is written
 back in this order: `mode`, the plans, each `close` with its windows,
 `permission`, `volume`, `start`, `restrict`.
+
+1.0 also wrote a budget with no hours as a line of its own (`player 30 rest
+90`), a stage that ran after the one before it. A stored policy is read with no
+fallback, so such a line is not refused but turned into a span as it is read,
+and the policy is stored in the new form the next time a parent applies it. The
+lines between two spans become one span from the end of the first to the start
+of the next, or to the day's end. The conversion is never looser than what it
+replaces: a door stays in its first budget only, a rest in minutes goes, since
+it came once and would now fill the budget, and what had no time to run (no
+gap between the spans, or a span across midnight before it, which ended the
+plan day) is dropped.
 
 ### 4.5 Permissions of the usable apps
 
@@ -299,14 +309,16 @@ rest is spent once: its doors stay closed to the span's end. The span's end
 ends everything in it, a rest included, and the next span starts with its own
 budgets whole; minutes never pass from one span to another. Outside every span
 nothing is open until the next one starts. A plan belongs to the day its first
-stage starts, and a span may cross midnight.
+span starts, and a span may cross midnight.
 
-A budget may also stand as a stage of its own, between spans, as 1.0 wrote it
-(`player 30 rest 90`): stages run in order, such a budget starts when the stage
-before it ends and lasts until its minutes are spent, its rest gives way to the
-next stage, and it does not fill again. Such a line still reads and runs as it
-did, and the door's editor shows it and edits it, but offers only spans:
-refusing it would leave a held device unable to read its own policy.
+A door whose budget is used up with no rest is greyed and says so, *Budget used
+up*, and when it next opens (§8.1). On the open device the budget is the whole
+screen's, so every app is suspended to the span's end: the launcher greys them,
+and a tap brings the system's dialog with the words Shinkan set through
+`setShortSupportMessage`, under the system's own title. The homes stay, and the
+phone app and Settings, which cannot be suspended (§9.4); the screen is not
+pinned, as it is in a rest. Shinkan's own two doors are greyed the same way
+(`Policy.depletedAt`).
 
 Use is time the screen is on and that door in front, over the lock screen
 or not:
@@ -320,7 +332,7 @@ minutes left (§8.1); on the open device the rest page (§8.7) takes the
 screen, Shinkan brings it to the front and pins it with lock
 task (`startLockTask`, allowed to a device owner's own activity without a
 prompt), so the child cannot leave it for another app. On the open device
-the subject of a stage is `device`, the whole screen, since no policy tells
+the subject of a span is `device`, the whole screen, since no policy tells
 Shinkan which app is in front (§9.4); the closed apps keep their own
 `window` lines beside the plan. Use there is time the screen is on and
 unlocked. Shinkan stays in `setLockTaskPackages` on this form, which pins
@@ -331,7 +343,7 @@ Shinkan steps back and what was in front returns. The rest page stays under
 the keyguard, not over it as the closed home does: the lock screen keeps its
 emergency call.
 
-Nothing is logged (§2.5): what is kept is the current stage, the seconds
+Nothing is logged (§2.5): what is kept is the current span, the seconds
 spent of each of its budgets and their rests' ends, in device-protected
 storage so a reboot neither resets nor extends them; the clock is protected by
 `no_config_date_time`. `Policy.openAt` gives what is open now and
@@ -344,12 +356,11 @@ a greyed door says.
 The edges of a plan day, as `Policy` decides them: a plan day starts at
 midnight, or when the day before's span across midnight ends, and ends at
 the next midnight, or at the end of its own span across it; a new day
-starts at its first stage whatever the day before left (a rest included).
-A span ahead of the running stage takes over at its start, skipping the
-stages between. A day with no plan opens nothing; a policy with no plan at
+starts at its first span whatever the day before left (a rest included).
+A later span takes over at its start from the one still running. A day with no plan opens nothing; a policy with no plan at
 all sets no time and leaves every door open, as a freshly held device is.
-Blocks 3c and 3e for the closed device, 7b for the open, 13 for budgets inside
-a span.
+Blocks 3c and 3e for the closed device, 7b for the open, 13 for spans with
+their budgets.
 
 ## 5. The filter
 
@@ -722,13 +733,15 @@ with a budget shows what is left of it. During a rest the doors of the
 spent budget are greyed, the span's other doors staying open, and carry, in place of their mark, a small ensō
 in vermilion in its current state, closing as the rest passes, with the
 minutes left under the name; for a rest a parent ends the ring is whole
-and the door says so. Each door carries its drawn mark
+and the door says so. A door whose budget is used up with no rest is greyed
+and says *Budget used up* and when it next opens. Each door carries its drawn mark
 above its name, a globe for the browser and a screen with the play sign
 for the player (`res/drawable/door_*.xml`), in the button's own colour, so
 a greyed door greys its mark. Back does nothing on the home; a
 door returns to it on Back or *Close*.
 On the open device Shinkan is opened like any app, and Back leaves it: the
-same two doors, usable but in a rest (`Policy.doorsAt`), and under them the
+same two doors, usable but in a rest or with the budget used up
+(`Policy.doorsAt`), and under them the
 closed apps by name, each with when it opens next (`Policy.closedApps`). A
 small *Parent* link leads to §8.2.
 
@@ -738,7 +751,7 @@ PIN entry, then: the hold's status; the form (§4.1); the policy as a list
 (the doors' windows and ceilings on the closed device, the closed apps with
 their windows and the device ceiling on the open device, restrictions); the
 block list (sites, creators, the built-in categories of §6.5, the segment
-categories of §7.5); the day plan with its current stage, what is left of
+categories of §7.5); the day plan with its current span, what is left of
 it and *Open now* during a rest (§4.7); the icon (§8.5); the theme (§8.6);
 *Apply now*; *Release this device*.
 
@@ -755,8 +768,8 @@ hold is open, `factory_reset`, `safe_boot`, `add_user` or
 `debugging_features` lifted, one while a way around the filter is open,
 `config_vpn` or `config_private_dns` lifted); the theme; and the policy as
 its text, editable, read back by the parser, a malformed line named by its
-number. A stage is drawn, not spelled: a span as its hours and the marks of
-the doors open in it, a budget as its doors' marks, an hourglass and its
+number. A span is drawn, not spelled: its hours and the marks of the doors
+open in it, a budget as its doors' marks, an hourglass and its
 minutes, then an ensō with the rest's minutes, or an ensō and a key for a
 rest a parent ends; the door's *Now* line draws it the same way, a span's
 budgets under its hours, each with what is left of it or when its rest ends.
@@ -764,7 +777,7 @@ budgets under its hours, each with what is left of it or when its rest ends.
 The sections edit a draft. *Apply now* checks it by its own text (it must
 render and parse back, `PolicyText.problem`, so the editor and a pasted
 text meet one parser), stores it and applies the hold; a changed day plan
-starts the day afresh, since the stored plan state names a stage of the
+starts the day afresh, since the stored plan state names a span of the
 old one. Leaving the door with a draft not applied asks whether to apply
 it, drop it or keep editing; the door closing by itself drops it. Closes to the home by itself after two
 minutes without a touch, and as soon as Shinkan leaves the screen, so a
@@ -899,9 +912,10 @@ uninstalled. Release asks for the PIN once more.
   ceilings exist only for the two doors of the closed device (§4.6).
 - **Segments** are community data: one nobody marked is played.
 - **A budget counts screen-on time**, not attention: a page left open
-  counts, and on the open device a stage cannot tell one app from another
-  (`device` only, the same limit as the ceiling). There a budget with no rest
-  holds nothing once spent, since only a rest pins the screen. A rest in minutes runs on
+  counts, and on the open device a span cannot tell one app from another
+  (`device` only, the same limit as the ceiling). A budget used up there greys
+  the apps under the system's own title, *Blocked by work policy*, which
+  Shinkan cannot change. A rest in minutes runs on
   the wall clock, which is protected; a rest the parent ends waits for the
   parent.
 - **The phone app and Settings cannot be suspended**: `setPackagesSuspended`

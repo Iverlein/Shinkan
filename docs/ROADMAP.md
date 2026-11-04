@@ -73,7 +73,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | done 2026-11-04 |
 | 11d | The tunnel: the per-app pass for the player over TCP | nothing to build while Shinkan is outside its tunnel (see 11a–11d) |
 | 12 | IPv6 in the tunnel | done 2026-11-04 |
-| 13 | Budgets inside a span | done 2026-11-04 |
+| 13 | A plan of spans, with budgets inside them | done 2026-11-04 |
 | A1 | Lock task features tuned on real devices: notifications, power dialog, keyguard [§4.1] | |
 | A2 | The icon drawn: the crest by default; the gate, the drawn gate and the seal 関 chosen on the parent door [§8.5] | done 2026-11-01 |
 | A3 | Translations: Russian, written here by `docs/russian.md` | done 2026-11-04: the whole interface, the parser's errors, the listing and the README, checked by `tools/check_strings.py` and on the emulator. No Weblate (owner, 2026-11-04) |
@@ -1039,7 +1039,7 @@ told apart. It did not come again in some forty transfers, the same conditions
 repeated, so its cause is not known. Should it be seen again, count the bytes
 and keep the file.
 
-### 13. Budgets inside a span [§4.4, §4.7, §8.1, §8.2]
+### 13. A plan of spans, with budgets inside them [§4.2, §4.4, §4.7, §8.1, §8.2]
 
 **Builds.** The owner, 2026-11-04: a span and a budget standing side by side
 is not the final design; each span of a day carries its own budget settings,
@@ -1052,10 +1052,18 @@ shared minutes. `PlanState.uses` keeps each budget's seconds and rest by index,
 written `b1=3600,2026-11-02T12:00`. A rest closes its own doors alone, fills
 its budget when it ends, and the span's end clears all of it.
 `Policy.budgets` is how each stands, and the home, the rest page and the door
-read that alone. The editor adds budgets under a span and no longer adds them
-as stages. A budget standing as a stage stays in the engine, as it ran:
-`PolicyStore.policy` parses with no fallback, so a stored line refused would
-stop a held device reading its policy.
+read that alone. The editor adds budgets under a span.
+
+The owner again the same day: the budget standing as a stage goes, and a budget
+used up with no rest greys the app's button with a comment. `Stage` is gone:
+`Plan(days, spans)`, and `resolve` finds the span by the clock, so `PlanState`
+is the day, the span and the uses. `PolicyStore.policy` parses with no
+fallback, so a stored line with no hours is turned into a span as it is read
+(SPEC §4.4), never looser than 1.0; a state stored by 1.0 keeps its day and
+span and loses its count and its rest, once. `BudgetNow.depleted` greys a door
+with *Budget used up* and when it opens; on the open device
+`Policy.depletedAt` suspends every app but the homes, and
+`setShortSupportMessage` carries the words to the system's dialog.
 
 **Checked** on `shinkan-test`, 2026-11-04. `browser player 1 rest 1`: one
 minute of the player brought the rest, the home greyed YouTube with the ensō
@@ -1063,9 +1071,15 @@ and left Browser open, and 60 s later the door read *1 min left* again. Budgets
 added in the editor, a door taken out of a span dropping its budget, *Apply
 now* storing `00:10-15:30 browser 30 rest 30`. On the open device `device 1
 rest 1`: lock task `LOCKED` on the rest page, `NONE` after it, the next round
-counting. A policy in the form of 1.0 ran stage after stage as before and
-opened in the editor. No span edge was watched passing on the emulator; that
-case is in `PlanTest`.
+counting. A policy in the form of 1.0, with a state of 1.0, read and opened in
+the editor as a span, `09:00–00:00` with both budgets.
+
+`device 1` with no rest, on the open device: Chrome, Maps and the camera
+`suspended=true`, the launcher naming them *Disabled* and greying them, a tap
+on Chrome bringing *Blocked by work policy* over *The time budget of this span
+is used up.*, the phone and Settings left, lock task `NONE`, and at the span's
+end, 16:19, every app resumed with no tap. On the closed device `browser player
+1` greyed YouTube alone, *Budget used up*, *Opens Thu 12:10 AM*.
 
 ## Open
 
@@ -1073,17 +1087,15 @@ case is in `PlanTest`.
   plan's last stage, or on a day with no plan? §4.7 says nothing is open,
   and on the closed device that greys the doors. Block 7b pins the rest page
   during a rest alone, as its section says, since a page pinned all day also
-  shuts out the phone app. The same question now has a second case, a spent
-  `device` budget with no rest, which holds nothing to its span's end. The
-  owner's call.
-- 2026-11-04: a budget standing as a stage (block 13) is kept for what 1.0
-  wrote. To drop it, a stored line must first be turned into a span, and that
-  cannot keep its sequence: the owner's call whether that is worth doing.
+  shuts out the phone app. The owner's call. A budget used up with no rest is
+  settled (Decided); the hours no span opens are not.
 
 ## Decided
 
-- 2026-11-04: budgets live inside spans, each span with its own, and a rest
-  fills its budget again until the span ends (SPEC §4.7, block 13).
+- 2026-11-04: a plan is spans, each with its own budgets; a rest fills its
+  budget again until the span ends; no budget stands as a stage, what 1.0 wrote
+  turned into a span as it is read; a budget used up with no rest greys the
+  door with a comment, on the open device every app (SPEC §4.4, §4.7, block 13).
 - 2026-11-04: the lockdown question of 2026-11-01 (the DNS-only tunnel left
   every other app no network) is gone with 11a: lockdown stayed on, and the
   open device's apps reach the network through the relay.

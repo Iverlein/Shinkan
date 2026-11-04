@@ -62,7 +62,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 6e | The player: block and allow modes, Home, Creators and History at the bottom, positions kept | done 2026-11-02 |
 | 6c | The player: a shared video resolved to its creator; the official app held | done 2026-11-04 |
 | 6d | The player: SponsorBlock segments | done 2026-11-04 |
-| 7a | The open device: the launcher kept, the named apps closed | |
+| 7a | The open device: the launcher kept, the named apps closed | done 2026-11-04 |
 | 7b | The open device: `device` stages and the pinned rest page | |
 | 7c | The open device: the device ceiling by clamp | |
 | 8 | Permissions of the usable apps | |
@@ -742,6 +742,30 @@ door's closed-apps page (3e) in use.
 a closed app's icon opens the suspension dialog; a window opens it at its
 time; the browser and the player open from the launcher.
 
+**As built.** `core/`: `Policy.doorsAt` (on the open form both doors but in
+a rest, since the plan there speaks of `device` alone) and
+`Policy.closedApps`. `DeviceHold`: the other homes stay in the list of
+packages on both forms, so the open form resumes the launcher the closed
+form suspended, which it did not do before; the device's launcher is named
+as the persistent home, the highest-priority home that is not Shinkan's,
+and cleared again by the closed form and by release. `HomePage` serves both
+forms. The doors open from Shinkan's own icon, not from icons of their own:
+that needs no alias beside the four of §8.5, whose switching has its trap.
+
+Lockdown stays as it was: other apps on the open device still reach nothing
+but DNS, until 11a or the owner's word (*Open* below). The system's dialog
+for a suspended app reads "Blocked by work policy … contact your IT admin".
+
+Checked on the emulator, 2026-11-04, going from the held closed form to the
+open one by *Apply now*: `resolve-activity` for HOME names the launcher, the
+launcher no longer suspended, lock task `NONE`, the Home key lands on it with
+no chooser; Chrome (closed) greyed, its icon opening the system's dialog,
+Maps untouched; Calendar with a window from 08:55 listed as "Opens at 8:55
+AM", resumed at 08:55:06 with nothing touched and gone from the list, Chrome
+still suspended; Back leaves Shinkan for the launcher; both doors open. Back
+to the closed form by *Apply now*: Shinkan the home again, lock task
+`LOCKED`, the launcher suspended, the Home key staying on Shinkan.
+
 ### 7b. The open device: `device` stages and the pinned rest [§4.7, §8.7]
 
 **Builds.** `PlanClock` counts screen-on, unlocked time for `device`
@@ -850,6 +874,13 @@ the emulator).
   the closed device of 1.0 is not held back (SPEC §5.5); the question
   remains for the open device of block 7: `setAlwaysOnVpnPackage(…,
   lockdown = false)` until block 11a, or 11a before 7a. The owner's call.
+  7a was built with lockdown left on, the stricter of the two, so the
+  question stands.
+- 2026-11-04: on the open device, what of the hours no stage opens: after a
+  plan's last stage, or on a day with no plan? §4.7 says nothing is open,
+  and on the closed device that greys the doors. Block 7b pins the rest page
+  during a rest alone, as its section says, since a page pinned all day also
+  shuts out the phone app. The owner's call.
 
 ## Decided
 

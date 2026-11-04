@@ -121,7 +121,10 @@ would start the launcher and keep its task (both found on the emulator,
 2026-11-02).
 
 **The open device** (blocks 7a to 7c, the second form). The device keeps
-its own launcher (`clearPackagePersistentPreferredActivities`) and Shinkan
+its own launcher (`clearPackagePersistentPreferredActivities` of Shinkan's
+preference, then `addPersistentPreferredActivity` naming the device's own
+home, since Shinkan is a home too by its manifest and the Home key would
+otherwise ask which) and Shinkan
 is one app among the others; lock task is off except for the rest page
 (§4.7). The
 packages the parent names are **closed**: suspended always, or outside
@@ -137,7 +140,8 @@ parent door; changing it applies the policy at once.
 At every application of the policy (`DeviceHold.apply`), each launchable
 package is either usable now, and resumed, or not, and **suspended**
 (`setPackagesSuspended`): on the closed device every package but Shinkan;
-on the open device the closed ones outside their windows. Installs and
+on the open device the closed ones outside their windows, and the other
+homes are resumed. Installs and
 uninstalls are blocked by restriction (§4.3), so the set of packages changes
 only through the parent.
 
@@ -641,8 +645,10 @@ above its name, a globe for the browser and a screen with the play sign
 for the player (`res/drawable/door_*.xml`), in the button's own colour, so
 a greyed door greys its mark. Back does nothing on the home; a
 door returns to it on Back or *Close*.
-On the open device Shinkan is opened like any app and shows the closed apps
-with their next window. A small *Parent* link leads to §8.2.
+On the open device Shinkan is opened like any app, and Back leaves it: the
+same two doors, usable but in a rest (`Policy.doorsAt`), and under them the
+closed apps by name, each with when it opens next (`Policy.closedApps`). A
+small *Parent* link leads to §8.2.
 
 ### 8.2 Parent door
 

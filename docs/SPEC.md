@@ -399,9 +399,14 @@ running.
 
 A creator is a platform and the platform's stable reference (a channel id or
 handle). It blocks nothing in the filter: the official app and site of the
-platform are blocked as a family when the first creator is added (the parent
-is told), and the player (§7) hides the creator's channel, videos, search
-results, comments and recommendations.
+platform are blocked as a family when the first creator is added to either
+of the player's lists, by a shared link or the door's text (the parent is
+told on the share page before the tap, and on the door's block list page),
+and the player (§7) hides the creator's channel, videos, search results,
+comments and recommendations. The family is ordinary `site` lines: a parent
+who takes `site youtube.com` off lifts the block and the official app's
+suspension together, and a later creator does not bring it back
+(`Blocklist.holdingFamily`, `holdsPackage`).
 
 As built (block 6b): an uploader's address is read as the reference a shared
 link gives (`Link.creatorRef`: `UC…`, `@handle`, `c/name`, `user/name`) and
@@ -467,9 +472,10 @@ The YouTube app pins its certificates and the web shows the tunnel only
 `youtube.com`: no filter sees a channel. The one way to block a creator is a
 front end that knows one. Shinkan's player is that front end: YouTube
 without the official app or site, with the parent's block list applied to
-every list the platform returns. The official app is suspended and the
-family's hosts are blocked for every other app (§5.5); the player's own
-connections pass.
+every list the platform returns. While `youtube.com` is on the list the
+official apps (`com.google.android.youtube`, `com.google.android.apps.youtube.*`)
+are suspended and the family's hosts are blocked for every other app (§5.5);
+the player's own connections pass.
 
 ### 7.1.1 Modes and screens
 
@@ -539,9 +545,11 @@ merged manifest; the libraries add no component.
 ### 7.3 A creator from a video
 
 A shared video (§6.2) is resolved by the extractor to its channel, shown to
-the parent by name, and blocked as a creator. The lookup is the one network
-request Shinkan makes on the parent's behalf; it goes to the platform, not
-to Shinkan.
+the parent by name, and blocked as a creator, or allowed (§7.1.1). The lookup
+is the one network request Shinkan makes on the parent's behalf; it goes to
+the platform, not to Shinkan, and only after the PIN. A video that cannot be
+read (private, removed, no network) says so and offers another try; nothing
+is added.
 
 ### 7.4 What it covers
 

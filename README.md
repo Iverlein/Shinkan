@@ -21,7 +21,7 @@ Shinkan is made the **device owner** once, on a freshly set-up device, by one
   parent's choice. Share any link from any app to *Block in Shinkan*: the
   site is blocked device-wide with every subdomain and the platform's other
   hosts, so the app goes dark too;
-- **a creator can be blocked**: share a YouTube channel's page and Shinkan's
+- **a creator can be blocked**: share a YouTube channel's page or a video and Shinkan's
   built-in player (on NewPipe Extractor) hides them everywhere, while the
   official app and site are held; the player skips sponsor segments with
   SponsorBlock;

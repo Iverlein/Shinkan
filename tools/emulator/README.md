@@ -67,6 +67,10 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   device the home comes back the moment its process ends. To make the app
   read a store written behind its back, `store` writes the file first and
   then kills the process from its own uid (`run-as … kill`).
+- **`store` does not apply the hold.** It restarts the app, which reads the
+  new policy, but the suspensions and the home stay as they were until
+  *Apply now* on the door. `ReapplyReceiver` is not exported, so `am
+  broadcast` to it reaches nothing and still says `result=0`.
 - **Setting the PIN applies the hold**: lock task, the restrictions, the
   suspensions and the filter with lockdown. The beta skips
   `no_debugging_features`, so adb stays; under lockdown nothing but DNS

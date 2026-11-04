@@ -60,7 +60,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 6a | The player: playback and search on NewPipe Extractor (Shinkan is outside its own tunnel since block 5) | done 2026-11-02 |
 | 6b | The player: the creator block list applied to every list | done 2026-11-02 |
 | 6e | The player: block and allow modes, Home, Creators and History at the bottom, positions kept | done 2026-11-02 |
-| 6c | The player: a shared video resolved to its creator; the official app held | |
+| 6c | The player: a shared video resolved to its creator; the official app held | done 2026-11-04 |
 | 6d | The player: SponsorBlock segments | |
 | 7a | The open device: the launcher kept, the named apps closed | |
 | 7b | The open device: `device` stages and the pinned rest page | |
@@ -659,6 +659,32 @@ suspends the official app's packages (`com.google.android.youtube`,
 **Done when.** On the emulator: sharing a video URL to *Block in Shinkan*
 names the channel and blocks it; the family appears on the list and
 `www.youtube.com` stops resolving for `ping` while the player plays.
+
+**As built.** `core/`: `Blocklist.holdingFamily` (the first YouTube creator
+on either list brings the family, whichever way it came; a later one leaves
+a family the parent took off) and `holdsPackage` (`site youtube.com` is the
+one switch for the official apps, so the parent lifts both by one line).
+`app/`: `Creators.ofVideo` reads the uploader through the stream extractor
+alone, after the PIN; `BlocklistStore.change` is the one path for an edit
+(family, filter reload, `DeviceHold.applyBlocklist`); the share page also
+offers *Allow in the player* for a video; the door's block list page says
+what is held. A list from before this block, with creators and no family,
+stays as it is until the parent adds the family.
+
+Checked on the emulator, 2026-11-04: `youtu.be/dQw4w9WgXcQ?si=abc` shared
+after the PIN named *Rick Astley* with the first-creator notice; *Block*
+stored his channel id and the six family sites. `m.youtube.com`,
+`music.youtube.com`, `youtu.be`, `i.ytimg.com` and `rr3.googlevideo.com`
+were refused at once and `www.youtube.com` once its cached answer ran out
+(asked just before the block, it kept resolving for a while, as in block
+4), `www.wikipedia.org` resolved. The search "rick astley never gonna"
+listed other uploaders only, and one played with sound, its frames moving.
+A video that does not exist said so and offered *Try again*. On the open
+form, with *Apply now* on the door: nothing suspended on an empty list; a
+creator typed into the door's text brought the family, the notice and both
+YouTube packages suspended, Chrome not; `site youtube.com` taken off
+resumed both and the family stayed off. `emulator.py store` does not apply
+the hold: use the door's *Apply now*.
 
 ### 6d. The player: SponsorBlock segments [§7.5, §2.1]
 

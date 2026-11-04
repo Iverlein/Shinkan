@@ -350,12 +350,12 @@ hold it. Media3's `WAKE_LOCK` is removed from the merged manifest.
 
 ### 5.2 The tunnel
 
-The tunnel's address is 10.111.0.1, its resolver 10.111.0.2, and its route
-all of IPv4 (0.0.0.0/0, since block 11a). The service reads what enters: an
-IPv4/UDP datagram to port 53 (`Udp4`) is answered or forwarded and its reply
+The tunnel's addresses are 10.111.0.1 and fd11:1::1, its resolver 10.111.0.2,
+and its routes everything (0.0.0.0/0 since block 11a, ::/0 since block 12). The service reads what enters: a
+datagram to port 53 (`UdpDatagram`) is answered or forwarded and its reply
 written back with checksums set (`Checksum`, RFC 1071), whatever address it
 was sent to, so a resolver named by address gets the filter's answer; a TCP
-segment (`Tcp4`) and any other datagram go to the relay; ICMP is dropped.
+segment (`TcpSegment`) and any other datagram go to the relay; ICMP is dropped.
 
 The relay ends each connection in the service and carries it on over a
 protected socket: `TcpFlow` in `core/` is the connection as a state machine
@@ -364,8 +364,9 @@ the MSS option alone, no window scaling (a window of at most 64 KB, shrinking
 as writes to the far side lag and reopened as they catch up), drops a segment
 out of order, and sends again after 400 ms or three repeated acks. A
 connection the far side refuses reaches the app as refused; ten minutes of
-silence ends one. IPv6 has no route until block 12: lockdown refuses it, and
-an app falls back to IPv4.
+silence ends one. Both families go the same way (`IpPacket`); a packet with
+IPv6 extension headers is dropped. On a network with no IPv6 a connection to
+an IPv6 address is refused at once, and an app goes on to IPv4.
 
 Datagrams go on over a protected socket per sender and address, closed after
 a minute of silence. A datagram shows an address and no name, so the filter
@@ -854,8 +855,7 @@ uninstalled. Release asks for the PIN once more.
   slips the DNS filter, and if it then speaks QUIC to an address the filter
   never answered, slips the rest; over TLS its name is still read. Shinkan's
   own browser cannot, it resolves through the system (§7.6).
-- **Until block 12, other apps on a held device have IPv4 alone**, and no
-  ICMP at all.
+- **Other apps on a held device have no ICMP**, so no `ping`.
 - **The browser's cosmetic filtering** is none: only request rules apply
   (§7.6).
 - **The volume ceiling of the open device** is one for the device and a

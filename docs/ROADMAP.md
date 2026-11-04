@@ -72,7 +72,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | done 2026-11-04 |
 | 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | done 2026-11-04 |
 | 11d | The tunnel: the per-app pass for the player over TCP | nothing to build while Shinkan is outside its tunnel (see 11a–11d) |
-| 12 | IPv6 in the tunnel | |
+| 12 | IPv6 in the tunnel | done 2026-11-04 |
 | A1 | Lock task features tuned on real devices: notifications, power dialog, keyguard [§4.1] | |
 | A2 | The icon drawn: the crest by default; the gate, the drawn gate and the seal 関 chosen on the parent door [§8.5] | done 2026-11-01 |
 | A3 | Translations: Russian first, Weblate as for Zanshin; Russian is in 1.0 | Russian done 2026-11-02 (seen on the emulator: PIN, home, parent door, plans); Weblate later |
@@ -1000,6 +1000,28 @@ full route (11a). It comes back only if that changes.
 ### 12. IPv6 in the tunnel [§5.2]
 
 **Builds.** `Udp6`, the IPv6 route and the relay for both families.
+
+**As built.** Not a `Udp6`: `IpPacket` reads and writes both families under
+`TcpSegment` and `UdpDatagram`, as `Tcp4` and `Udp4` are now named. `::/0`
+beside `0.0.0.0/0`, the address `fd11:1::1`; `SeenHosts` learns AAAA too; the
+relay's keys hold the whole address.
+
+Checked on the emulator, 2026-11-04, against a server on the host's `::1`
+through the emulator's `fec0::2`, with Wi-Fi off: Shinkan's uid does not reach
+that gateway over Wi-Fi, as with 10.0.2.2. 50 MB byte for byte in 0.7 s, in
+twenty runs in a row and in four right after Wi-Fi went off; a reader stalled
+3 s, which closes the window to nothing, three times over IPv6 and twice over
+IPv4; `echo6:ping` over UDP; Wi-Fi coming on in the middle of a transfer. With
+no IPv6 upstream on Wi-Fi, 2606:4700:4700::1111 read as refused in 21 ms, a
+dual-stack name answered in 0.6 s and Chrome drew a page. IPv4: 50 MB in 2.4 s,
+equal.
+
+**One result not explained.** The first IPv6 transfer through the relay, 8 s
+after Wi-Fi went off, gave a wrong SHA-256; `tun0` took the full 54.8 MB. In
+that run the bytes were not counted, so truncation and corruption cannot be
+told apart. It did not come again in some forty transfers, the same conditions
+repeated, so its cause is not known. Should it be seen again, count the bytes
+and keep the file.
 
 ## Open
 

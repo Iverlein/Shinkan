@@ -201,6 +201,7 @@ plan mon,tue,wed,thu,fri
 close com.example.game
 window com.example.game sat,sun 10:00-12:00
 close com.zhiliaoapp.musically
+permission com.example.game deny camera
 volume device 70
 ```
 
@@ -211,19 +212,27 @@ and `rest` with minutes or `parent`), in order (§4.7); `browser` and
 `player` name Shinkan's two doors and `device` the whole screen of the open
 device; `close` names a package of the open device and `window` gives it one
 span on given weekdays, which may cross midnight and then belongs to the day
-it opens; `volume` sets a ceiling (§4.6); `start` gives the browser door's start
+it opens; `permission` refuses a package the camera, the microphone or the
+location (§4.5), one line each; `volume` sets a ceiling (§4.6); `start` gives the browser door's start
 page, an `http` or `https` address (§7.6); `restrict` names one of §4.3 by
 the enum's name. When no `restrict` line is written the default set applies;
 `restrict none` lifts them all. A `window` line closes its package as a
 `close` line does. A weekday is in one plan at most. A malformed line is
 refused with its number (`PolicyText.Malformed`), and the text is written
 back in this order: `mode`, the plans, each `close` with its windows,
-`volume`, `start`, `restrict`.
+`permission`, `volume`, `start`, `restrict`.
 
 ### 4.5 Permissions of the usable apps
 
 `setPermissionGrantState` lets the parent deny camera, microphone and
-location to a usable app regardless of what it asks. ROADMAP block 8.
+location to a usable app regardless of what it asks (`permission` lines,
+§4.4; `PERMISSION_GRANT_STATE_DENIED`), with the three location permissions
+counted as one. A denial taken off returns to
+`PERMISSION_GRANT_STATE_DEFAULT`, so the app's own prompt decides again; what
+had been granted before the denial is not restored. The door's closed-apps
+page offers, under each app of the open device, what that app asks for.
+Denials are applied on every application of the hold, to packages with a
+launcher entry. ROADMAP block 8.
 
 ### 4.6 The volume ceiling
 
@@ -831,6 +840,14 @@ uninstalled. Release asks for the PIN once more.
   (`device` only, the same limit as the ceiling). A rest in minutes runs on
   the wall clock, which is protected; a rest the parent ends waits for the
   parent.
+- **The phone app and Settings cannot be suspended**: `setPackagesSuspended`
+  hands them back (found on the emulator, 2026-11-04). On the closed device
+  lock task keeps them out of reach; on the open device closing them does
+  nothing, whatever the door's page says.
+- **A permission granted through adb** over a denial stands until the denial
+  is taken off and set again: the denial is a value of the system's policy
+  engine, and setting the same value changes nothing. Settings cannot do it,
+  and the release cuts adb (§4.3).
 - **Suspended apps' widgets and shortcuts** still show; their taps open the
   suspension dialog.
 - **Emergency calls** are never blocked; the phone app is the OEM's. During

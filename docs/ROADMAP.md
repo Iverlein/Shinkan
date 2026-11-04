@@ -65,7 +65,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 7a | The open device: the launcher kept, the named apps closed | done 2026-11-04 |
 | 7b | The open device: `device` stages and the pinned rest page | done 2026-11-04 |
 | 7c | The open device: the device ceiling by clamp | done 2026-11-04 |
-| 8 | Permissions of the usable apps | |
+| 8 | Permissions of the usable apps | done 2026-11-04 |
 | 9 | QR provisioning | |
 | 10 | Release 1.0 | done 2026-11-02: tags `v1.0`, then `v1.0.1` with the two fixes of the release check |
 | 11a | The tunnel: all routes through a userspace TCP relay | |
@@ -836,6 +836,23 @@ door's closed-apps page gets the three switches per app.
 
 **Done when.** Tests for the lines; on the emulator, the camera app with
 camera denied shows the system's refusal.
+
+**As built.** `core/`: `Capability` (location is its three permissions),
+`Policy.denied`, `denying`, the `permission` line. `DeviceHold.applyPermissions`
+over the packages with a launcher entry, for what each declares; anything
+not refused and not `DEFAULT` is set back to `DEFAULT`. The switches are
+chips under each app, on the open form alone and for what that app asks,
+in a `FlowRow`, three in a row breaking *No location* otherwise.
+
+Checked on the emulator, 2026-11-04: *No camera* tapped under Camera and
+*Apply now* wrote `permission com.android.camera2 deny camera`,
+`dumpsys package` read `granted=false` with `POLICY_FIXED`, and Camera opened
+on its own "does not have critical permissions" with no prompt from the
+system. Taken off, `POLICY_FIXED` went and the permission stayed refused
+until asked for. `pm grant` from the shell got past a denial, and neither
+the screen coming on nor a repeated set took it back: the denial is a value
+of the system's policy engine (§9.4). Taking the denial off then cleared
+`POLICY_FIXED` and left the grant. The chips were seen in English and Russian.
 
 ### 9. QR provisioning [§3.2]
 

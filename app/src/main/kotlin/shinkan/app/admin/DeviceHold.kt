@@ -15,6 +15,7 @@ import shinkan.app.filter.BlocklistStore
 import shinkan.app.filter.FilterService
 import shinkan.app.plan.DeviceVolume
 import shinkan.app.plan.PlanClock
+import shinkan.core.Capability
 import shinkan.core.Mode
 import shinkan.core.PlanState
 import shinkan.core.Policy
@@ -49,6 +50,7 @@ class DeviceHold(private val context: Context) {
         applyRestrictions(policy)
         applyHome(policy)
         applyPackages(policy, now)
+        applyPermissions(policy)
         applyFilter()
         scheduleNext(policy, state, now)
         PlanClock.refresh(context)
@@ -148,6 +150,34 @@ class DeviceHold(private val context: Context) {
         }
         if (resume.isNotEmpty()) dpm.setPackagesSuspended(admin, resume, false)
     }
+
+    /**
+     * The parent's denials (SPEC §4.5): `setPermissionGrantState` DENIED for what a
+     * package is refused, and back to DEFAULT for what it no longer is, which leaves
+     * the choice to the app's user again. Only what the package asks for.
+     */
+    private fun applyPermissions(policy: Policy) {
+        for (pkg in launchablePackages()) {
+            val asked = requestedPermissions(pkg)
+            val refused = policy.denied[pkg].orEmpty().flatMap { it.permissions }
+            for (permission in Capability.entries.flatMap { it.permissions }.filter { it in asked }) {
+                // A refusal is the system's policy value from then on, so setting it again changes nothing.
+                // Anything but DEFAULT is cleared, whatever it reads: a grant by adb over a denial reads GRANTED.
+                val wanted = when {
+                    permission in refused -> DevicePolicyManager.PERMISSION_GRANT_STATE_DENIED
+                    dpm.getPermissionGrantState(admin, pkg, permission) != DevicePolicyManager.PERMISSION_GRANT_STATE_DEFAULT ->
+                        DevicePolicyManager.PERMISSION_GRANT_STATE_DEFAULT
+                    else -> continue
+                }
+                if (!dpm.setPermissionGrantState(admin, pkg, permission, wanted)) Log.w(TAG, "not set: $permission of $pkg")
+            }
+        }
+    }
+
+    /** The permissions [pkg] declares it asks for. */
+    fun requestedPermissions(pkg: String): Set<String> = runCatching {
+        context.packageManager.getPackageInfo(pkg, PackageManager.GET_PERMISSIONS).requestedPermissions.orEmpty().toSet()
+    }.getOrDefault(emptySet())
 
     /** Brings the suspensions to a block list just changed (SPEC §6.3). */
     fun applyBlocklist(now: LocalDateTime = LocalDateTime.now()) {

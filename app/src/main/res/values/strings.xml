@@ -288,4 +288,7 @@
     <string name="player_segments_credit">Segments skipped with SponsorBlock data, CC BY-NC-SA 4.0.</string>
     <string name="player_segments_failed">The segments could not be fetched; this video plays without skips.</string>
     <string name="home_closed_apps">Closed apps</string>
+    <string name="apps_deny_camera">No camera</string>
+    <string name="apps_deny_microphone">No microphone</string>
+    <string name="apps_deny_location">No location</string>
 </resources>

@@ -292,4 +292,7 @@
     <string name="player_segments_credit">Фрагменты пропущены по данным SponsorBlock, CC BY-NC-SA 4.0.</string>
     <string name="player_segments_failed">Не удалось получить фрагменты; видео идёт без пропусков.</string>
     <string name="home_closed_apps">Закрытые приложения</string>
+    <string name="apps_deny_camera">Без камеры</string>
+    <string name="apps_deny_microphone">Без микрофона</string>
+    <string name="apps_deny_location">Без геолокации</string>
 </resources>

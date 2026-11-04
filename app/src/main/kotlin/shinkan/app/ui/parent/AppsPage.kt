@@ -3,6 +3,7 @@ package shinkan.app.ui.parent
 import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +14,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import io.github.iverlein.shinkan.R
 import shinkan.app.admin.DeviceHold
+import shinkan.core.Capability
 import shinkan.core.Mode
 import shinkan.core.Policy
 import shinkan.core.PolicyText
@@ -74,6 +77,21 @@ fun AppsPage(policy: Policy, hold: DeviceHold, onChange: (Policy) -> Unit) {
                 Text(pkg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        // What the app is refused (SPEC §4.5), of what it asks for; on the closed form nothing but Shinkan runs.
+        val asked = remember(pkg) { hold.requestedPermissions(pkg) }
+        val offered = Capability.entries.filter { c -> c.permissions.any { it in asked } }
+        if (policy.mode == Mode.OPEN && offered.isNotEmpty()) {
+            FlowRow(Modifier.padding(start = 40.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                offered.forEach { c ->
+                    val deny = c in policy.denied[pkg].orEmpty()
+                    FilterChip(
+                        selected = deny,
+                        onClick = { onChange(policy.denying(pkg, c, !deny)) },
+                        label = { Text(stringResource(capabilityLabel(c))) },
+                    )
+                }
+            }
+        }
         if (closed) {
             Column(Modifier.padding(start = 40.dp)) {
                 val windows = policy.windows.filter { it.pkg == pkg }
@@ -97,6 +115,12 @@ fun AppsPage(policy: Policy, hold: DeviceHold, onChange: (Policy) -> Unit) {
             windowFor = null
         }
     }
+}
+
+private fun capabilityLabel(c: Capability): Int = when (c) {
+    Capability.CAMERA -> R.string.apps_deny_camera
+    Capability.MICROPHONE -> R.string.apps_deny_microphone
+    Capability.LOCATION -> R.string.apps_deny_location
 }
 
 private fun label(pm: PackageManager, pkg: String): String =

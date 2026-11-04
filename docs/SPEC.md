@@ -275,7 +275,14 @@ task (`startLockTask`, allowed to a device owner's own activity without a
 prompt), so the child cannot leave it for another app. On the open device
 the subject of a stage is `device`, the whole screen, since no policy tells
 Shinkan which app is in front (§9.4); the closed apps keep their own
-`window` lines beside the plan.
+`window` lines beside the plan. Use there is time the screen is on and
+unlocked. Shinkan stays in `setLockTaskPackages` on this form, which pins
+nothing by itself, and calls `startLockTask` and `stopLockTask` for the rest:
+a locked task that loses that permission is terminated by the system. Every
+application of the hold brings the rest page to the front again, so the screen coming on or a reboot finds it; at its end
+Shinkan steps back and what was in front returns. The rest page stays under
+the keyguard, not over it as the closed home does: the lock screen keeps its
+emergency call.
 
 Nothing is logged (§2.5): what is kept is the current stage, the minutes
 spent in it and a rest's end, in device-protected storage so a reboot
@@ -823,7 +830,12 @@ uninstalled. Release asks for the PIN once more.
   parent.
 - **Suspended apps' widgets and shortcuts** still show; their taps open the
   suspension dialog.
-- **Emergency calls** are never blocked; the phone app is the OEM's.
+- **Emergency calls** are never blocked; the phone app is the OEM's. During
+  a rest of the open device the phone app is out of reach as every app is,
+  and a call can be placed only from the lock screen's emergency button, on
+  a device with a screen lock.
+- **What another app plays** on the open device goes on behind the rest
+  page: no policy pauses it, and Shinkan pauses only its own doors.
 - **The chosen icon** (§8.5) shows on launchers only: Settings, the share
   sheet's *Block in Shinkan* and the home chooser show the crest, the
   application's icon, which Android lets no app change at run time.

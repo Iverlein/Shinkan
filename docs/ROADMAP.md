@@ -63,7 +63,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 6c | The player: a shared video resolved to its creator; the official app held | done 2026-11-04 |
 | 6d | The player: SponsorBlock segments | done 2026-11-04 |
 | 7a | The open device: the launcher kept, the named apps closed | done 2026-11-04 |
-| 7b | The open device: `device` stages and the pinned rest page | |
+| 7b | The open device: `device` stages and the pinned rest page | done 2026-11-04 |
 | 7c | The open device: the device ceiling by clamp | |
 | 8 | Permissions of the usable apps | |
 | 9 | QR provisioning | |
@@ -777,6 +777,35 @@ stages; when a budget is spent `MainActivity` is started with
 **Done when.** With `device 2 rest 2`: two minutes after unlock the rest
 page covers whatever app was in front and Home does not leave it; after
 two more minutes the launcher is back.
+
+**As built.** `core/`: `Policy.pinnedAt`, the one answer `MainActivity` pins
+by on both forms. `PlanClock` keeps what it is counting, so a flush as the
+screen goes off adds the last seconds, and counts nothing in a rest.
+`DeviceHold.apply` starts the page on each application, which also finds a
+boot or the screen coming on in a rest; `ShinkanApp` shows `RestPage` and
+steps the task back at the rest's end, unless a parent is on the door. What
+was in front returns, the launcher when that was it.
+
+The package is **not** put in `setLockTaskPackages` for the rest's length,
+as this block first said. The check found that taking it out again ends a
+locked task from the system's side: *Open now* threw the parent off the door
+to the launcher, and the timed end only looked right. It now stays permitted
+on the open form, which pins nothing by itself, and leaves by `stopLockTask`.
+The same check found the last seconds of a rest, up to one tick of 15 s,
+charged to the budget after it.
+
+Checked on the emulator, 2026-11-04, by a 15-second reading of the top
+activity, lock task and the plan state. `device 2 rest 2` with Maps in front:
+the count rose 15 a reading with no door open; at 120 s the rest page covered
+Maps, lock task `LOCKED`, and Home and Recents stayed on it; at the rest's
+end Maps came back to the second, lock task `NONE`, Shinkan's task behind
+it. `device 1 rest parent`: 25 s of `KEYCODE_SLEEP` went uncounted, the 6 s
+before it counted; `adb reboot` in the rest came back pinned on *Resting
+until a parent opens the doors* with the same state. `device 1 rest 1` twice:
+*Open now* through the PIN left lock task `NONE` with the parent on the door
+and `spent=0` after 20 s on the rest page; the second rest ended by the clock
+as the first did. Not checked: a rest on a device with a screen lock, so the
+rest page under a real keyguard.
 
 ### 7c. The open device: the device ceiling [§4.6]
 

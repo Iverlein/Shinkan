@@ -374,9 +374,14 @@ to a name the list blocks (`Blocklist.dropsDatagram`): that is QUIC, and the
 app falls back to TLS. The address of a name refused from the start is never
 learned, and needs no drop: the app has no address to use.
 
-Block 11c reads TLS server names and blocks hard-coded resolvers by address,
-11d tells apps apart by connection
-(`ConnectivityManager.getConnectionOwnerUid`).
+A connection to port 443 is held until its first bytes give the name the
+TLS client asks for (`ClientHello`), over as many segments as the hello takes;
+a name the list blocks is reset before anything reaches the far side, so a
+site reached by an address the filter never answered is refused all the same.
+What is not a hello, or names nothing, goes on. Ports 53 and 853 are refused
+over TCP, and 853 over UDP, to any address: a resolver the filter would not
+see. Public resolvers over HTTPS and TLS are built in (`KnownResolvers`), so
+their names are refused by DNS and by this; `pass` lets one through.
 
 ### 5.3 Answers
 
@@ -392,9 +397,10 @@ back unchanged. Shinkan brings no resolver and no list of its own.
 | Way around | Answer |
 | --- | --- |
 | DNS-over-TLS by the system | private DNS opportunistic and locked (§5.1) |
-| DNS-over-HTTPS by a browser | Shinkan's browser is a WebView and resolves through the system, so the filter answers it (§7.6); known DoH hosts are on the built-in block list (block 11c) |
-| a resolver by IP address | on port 53 over UDP it gets the filter's own answer (§5.2); other ways, block 11c |
-| QUIC (HTTP/3) | UDP 443 to blocked hosts dropped, TLS falls back; an address the filter never saw answered goes through, until 11c reads the name TLS shows |
+| DNS-over-HTTPS by a browser | Shinkan's browser is a WebView and resolves through the system, so the filter answers it (§7.6); known DoH hosts are built in, refused by name and by the name TLS shows |
+| a resolver by IP address | on port 53 over UDP it gets the filter's own answer (§5.2); over TCP, and on 853, it is refused; DoH to an unlisted host is not seen |
+| a blocked site by IP address | the name its TLS hello shows is refused (§5.2) |
+| QUIC (HTTP/3) | UDP 443 to blocked hosts dropped, TLS falls back; to an address the filter never answered it goes through, its name being encrypted |
 | Encrypted Client Hello | no SNI to read; DNS already refused the name, and the HTTPS record that carries the ECH key is refused with it |
 | a VPN app | `no_config_vpn`, and only one VPN runs |
 | a browser's built-in proxy or "VPN" | it is a host too; its family is blocked by sharing one of its links |
@@ -412,8 +418,8 @@ of the sender. In return Shinkan's own pages apply the block list
 themselves: the browser asks `Blocklist.blocksHost` (the parent's sites,
 the built-in list and its categories, the passes) for every request's host,
 the page itself included, before its filter lists (§7.6), and a blocked
-page shows a page that says so. The filter tells other apps apart, when it
-must, by `ConnectivityManager.getConnectionOwnerUid` (block 11d).
+page shows a page that says so. The filter has no need to tell other apps
+apart; `ConnectivityManager.getConnectionOwnerUid` would do it (block 11d).
 
 ## 6. The block list
 
@@ -843,9 +849,10 @@ uninstalled. Release asks for the PIN once more.
   uBlock Origin blocks them, elements are hidden only where a simple rule
   allows. A third-party browser on the open device gets the host filter and
   nothing more.
-- **Until block 11c**, an app that resolves names by itself over HTTPS or by
-  address slips the DNS filter; Shinkan's own browser cannot, it resolves
-  through the system (§7.6).
+- **An app that resolves names by itself over HTTPS, at a host not built in,**
+  slips the DNS filter, and if it then speaks QUIC to an address the filter
+  never answered, slips the rest; over TLS its name is still read. Shinkan's
+  own browser cannot, it resolves through the system (§7.6).
 - **Until block 12, other apps on a held device have IPv4 alone**, and no
   ICMP at all.
 - **The browser's cosmetic filtering** is none: only request rules apply

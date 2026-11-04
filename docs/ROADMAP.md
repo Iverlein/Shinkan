@@ -70,8 +70,8 @@ order. Numbers are identifiers and do not change when the order does.
 | 10 | Release 1.0 | done 2026-11-02: tags `v1.0`, then `v1.0.1` with the two fixes of the release check |
 | 11a | The tunnel: all routes through a userspace TCP relay | done 2026-11-04 |
 | 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | done 2026-11-04 |
-| 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | |
-| 11d | The tunnel: the per-app pass for the player over TCP | |
+| 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | done 2026-11-04 |
+| 11d | The tunnel: the per-app pass for the player over TCP | nothing to build while Shinkan is outside its tunnel (see 11a–11d) |
 | 12 | IPv6 in the tunnel | |
 | A1 | Lock task features tuned on real devices: notifications, power dialog, keyguard [§4.1] | |
 | A2 | The icon drawn: the crest by default; the gate, the drawn gate and the seal 関 chosen on the parent door [§8.5] | done 2026-11-01 |
@@ -968,6 +968,26 @@ blocked by the share page, UDP to its address on 443 was dropped and named in
 the beta's log, on 3478 not; to www.mozilla.org and to an address never
 looked up, on 443, not. Not checked: this block's speed, for want of a UDP
 file transfer, and a browser really speaking QUIC through the relay.
+
+**11c as built.** `core/`: `ClientHello` (a name, nothing, or more needed),
+`KnownResolvers`, `Blocklist.refusesPort`, `Tcp4.reset`. `Relay` holds a 443
+connection's first bytes. `ClientHelloTest` runs on two hellos captured from
+OpenSSL, cut at every length and corrupted at random. Checked on the emulator,
+2026-11-04, sending hellos of 1531 bytes, so two segments, to 1.1.1.1:443 from
+the shell: www.mozilla.org got a TLS answer; www.example.net (a parent's site)
+and dns.google (built in) got none and were named in the beta's log, nothing
+reaching the far side; a hello cut in two with a second's pause went the same
+way both for a blocked and an allowed name; plain text on 443 got its HTTP
+answer. TCP to 1.1.1.1:853 and 8.8.8.8:53 read as refused at once: the first
+try hung, the reset not acknowledging the SYN, which the kernel ignores, and
+the fix serves 11a's refusals too. Chrome on the open form drew Wikipedia with
+every 443 connection held and read, 11.5 MB through `tun0`, and said
+`DNS_PROBE_FINISHED_NXDOMAIN` for a parent's site. The release passes R8 with
+the seven permissions and androidx's own.
+
+**11d** has nothing to build as things stand: Shinkan is outside its tunnel
+(§5.5), so the player's TCP never reaches the relay, and it played under the
+full route (11a). It comes back only if that changes.
 
 ### 12. IPv6 in the tunnel [§5.2]
 

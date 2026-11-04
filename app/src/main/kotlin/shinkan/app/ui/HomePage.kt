@@ -59,7 +59,8 @@ import java.time.format.TextStyle
  * landscape; a door the plan has closed is greyed and says when it opens next.
  * An open door with a budget says what is left of it. During a rest the
  * doors of the spent budget, and only they, are greyed with a small ensō in
- * its current state and the minutes left (§8.1, §8.7). Back does nothing here: there is nowhere
+ * its current state and the minutes left; a door whose budget is used up with
+ * no rest says so and when it opens (§8.1, §8.7). Back does nothing here: there is nowhere
  * behind the home. A small *Parent* link leads to the door.
  */
 @Composable
@@ -90,7 +91,11 @@ fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onP
                 val budget = policy.budgetOf(door, now, state)
                 val left = budget?.left?.takeIf { isOpen }
                 val rest = budget?.let { restMark(it, now) }
+                // On the open device the budget is the whole screen's, and so is what opens it again.
+                val depleted = budget?.depleted == true || policy.depletedAt(now, state)
                 val note = when {
+                    depleted -> stringResource(R.string.home_depleted) + "\n" +
+                        opensNote(policy.nextOpening(if (held) door else Door.DEVICE, now, state), now)
                     rest != null -> rest.minutes?.let { stringResource(R.string.home_resting, it) }
                         ?: stringResource(R.string.home_resting_parent)
                     left != null -> stringResource(R.string.home_left, (left + 59) / 60)

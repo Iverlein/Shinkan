@@ -11,6 +11,8 @@
     <string name="home_opens_on">Откроется: %1$s, %2$s</string>
     <string name="home_closed">Закрыто</string>
     <string name="home_left">Ещё %1$d\u00A0мин</string>
+    <string name="home_depleted">Лимит исчерпан</string>
+    <string name="support_depleted">Лимит времени на\u00A0этот промежуток исчерпан.</string>
     <string name="home_resting">Отдых: %1$d\u00A0мин</string>
     <string name="home_resting_parent">Отдых, пока не откроет родитель</string>
 
@@ -166,7 +168,7 @@
     <string name="plans_intro">Один распорядок на\u00A0набор дней недели. Каждый промежуток\u00A0— это время, когда открыты указанные двери. Дверь открыта до\u00A0конца промежутка, если внутри него для неё не\u00A0задан лимит минут.</string>
     <string name="plans_add">Добавить распорядок</string>
     <string name="plans_remove">Удалить распорядок</string>
-    <string name="plans_no_stage">В\u00A0распорядке нужен хотя бы один этап.</string>
+    <string name="plans_no_stage">В\u00A0распорядке нужен хотя бы один промежуток.</string>
     <string name="plans_add_span">Добавить промежуток</string>
     <string name="plans_add_budget">Добавить лимит</string>
     <string name="stage_up">Выше</string>
@@ -301,7 +303,7 @@
     <string name="setup_qr">На только что сброшенном устройстве есть другой способ: шесть раз коснитесь экрана приветствия и\u00A0отсканируйте QR-код, который tools/provision_qr.py создаёт из\u00A0релиза. Shinkan скачается и\u00A0сам станет владельцем устройства.</string>
 
     <!-- What is wrong with a line of the text (SPEC §4.4, §6.4); TextProblem in core. -->
-    <string name="problem_plan_without_stages">в\u00A0распорядке нет этапов</string>
+    <string name="problem_plan_without_stages">в\u00A0распорядке нет промежутков</string>
     <string name="problem_stage_outside_plan">строка с\u00A0отступом стоит вне распорядка</string>
     <string name="problem_mode">после mode нужно closed или open</string>
     <string name="problem_plan_days">после plan нужны дни</string>
@@ -318,7 +320,7 @@
     <string name="problem_restrict">после restrict нужно одно имя</string>
     <string name="problem_unknown_restriction">неизвестное ограничение</string>
     <string name="problem_unknown_statement">неизвестное правило</string>
-    <string name="problem_stage_shape">этап\u00A0— это ЧЧ:ММ-ЧЧ:ММ с\u00A0дверями или двери с\u00A0минутами</string>
+    <string name="problem_stage_shape">промежуток\u00A0— это ЧЧ:ММ-ЧЧ:ММ с\u00A0дверями</string>
     <string name="problem_budget_minutes">после дверей лимита нужны минуты</string>
     <string name="problem_rest">после rest нужны минуты или parent</string>
     <string name="problem_after_minutes">после минут возможен только rest с\u00A0минутами или parent</string>

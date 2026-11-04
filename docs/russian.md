@@ -24,7 +24,7 @@ in Shinkan what Settings calls the same thing.
 | launcher, home | главный экран | лаунчер, домашний экран |
 | PIN | PIN-код | PIN alone |
 | day plan | распорядок дня | |
-| stage, span, budget, rest | этап, промежуток, лимит, отдых | |
+| span, budget, rest | промежуток, лимит, отдых | |
 | window (of an app) | окно | |
 | ceiling (of volume) | предел | |
 | suspended | приостановлено | |

@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.util.Log
 import io.github.iverlein.shinkan.BuildConfig
+import io.github.iverlein.shinkan.R
 import shinkan.app.MainActivity
 import shinkan.app.filter.BlocklistStore
 import shinkan.app.filter.FilterService
@@ -130,18 +131,24 @@ class DeviceHold(private val context: Context) {
     /**
      * Suspends the packages the form holds (SPEC §4.2): on the closed device
      * every launchable package but Shinkan, on the open device the closed ones
-     * outside their windows and the official app of a blocked platform (§7.1);
-     * the rest are resumed.
+     * outside their windows and the official app of a blocked platform (§7.1),
+     * and every app but the launchers while the budget is used up with no rest
+     * (§4.7), which greys them there and says why when one is tapped; the rest are
+     * resumed.
      */
     private fun applyPackages(policy: Policy, now: LocalDateTime) {
         // On the closed device the other homes are held too: when Shinkan's process dies, the
         // system resumes the launcher's old task, not the persistent home (found 2026-11-02).
         // They are in this list on both forms, for the open one to resume what the closed one held.
-        val launchable = (launchablePackages() + otherHomes()).distinct()
+        val homes = otherHomes()
+        val launchable = (launchablePackages() + homes).distinct()
+        val depleted = policy.depletedAt(now, store.planState)
         val held = when (policy.mode) {
             Mode.CLOSED -> launchable.toSet()
-            Mode.OPEN -> policy.closedPackagesAt(now) + launchable.filter(BlocklistStore(context).blocklist::holdsPackage)
+            Mode.OPEN -> policy.closedPackagesAt(now) + launchable.filter(BlocklistStore(context).blocklist::holdsPackage) +
+                (if (depleted) launchable - homes.toSet() else emptyList())
         }
+        dpm.setShortSupportMessage(admin, if (depleted) context.getString(R.string.support_depleted) else null)
         val suspend = launchable.filter { it in held }.toTypedArray()
         val resume = launchable.filter { it !in held }.toTypedArray()
         if (suspend.isNotEmpty()) {

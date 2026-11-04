@@ -30,37 +30,43 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.iverlein.shinkan.R
-import shinkan.app.ui.StageLine
+import shinkan.app.ui.BudgetLine
+import shinkan.app.ui.SpanLine
 import shinkan.app.ui.doorLabel
 import shinkan.app.ui.doorMark
+import shinkan.core.Budget
 import shinkan.core.Door
 import shinkan.core.Mode
 import shinkan.core.Plan
 import shinkan.core.Policy
 import shinkan.core.PolicyText
 import shinkan.core.Rest
-import shinkan.core.Stage
+import shinkan.core.Span
 import java.time.DayOfWeek
 import java.time.LocalTime
 
-/**
- * What the dialog edits: of plan [plan], the stage at [stage], or a new one when
- * null; with [inSpan], a budget of that span, at [budget], or a new one when null.
- */
-private data class Editing(val plan: Int, val stage: Int?, val initial: Stage, val inSpan: Boolean = false, val budget: Int? = null)
+/** What the open dialog edits: a span of plan [plan] at [span], or a new one when null. */
+private data class EditSpan(val plan: Int, val span: Int?, val initial: Span)
+
+/** A budget of the span at [span] of plan [plan], at [budget], or a new one when null. */
+private data class EditBudget(val plan: Int, val span: Int, val budget: Int?, val initial: Budget)
 
 /**
  * The day plans (SPEC §4.7, §8.2): one card per plan with its weekdays and its
  * spans, each moved up or down, edited or removed, and under each span its
- * budgets, added, edited and removed there. A budget standing as a stage, as 1.0
- * wrote it, is shown and edited but no longer added. A weekday in another plan is
- * greyed, so no day is in two.
+ * budgets, added, edited and removed there. A weekday in another plan is greyed,
+ * so no day is in two.
  */
 @Composable
 fun PlansPage(policy: Policy, onChange: (Policy) -> Unit) {
     val doors = if (policy.mode == Mode.CLOSED) listOf(Door.BROWSER, Door.PLAYER) else listOf(Door.DEVICE)
-    var editing by remember { mutableStateOf<Editing?>(null) }
+    var span by remember { mutableStateOf<EditSpan?>(null) }
+    var budget by remember { mutableStateOf<EditBudget?>(null) }
     fun withPlan(i: Int, plan: Plan) = onChange(policy.copy(plans = policy.plans.toMutableList().also { it[i] = plan }))
+    fun withSpan(pi: Int, si: Int, changed: Span) {
+        val plan = policy.plans[pi]
+        withPlan(pi, plan.copy(spans = plan.spans.toMutableList().also { it[si] = changed }))
+    }
 
     Text(stringResource(R.string.plans_intro))
     Spacer(Modifier.height(16.dp))
@@ -77,42 +83,39 @@ fun PlansPage(policy: Policy, onChange: (Policy) -> Unit) {
                     if (days.isNotEmpty()) withPlan(pi, plan.copy(days = days))
                 }
                 Spacer(Modifier.height(8.dp))
-                plan.stages.forEachIndexed { si, stage ->
+                plan.spans.forEachIndexed { si, s ->
                     if (si > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    StageLine(stage, Modifier.padding(top = 8.dp), budgets = false)
+                    SpanLine(s, Modifier.padding(top = 8.dp), budgets = false)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         val move: (Int) -> Unit = { to ->
-                            withPlan(pi, plan.copy(stages = plan.stages.toMutableList().also { it.add(to, it.removeAt(si)) }))
+                            withPlan(pi, plan.copy(spans = plan.spans.toMutableList().also { it.add(to, it.removeAt(si)) }))
                         }
                         Mini("↑", stringResource(R.string.stage_up), si > 0) { move(si - 1) }
-                        Mini("↓", stringResource(R.string.stage_down), si < plan.stages.lastIndex) { move(si + 1) }
-                        Mini("✎", stringResource(R.string.stage_edit)) { editing = Editing(pi, si, stage) }
+                        Mini("↓", stringResource(R.string.stage_down), si < plan.spans.lastIndex) { move(si + 1) }
+                        Mini("✎", stringResource(R.string.stage_edit)) { span = EditSpan(pi, si, s) }
                         Mini("✕", stringResource(R.string.stage_remove)) {
-                            withPlan(pi, plan.copy(stages = plan.stages.filterIndexed { j, _ -> j != si }))
+                            withPlan(pi, plan.copy(spans = plan.spans.filterIndexed { j, _ -> j != si }))
                         }
                     }
-                    if (stage is Stage.Span) {
-                        stage.budgets.forEachIndexed { bi, budget ->
-                            Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                StageLine(budget, Modifier.weight(1f))
-                                Mini("✎", stringResource(R.string.stage_edit)) { editing = Editing(pi, si, budget, inSpan = true, budget = bi) }
-                                Mini("✕", stringResource(R.string.stage_remove)) {
-                                    val kept = stage.copy(budgets = stage.budgets.filterIndexed { j, _ -> j != bi })
-                                    withPlan(pi, plan.copy(stages = plan.stages.toMutableList().also { it[si] = kept }))
-                                }
+                    s.budgets.forEachIndexed { bi, b ->
+                        Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            BudgetLine(b, Modifier.weight(1f))
+                            Mini("✎", stringResource(R.string.stage_edit)) { budget = EditBudget(pi, si, bi, b) }
+                            Mini("✕", stringResource(R.string.stage_remove)) {
+                                withSpan(pi, si, s.copy(budgets = s.budgets.filterIndexed { j, _ -> j != bi }))
                             }
                         }
-                        val uncounted = Door.entries.filter { it in stage.doors && stage.budgets.none { b -> it in b.doors } }
-                        if (uncounted.isNotEmpty()) {
-                            TextButton(modifier = Modifier.padding(start = 16.dp), onClick = {
-                                editing = Editing(pi, si, Stage.Budget(setOf(uncounted.last()), 30), inSpan = true)
-                            }) { Text(stringResource(R.string.plans_add_budget)) }
-                        }
+                    }
+                    val uncounted = Door.entries.filter { it in s.doors && s.budgets.none { b -> it in b.doors } }
+                    if (uncounted.isNotEmpty()) {
+                        TextButton(modifier = Modifier.padding(start = 16.dp), onClick = {
+                            budget = EditBudget(pi, si, null, Budget(setOf(uncounted.last()), 30))
+                        }) { Text(stringResource(R.string.plans_add_budget)) }
                     }
                 }
-                if (plan.stages.isEmpty()) Text(stringResource(R.string.plans_no_stage), color = MaterialTheme.colorScheme.error)
+                if (plan.spans.isEmpty()) Text(stringResource(R.string.plans_no_stage), color = MaterialTheme.colorScheme.error)
                 TextButton(onClick = {
-                    editing = Editing(pi, null, Stage.Span(LocalTime.of(8, 0), LocalTime.of(12, 0), doors.toSet()))
+                    span = EditSpan(pi, null, Span(LocalTime.of(8, 0), LocalTime.of(12, 0), doors.toSet()))
                 }) { Text(stringResource(R.string.plans_add_span)) }
                 TextButton(onClick = {
                     onChange(policy.copy(plans = policy.plans.filterIndexed { j, _ -> j != pi }))
@@ -125,23 +128,22 @@ fun PlansPage(policy: Policy, onChange: (Policy) -> Unit) {
         onChange(policy.copy(plans = policy.plans + Plan(free.toSet(), emptyList())))
     }) { Text(stringResource(R.string.plans_add)) }
 
-    editing?.let { e ->
-        val plan = policy.plans[e.plan]
-        val span = e.stage?.takeIf { e.inSpan }?.let { plan.stages[it] as? Stage.Span }
-        // A budget of a span is offered the span's doors no other budget of it counts.
-        val offered = if (span == null) (doors + e.initial.doors).distinct() else {
-            val others = span.budgets.filterIndexed { j, _ -> j != e.budget }.flatMap { it.doors }
-            Door.entries.filter { it in span.doors && it !in others }
+    span?.let { e ->
+        SpanDialog(e.initial, (doors + e.initial.doors).distinct(), onDismiss = { span = null }) { changed ->
+            val plan = policy.plans[e.plan]
+            val at = e.span
+            withPlan(e.plan, plan.copy(spans = if (at == null) plan.spans + changed else plan.spans.toMutableList().also { it[at] = changed }))
+            span = null
         }
-        StageDialog(e.initial, offered, inSpan = span != null, onDismiss = { editing = null }) { edited ->
-            val stage = if (span == null) edited else {
-                val budget = edited as Stage.Budget
-                val at = e.budget
-                span.copy(budgets = if (at == null) span.budgets + budget else span.budgets.toMutableList().also { it[at] = budget })
-            }
-            val stages = if (e.stage == null) plan.stages + stage else plan.stages.toMutableList().also { it[e.stage] = stage }
-            withPlan(e.plan, plan.copy(stages = stages))
-            editing = null
+    }
+    budget?.let { e ->
+        val owner = policy.plans[e.plan].spans[e.span]
+        // A budget is offered the span's doors no other budget of it counts.
+        val others = owner.budgets.filterIndexed { j, _ -> j != e.budget }.flatMap { it.doors }
+        BudgetDialog(e.initial, Door.entries.filter { it in owner.doors && it !in others }, onDismiss = { budget = null }) { changed ->
+            val at = e.budget
+            withSpan(e.plan, e.span, owner.copy(budgets = if (at == null) owner.budgets + changed else owner.budgets.toMutableList().also { it[at] = changed }))
+            budget = null
         }
     }
 }
@@ -153,80 +155,96 @@ private fun Mini(sign: String, name: String, enabled: Boolean = true, onClick: (
 }
 
 /**
- * One stage, a span or a budget as [initial] is: the span's times typed as
- * HH:MM and the doors open in it, a door taken out of the span leaving its
- * budgets; the budget's doors, minutes and rest, and with [inSpan] what they mean
- * there. Done stays off until the stage is whole, and says why.
+ * One span: its times typed as HH:MM and the doors open in it, a door taken out of
+ * the span leaving its budgets. Done stays off until the span is whole, and says why.
  */
 @Composable
-private fun StageDialog(initial: Stage, doors: List<Door>, inSpan: Boolean = false, onDismiss: () -> Unit, onDone: (Stage) -> Unit) {
+private fun SpanDialog(initial: Span, doors: List<Door>, onDismiss: () -> Unit, onDone: (Span) -> Unit) {
     var chosen by remember { mutableStateOf(initial.doors) }
-    var from by remember { mutableStateOf((initial as? Stage.Span)?.from?.let(PolicyText::time) ?: "") }
-    var to by remember { mutableStateOf((initial as? Stage.Span)?.to?.let(PolicyText::time) ?: "") }
-    val budget = initial as? Stage.Budget
-    var minutes by remember { mutableStateOf(budget?.minutes?.toString() ?: "") }
-    var rest by remember { mutableStateOf(budget?.rest) }
-    var restMinutes by remember { mutableStateOf(((budget?.rest as? Rest.Minutes)?.minutes ?: 30).toString()) }
+    var from by remember { mutableStateOf(PolicyText.time(initial.from)) }
+    var to by remember { mutableStateOf(PolicyText.time(initial.to)) }
 
     val badTime = stringResource(R.string.stage_bad_time)
     val sameTime = stringResource(R.string.stage_same_time)
-    val noDoor = stringResource(R.string.stage_no_door)
-    val badMinutes = stringResource(R.string.stage_bad_minutes)
-    val (stage, why) = if (budget == null) {
-        val f = PolicyText.time(from)
-        val t = PolicyText.time(to)
-        when {
-            f == null || t == null -> null to badTime
-            f == t -> null to sameTime
-            else -> {
-                val kept = (initial as? Stage.Span)?.budgets.orEmpty().mapNotNull { b ->
-                    (b.doors intersect chosen).takeIf { it.isNotEmpty() }?.let { b.copy(doors = it) }
-                }
-                Stage.Span(f, t, chosen, kept) to null
+    val f = PolicyText.time(from)
+    val t = PolicyText.time(to)
+    val (span, why) = when {
+        f == null || t == null -> null to badTime
+        f == t -> null to sameTime
+        else -> {
+            val kept = initial.budgets.mapNotNull { b ->
+                (b.doors intersect chosen).takeIf { it.isNotEmpty() }?.let { b.copy(doors = it) }
             }
-        }
-    } else {
-        val m = minutes.toIntOrNull()?.takeIf { it > 0 }
-        val r = when (rest) {
-            is Rest.Minutes -> restMinutes.toIntOrNull()?.takeIf { it > 0 }?.let { Rest.Minutes(it) }
-            else -> rest
-        }
-        when {
-            chosen.isEmpty() -> null to noDoor
-            m == null || (rest is Rest.Minutes && r == null) -> null to badMinutes
-            else -> Stage.Budget(chosen, m, r) to null
+            Span(f, t, chosen, kept) to null
         }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(if (budget == null) R.string.stage_span else R.string.stage_budget)) },
+        title = { Text(stringResource(R.string.stage_span)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (budget == null) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        NumberField(stringResource(R.string.stage_from), from, Modifier.weight(1f), time = true) { from = it }
-                        NumberField(stringResource(R.string.stage_to), to, Modifier.weight(1f), time = true) { to = it }
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    NumberField(stringResource(R.string.stage_from), from, Modifier.weight(1f), time = true) { from = it }
+                    NumberField(stringResource(R.string.stage_to), to, Modifier.weight(1f), time = true) { to = it }
                 }
-                Text(stringResource(if (budget == null) R.string.stage_doors else R.string.stage_budget_doors), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.stage_doors), style = MaterialTheme.typography.titleSmall)
                 doors.forEach { door ->
                     CheckRow(stringResource(doorLabel(door)), door in chosen, doorMark(door)) { on -> chosen = if (on) chosen + door else chosen - door }
-                }
-                if (budget != null) {
-                    NumberField(stringResource(R.string.stage_minutes), minutes, Modifier.fillMaxWidth()) { minutes = it }
-                    RadioRow(stringResource(R.string.stage_rest_none), rest == null) { rest = null }
-                    RadioRow(stringResource(R.string.stage_rest_minutes), rest is Rest.Minutes) { rest = Rest.Minutes(1) }
-                    if (rest is Rest.Minutes) {
-                        NumberField(stringResource(R.string.stage_rest_length), restMinutes, Modifier.fillMaxWidth()) { restMinutes = it }
-                    }
-                    RadioRow(stringResource(R.string.stage_rest_parent), rest == Rest.Parent) { rest = Rest.Parent }
-                    if (inSpan) Text(stringResource(R.string.stage_budget_in_span), style = MaterialTheme.typography.bodySmall)
                 }
                 if (why != null) Text(why, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { TextButton(enabled = stage != null, onClick = { stage?.let(onDone) }) { Text(stringResource(R.string.edit_done)) } },
+        confirmButton = { TextButton(enabled = span != null, onClick = { span?.let(onDone) }) { Text(stringResource(R.string.edit_done)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.edit_cancel)) } },
+    )
+}
+
+/**
+ * One budget of a span: its doors, its minutes and its rest, and what they mean
+ * there. Done stays off until the budget is whole, and says why.
+ */
+@Composable
+private fun BudgetDialog(initial: Budget, doors: List<Door>, onDismiss: () -> Unit, onDone: (Budget) -> Unit) {
+    var chosen by remember { mutableStateOf(initial.doors) }
+    var minutes by remember { mutableStateOf(initial.minutes.toString()) }
+    var rest by remember { mutableStateOf(initial.rest) }
+    var restMinutes by remember { mutableStateOf(((initial.rest as? Rest.Minutes)?.minutes ?: 30).toString()) }
+
+    val noDoor = stringResource(R.string.stage_no_door)
+    val badMinutes = stringResource(R.string.stage_bad_minutes)
+    val m = minutes.toIntOrNull()?.takeIf { it > 0 }
+    val r = when (rest) {
+        is Rest.Minutes -> restMinutes.toIntOrNull()?.takeIf { it > 0 }?.let { Rest.Minutes(it) }
+        else -> rest
+    }
+    val (budget, why) = when {
+        chosen.isEmpty() -> null to noDoor
+        m == null || (rest is Rest.Minutes && r == null) -> null to badMinutes
+        else -> Budget(chosen, m, r) to null
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.stage_budget)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.stage_budget_doors), style = MaterialTheme.typography.titleSmall)
+                doors.forEach { door ->
+                    CheckRow(stringResource(doorLabel(door)), door in chosen, doorMark(door)) { on -> chosen = if (on) chosen + door else chosen - door }
+                }
+                NumberField(stringResource(R.string.stage_minutes), minutes, Modifier.fillMaxWidth()) { minutes = it }
+                RadioRow(stringResource(R.string.stage_rest_none), rest == null) { rest = null }
+                RadioRow(stringResource(R.string.stage_rest_minutes), rest is Rest.Minutes) { rest = Rest.Minutes(1) }
+                if (rest is Rest.Minutes) {
+                    NumberField(stringResource(R.string.stage_rest_length), restMinutes, Modifier.fillMaxWidth()) { restMinutes = it }
+                }
+                RadioRow(stringResource(R.string.stage_rest_parent), rest == Rest.Parent) { rest = Rest.Parent }
+                Text(stringResource(R.string.stage_budget_in_span), style = MaterialTheme.typography.bodySmall)
+                if (why != null) Text(why, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = { TextButton(enabled = budget != null, onClick = { budget?.let(onDone) }) { Text(stringResource(R.string.edit_done)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.edit_cancel)) } },
     )
 }

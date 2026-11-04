@@ -267,18 +267,18 @@ private fun summary(section: Section, policy: Policy, theme: ThemePin): String =
     Section.TEXT -> stringResource(R.string.summary_text)
 }
 
-/** The day plan's current stage, what is left of it, and *Open now* during a rest (SPEC §8.2, §4.7). */
+/** The day plan's current span, what is left of its budgets, and *Open now* during a rest (SPEC §8.2, §4.7). */
 @Composable
 private fun PlanNow(policy: Policy, counted: PlanState, onOpenNow: () -> Unit) {
     val now = LocalDateTime.now()
     val state = policy.resolve(now, counted)
-    val stage = state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage)
+    val span = state.day?.let { policy.planFor(it) }?.spans?.getOrNull(state.span)
     when {
         policy.plans.isEmpty() -> Text(stringResource(R.string.plan_none))
-        stage == null -> Text(stringResource(R.string.plan_done))
+        span == null -> Text(stringResource(R.string.plan_done))
         else -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.plan_now))
-            StageLine(stage)
+            SpanLine(span)
         }
     }
     policy.budgets(now, state).forEach { b ->
@@ -288,7 +288,7 @@ private fun PlanNow(policy: Policy, counted: PlanState, onOpenNow: () -> Unit) {
             b.restParent -> stringResource(R.string.plan_rest_parent)
             end != null -> stringResource(R.string.plan_rest_until, end.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
             left != null -> stringResource(R.string.plan_left, (left + 59) / 60)
-            else -> return@forEach
+            else -> stringResource(R.string.home_depleted)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DoorMarks(b.budget.doors)

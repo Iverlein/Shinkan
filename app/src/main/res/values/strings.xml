@@ -12,6 +12,8 @@
     <string name="home_opens_on">Opens %1$s %2$s</string>
     <string name="home_closed">Closed</string>
     <string name="home_left">%1$d min left</string>
+    <string name="home_depleted">Budget used up</string>
+    <string name="support_depleted">The time budget of this span is used up.</string>
 
     <!-- The rest (SPEC §8.7) -->
     <plurals name="rest_minutes_left">
@@ -164,7 +166,7 @@
     <string name="plans_intro">One plan per set of weekdays. Each span is clock time with the doors open in it. A door runs free to the span\'s end unless a budget inside the span counts its minutes.</string>
     <string name="plans_add">Add a plan</string>
     <string name="plans_remove">Remove this plan</string>
-    <string name="plans_no_stage">A plan needs at least one stage.</string>
+    <string name="plans_no_stage">A plan needs at least one span.</string>
     <string name="plans_add_span">Add a span</string>
     <string name="plans_add_budget">Add a budget</string>
     <string name="stage_up">Move up</string>
@@ -299,8 +301,8 @@
     <string name="setup_qr">On a device just reset there is a second way: tap the welcome screen six times and scan the code that tools/provision_qr.py makes from a release. Shinkan is downloaded and takes the device by itself.</string>
 
     <!-- What is wrong with a line of the text (SPEC §4.4, §6.4); TextProblem in core. -->
-    <string name="problem_plan_without_stages">a plan without stages</string>
-    <string name="problem_stage_outside_plan">an indented stage outside a plan</string>
+    <string name="problem_plan_without_stages">a plan without spans</string>
+    <string name="problem_stage_outside_plan">an indented line outside a plan</string>
     <string name="problem_mode">mode is closed or open</string>
     <string name="problem_plan_days">plan takes the days</string>
     <string name="problem_day_repeated">%1$s is in an earlier plan</string>
@@ -316,7 +318,7 @@
     <string name="problem_restrict">restrict takes one name</string>
     <string name="problem_unknown_restriction">unknown restriction</string>
     <string name="problem_unknown_statement">unknown statement</string>
-    <string name="problem_stage_shape">a stage is HH:MM-HH:MM with doors, or doors with minutes</string>
+    <string name="problem_stage_shape">a span is HH:MM-HH:MM with its doors</string>
     <string name="problem_budget_minutes">a budget takes its minutes after the doors</string>
     <string name="problem_rest">rest takes minutes or parent</string>
     <string name="problem_after_minutes">after the minutes only rest with minutes or parent</string>

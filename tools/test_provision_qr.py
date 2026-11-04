@@ -52,6 +52,7 @@ def main() -> int:
     assert base64.urlsafe_b64decode(checksum + "=") == hashlib.sha256(b"x").digest()
     assert decoded[extra + "DEVICE_ADMIN_COMPONENT_NAME"] == "io.github.iverlein.shinkan/shinkan.app.admin.ShinkanAdmin"
     assert decoded[extra + "LEAVE_ALL_SYSTEM_APPS_ENABLED"] is True
+    assert decoded[extra + "ALLOW_OFFLINE"] is True
     print(f"versions {sorted(versions)}: {failed} failed")
     return 1 if failed else 0
 

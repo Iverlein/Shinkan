@@ -28,18 +28,21 @@ BLOCKS = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 1
 LEVEL_M_BITS = 0
 
 
-def payload(url: str, sha256_hex: str) -> str:
+def payload(url: str, sha256_hex: str, package: str = PACKAGE) -> str:
     """The provisioning JSON; the checksum is the digest in URL-safe base64 without padding."""
     digest = bytes.fromhex(sha256_hex)
     if len(digest) != 32:
         raise ValueError("a SHA-256 is 64 hex characters")
     return json.dumps(
         {
-            EXTRA + "DEVICE_ADMIN_COMPONENT_NAME": f"{PACKAGE}/{RECEIVER}",
+            EXTRA + "DEVICE_ADMIN_COMPONENT_NAME": f"{package}/{RECEIVER}",
             EXTRA + "DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": url,
             EXTRA + "DEVICE_ADMIN_PACKAGE_CHECKSUM": base64.urlsafe_b64encode(digest).decode().rstrip("="),
             # Without this the setup disables the system apps the open device keeps.
             EXTRA + "LEAVE_ALL_SYSTEM_APPS_ENABLED": True,
+            # Without this a failed update of the system's own provisioning app ends the
+            # setup at "Can't set up device"; with it the platform provisions by itself.
+            EXTRA + "ALLOW_OFFLINE": True,
         },
         separators=(",", ":"),
     )

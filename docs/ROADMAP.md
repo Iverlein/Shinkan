@@ -66,7 +66,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 7b | The open device: `device` stages and the pinned rest page | done 2026-11-04 |
 | 7c | The open device: the device ceiling by clamp | done 2026-11-04 |
 | 8 | Permissions of the usable apps | done 2026-11-04 |
-| 9 | QR provisioning | built 2026-11-04, the flow itself not run on any device: *Done when* still open |
+| 9 | QR provisioning | done 2026-11-04 on the stand `tools/emulator/stand.py`; Google's wizard itself, on no emulator image, is unrun |
 | 10 | Release 1.0 | done 2026-11-02: tags `v1.0`, then `v1.0.1` with the two fixes of the release check |
 | 11a | The tunnel: all routes through a userspace TCP relay | done 2026-11-04 |
 | 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | done 2026-11-04 |
@@ -870,21 +870,36 @@ level M; `tools/test_provision_qr.py` reads its codes back with `zbarimg`.
 `admin/ProvisioningActivity`, not in this block's first text: from Android 12
 provisioning needs the app's two answers. The setup page names the QR way.
 
-**Not proved.** `shinkan-test` has no setup wizard (no Play), so there is no
-welcome screen to tap. `managedprovisioning` is there, but
-`PROVISION_MANAGED_DEVICE_FROM_TRUSTED_SOURCE`, the action a wizard's QR
-reader ends in, started with `adb root` on a device marked unprovisioned,
-says "Can't set up device" (`Invalid parameter found!`) for a bare component
-name as for the whole payload, so the failure says nothing of the payload.
-The camera, the download, the checksum and the system's calls into
-`ProvisioningActivity` are all unrun. Checked instead, 2026-11-04: 33 codes
-of versions 1 to 38 read back by `zbarimg`, the payload among them; on the
-emulator, as device owner with no PIN set, both actions ran through the
-activity with no crash, and *compliance* applied the hold: Chrome and the
-launcher suspended and Shinkan the home, neither so on a device owner without
-it. Those actions came from `adb root`, not from the system's provisioning,
-and the answer to the mode could not be read back. What is left needs an image
-with a setup wizard, or a real device the owner chooses to reset.
+**The stand.** No emulator image carries Google's wizard: the Play image of
+Android 37 was installed to see, and boots to the launcher with no
+`setupwizard` package. So `tools/emulator/stand.py` keeps its own AVD,
+`shinkan-stand`, wiped for each run, and plays the wizard's two parts: it
+reads the PNG `provision_qr` wrote and hands the payload on through
+`PROVISION_MANAGED_DEVICE_FROM_TRUSTED_SOURCE`, and it sends
+`PROVISION_FINALIZATION` at the end. All between is the system's own
+`managedprovisioning`. It is never a real device.
+
+**Proved on it, 2026-11-04.** From a wipe, the code read back, the system
+fetched the APK, verified its checksum, installed it, asked the mode, made it
+the device owner and asked compliance: the tunnel up, restrictions set, Chrome
+and the launcher suspended, Shinkan's PIN page on top, on both runs. With the PIN set the device came back from a reboot held, on the home.
+Control: a code with a wrong checksum ended at "Can't set up device" with
+"Provided hash does not match file hash", nothing installed, no owner. The
+debug APK, served over http; a release's `https` address and the release
+build were not run.
+
+**What the stand found.** The payload lacked `ALLOW_OFFLINE`: the update of the
+provisioning role holder failed and the setup stopped at "Can't set up device".
+Added. The earlier refusal, "even a bare component name", came from a test
+that passed the component as a string where the system takes a
+`ComponentName`, and says nothing of the platform.
+
+**Not proved.** Google's part: the six taps, its camera reading the code, how it
+types the payload, and the provisioning role holder of a device with Play
+services, which takes the flow over where it is installed and up to date. The
+code is read by `zbarimg`, not a camera. 33 codes of versions 1 to 38 read back
+by it. These stay unrun; the owner's word of 2026-11-04 is that no real device
+is reset for this.
 
 ### 10. Release 1.0 [§11]
 

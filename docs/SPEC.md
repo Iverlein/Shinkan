@@ -85,14 +85,18 @@ on the device, by design, so the child cannot use it either.
 Tapping the welcome screen six times opens the QR provisioning flow, which
 downloads the APK from a URL and verifies its checksum. ROADMAP block 9.
 `tools/provision_qr.py` writes the code from a release's address and SHA-256:
-the receiver, the address, the checksum (URL-safe base64, no padding) and
+the receiver, the address, the checksum (URL-safe base64, no padding),
 `LEAVE_ALL_SYSTEM_APPS_ENABLED`, without which the setup disables the system
-apps the open device keeps. From Android 12 the system also asks the app which
+apps the open device keeps, and `ALLOW_OFFLINE`, without which a failed update
+of the system's provisioning role holder ends the setup at "Can't set up
+device". From Android 12 the system also asks the app which
 mode it takes (`ACTION_GET_PROVISIONING_MODE`, answered
 `PROVISIONING_MODE_FULLY_MANAGED_DEVICE`) and hands over at the end
 (`ACTION_ADMIN_POLICY_COMPLIANCE`, which applies the hold); both are
-`ProvisioningActivity`, open only to `BIND_DEVICE_ADMIN`. The whole flow has
-not been run: see ROADMAP block 9.
+`ProvisioningActivity`, open only to `BIND_DEVICE_ADMIN`. The flow from the
+code to the hold is run on the stand of `tools/emulator/stand.py`; Google's
+wizard itself is on no emulator image, so the six taps and its camera are
+unrun: see ROADMAP block 9.
 
 ### 3.3 What a device owner is not
 

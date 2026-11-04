@@ -31,7 +31,7 @@ by hand before working there:
 | `app/` | Compose UI, package `shinkan.app`, application id `io.github.iverlein.shinkan`. `admin/`: `ShinkanAdmin` the device admin receiver, `DeviceHold` the policy applied through `DevicePolicyManager`, `PolicyStore`, `ReapplyReceiver`. `filter/`: `FilterService` the VPN, `Relay` its TCP, `BlocklistStore`, `ShareActivity` the share target. `ui/`: the pages of SPEC §8. `LauncherIcon`: the alias switch for the icon of SPEC §8.5, drawn in `res/drawable/icon_*.xml`. Interface text in `res/values/strings.xml`. |
 | `fastlane/metadata/android/` | F-Droid store listing per language. |
 | `docs/` | `SPEC.md`, `ROADMAP.md`; `fdroid/` the recipe once submitted. |
-| `tools/` | Python only. `emulator/`: `emulator.py`, the emulator tool, and its README with the traps and the checks of SPEC §10. `blocklist/refresh.py`: the built-in block list fetched into `app/src/main/assets/blocklist/` before a release. `provision_qr.py`: the QR code of SPEC §3.2, with `test_provision_qr.py`. |
+| `tools/` | Python only. `emulator/`: `emulator.py`, the emulator tool, `stand.py`, the stand of the QR flow, and their README with the traps and the checks of SPEC §10. `blocklist/refresh.py`: the built-in block list fetched into `app/src/main/assets/blocklist/` before a release. `provision_qr.py`: the QR code of SPEC §3.2, with `test_provision_qr.py`. |
 
 ## Commands
 
@@ -55,6 +55,10 @@ python3 tools/emulator/emulator.py type --field 1 --clear - < policy.txt   # lin
 python3 tools/emulator/emulator.py ctap 540 1786 # a tap through the console, for the release whose hold cuts adb
 python3 tools/emulator/emulator.py store policy plan.txt   # the beta's policy (or blocklist, or plan state) written, the app restarted
 python3 tools/emulator/emulator.py stop          # quit; nothing is saved
+python3 tools/emulator/stand.py create           # the AVD shinkan-stand, for the QR flow alone
+python3 tools/emulator/stand.py reset            # wipe it and mark setup not finished
+python3 tools/emulator/stand.py flow             # the QR flow from the code to the hold, checked (--apk, --package)
+python3 tools/emulator/stand.py stop
 ```
 
 The toolchain on MONOLITH (JDK 21, SDK in `~/Android/Sdk`) is in
@@ -64,7 +68,9 @@ removed only by the app itself or a factory reset. The emulator for this
 project is `shinkan-test` (Pixel 8, `system-images;android-37.0;google_apis;x86_64`,
 no Play; created 2026-11-01, its clean boot saved as the snapshot `clean`,
 which `restore` loads); never `zanshin-test`, which belongs to another
-project. `tools/emulator/README.md` holds the traps and the checklist.
+project. `shinkan-stand` is the second AVD, of the same image: wiped for every run of
+the QR flow, on `emulator-5560`, for nothing else.
+`tools/emulator/README.md` holds the traps and the checklist.
 
 ## One worktree per session
 

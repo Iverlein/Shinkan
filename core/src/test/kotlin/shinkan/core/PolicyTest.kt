@@ -230,6 +230,13 @@ class PolicyTest {
         assertTrue(policy.pinnedAt(now.plusHours(3), resting))
     }
 
+    @Test fun `the device ceiling is the open device's alone`() {
+        val volumes = mapOf(Door.DEVICE to 30, Door.PLAYER to 20)
+        assertEquals(30, Policy(mode = Mode.OPEN, volumes = volumes).deviceCeiling)
+        assertEquals(null, Policy(mode = Mode.CLOSED, volumes = volumes).deviceCeiling)
+        assertEquals(null, Policy(mode = Mode.OPEN).deviceCeiling)
+    }
+
     @Test fun `the closed device is always pinned`() {
         assertTrue(Policy().pinnedAt(LocalDateTime.of(2026, 11, 4, 15, 0)))
     }

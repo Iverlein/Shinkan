@@ -33,4 +33,11 @@ class VolumeTest {
         assertEquals(3, Volume.opening(3, 25, 20))
         assertEquals(12, Volume.opening(12, 25, null))
     }
+
+    @Test fun `a clamp takes a stream above the ceiling down and leaves one below`() {
+        assertEquals(4, Volume.opening(12, 15, 30))
+        assertEquals(4, Volume.opening(5, 15, 30))
+        assertEquals(4, Volume.opening(4, 15, 30))
+        assertEquals(2, Volume.opening(2, 15, 30))
+    }
 }

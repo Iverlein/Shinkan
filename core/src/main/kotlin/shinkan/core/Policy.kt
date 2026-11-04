@@ -192,6 +192,9 @@ data class Policy(
     fun pinnedAt(now: LocalDateTime, state: PlanState = PlanState()): Boolean =
         mode == Mode.CLOSED || resolve(now, state).resting
 
+    /** The ceiling of the whole device in percent (SPEC §4.6): the open device's alone, a `volume device` line means nothing on the closed one. */
+    val deviceCeiling: Int? get() = volumes[Door.DEVICE].takeIf { mode == Mode.OPEN }
+
     /** The apps closed at [now], sorted, each with when it next opens: what the open device's home lists (SPEC §8.1). */
     fun closedApps(now: LocalDateTime): List<ClosedApp> =
         closedPackagesAt(now).sorted().map { pkg ->

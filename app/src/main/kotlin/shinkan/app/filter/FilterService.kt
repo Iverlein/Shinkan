@@ -14,6 +14,7 @@ import android.util.Log
 import io.github.iverlein.shinkan.BuildConfig
 import io.github.iverlein.shinkan.R
 import shinkan.app.MainActivity
+import shinkan.app.plan.DeviceVolume
 import shinkan.app.plan.PlanClock
 import shinkan.core.net.Blocklist
 import shinkan.core.net.DnsQuestion
@@ -40,11 +41,13 @@ class FilterService : VpnService() {
     private val upstreams = Executors.newCachedThreadPool()
     private val blocklist = AtomicReference(Blocklist())
     private val screen = PlanClock.Screen()
+    private val volume = DeviceVolume()
 
-    /** The screen's broadcasts for the day plan's counter, for as long as the filter runs (SPEC §4.7). */
+    /** The screen's broadcasts for the day plan's counter (SPEC §4.7) and the volume's for the device ceiling (§4.6), for as long as the filter runs. */
     override fun onCreate() {
         super.onCreate()
         registerReceiver(screen, PlanClock.Screen.filter, RECEIVER_NOT_EXPORTED)
+        registerReceiver(volume, DeviceVolume.filter, RECEIVER_NOT_EXPORTED)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -152,6 +155,7 @@ class FilterService : VpnService() {
 
     override fun onDestroy() {
         unregisterReceiver(screen)
+        unregisterReceiver(volume)
         worker?.interrupt()
         tun?.close()
         tun = null

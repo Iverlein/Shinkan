@@ -13,6 +13,7 @@ import io.github.iverlein.shinkan.BuildConfig
 import shinkan.app.MainActivity
 import shinkan.app.filter.BlocklistStore
 import shinkan.app.filter.FilterService
+import shinkan.app.plan.DeviceVolume
 import shinkan.app.plan.PlanClock
 import shinkan.core.Mode
 import shinkan.core.PlanState
@@ -52,6 +53,7 @@ class DeviceHold(private val context: Context) {
         scheduleNext(policy, state, now)
         PlanClock.refresh(context)
         PlanClock.watch(context)
+        DeviceVolume.clamp(context)
         // A rest takes the screen, and takes it back on every application: the screen coming on, a boot (SPEC §4.7).
         if (policy.mode == Mode.OPEN && policy.pinnedAt(now, state)) {
             context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

@@ -44,6 +44,7 @@
     <string name="player_start">Search for a video.</string>
     <string name="player_no_allowed">No creator is allowed yet. A parent adds them on the door or by sharing a channel to Shinkan.</string>
     <string name="player_no_recent">The creators of the videos you watch show here.</string>
+    <string name="player_nothing">Nothing found. Try other words.</string>
     <string name="player_error">The platform did not answer. Try again.</string>
     <string name="player_more">Show more</string>
     <string name="player_more_failed">The platform did not answer. Tap to try again.</string>
@@ -268,4 +269,22 @@
     <string name="text_reset">Back to the policy</string>
     <string name="text_used">Read. Apply it on the door.</string>
     <string name="text_malformed">Line %1$d: %2$s</string>
+    <string name="section_segments">Video segments</string>
+    <string name="summary_segments_off">None skipped</string>
+    <string name="segments_intro">The player skips the parts of a video that people have marked, from SponsorBlock\'s community data. It asks once per video, by a short hash that many videos share.</string>
+    <string name="segment_sponsor">Sponsors</string>
+    <string name="segment_selfpromo">Self-promotion</string>
+    <string name="segment_interaction">Requests to subscribe or like</string>
+    <string name="segment_intro">Intros</string>
+    <string name="segment_outro">Endcards and credits</string>
+    <string name="segment_preview">Previews and recaps</string>
+    <string name="segment_music_offtopic">Non-music parts of music videos</string>
+    <string name="segment_filler">Filler and tangents</string>
+    <string name="segments_mirror">A mirror to ask instead (empty: the public server)</string>
+    <string name="segments_mirror_wrong">A mirror is a web address with https:// and no query.</string>
+    <string name="segments_mirror_save">Save the mirror</string>
+    <string name="segments_mirror_saved">Saved.</string>
+    <string name="segments_credit">Data from SponsorBlock (sponsor.ajay.app), CC BY-NC-SA 4.0.</string>
+    <string name="player_segments_credit">Segments skipped with SponsorBlock data, CC BY-NC-SA 4.0.</string>
+    <string name="player_segments_failed">The segments could not be fetched; this video plays without skips.</string>
 </resources>

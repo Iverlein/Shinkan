@@ -63,6 +63,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.ui.PlayerView
+import io.github.iverlein.shinkan.BuildConfig
 import io.github.iverlein.shinkan.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,8 +80,11 @@ import shinkan.app.player.Images
 import shinkan.app.player.Media
 import shinkan.app.player.Pages
 import shinkan.app.player.PlayerHistory
+import shinkan.app.player.SponsorBlock
 import shinkan.core.net.History
 import shinkan.core.net.Quality
+import shinkan.core.net.Segment
+import shinkan.core.net.Segments
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -142,6 +146,7 @@ fun PlayerPage(onClose: () -> Unit) {
     var allowed by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     val failed = stringResource(R.string.player_error)
+    val nothing = stringResource(R.string.player_nothing)
     val noStream = stringResource(R.string.player_no_stream)
     val blocked = stringResource(R.string.player_blocked)
 
@@ -182,6 +187,31 @@ fun PlayerPage(onClose: () -> Unit) {
     }
     val view = remember { PlayerView(context).apply { this.player = player } }
     DisposableEffect(Unit) { onDispose { player.release() } }
+
+    // The video's segments (SPEC §7.5): asked for once as it opens, the video playing meanwhile.
+    var segments by remember { mutableStateOf<List<Segment>>(emptyList()) }
+    var segmentsFailed by remember { mutableStateOf(false) }
+    val videoId = stream?.id
+    LaunchedEffect(videoId) {
+        segments = emptyList()
+        segmentsFailed = false
+        if (videoId == null) return@LaunchedEffect
+        val found = withContext(Dispatchers.IO) { runCatching { SponsorBlock.fetch(context, videoId) } }
+        segments = found.getOrDefault(emptyList())
+        segmentsFailed = found.isFailure
+    }
+    LaunchedEffect(segments) {
+        if (segments.isEmpty()) return@LaunchedEffect
+        while (true) {
+            if (player.isPlaying) {
+                Segments.skipTo(player.currentPosition, segments)?.let {
+                    if (BuildConfig.DEBUG) android.util.Log.d("SponsorBlock", "skipped ${player.currentPosition} to $it")
+                    player.seekTo(it)
+                }
+            }
+            delay(200)
+        }
+    }
 
     /** Where the playing video stands, written into the history (SPEC §7.1). */
     fun keepPlace() {
@@ -253,6 +283,8 @@ fun PlayerPage(onClose: () -> Unit) {
             error = null
             try {
                 block()
+            } catch (e: org.schabi.newpipe.extractor.search.SearchExtractor.NothingFoundException) {
+                error = nothing
             } catch (e: Exception) {
                 if (io.github.iverlein.shinkan.BuildConfig.DEBUG) android.util.Log.w("Player", "failed: $e", e)
                 error = failed
@@ -491,6 +523,10 @@ fun PlayerPage(onClose: () -> Unit) {
                                         }
                                     }
                                 }
+                            }
+                            when {
+                                segmentsFailed -> Text(stringResource(R.string.player_segments_failed), style = MaterialTheme.typography.bodySmall)
+                                segments.isNotEmpty() -> Text(stringResource(R.string.player_segments_credit), style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }

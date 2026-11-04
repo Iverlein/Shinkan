@@ -45,6 +45,7 @@
     <string name="player_start">Найдите видео.</string>
     <string name="player_no_allowed">Ни один автор пока не разрешён. Родитель добавляет их в разделе для родителей или поделившись каналом с Shinkan.</string>
     <string name="player_no_recent">Здесь появятся авторы видео, которые вы смотрите.</string>
+    <string name="player_nothing">Ничего не найдено. Попробуйте другие слова.</string>
     <string name="player_error">Платформа не ответила. Попробуйте ещё раз.</string>
     <string name="player_more">Показать ещё</string>
     <string name="player_more_failed">Платформа не ответила. Нажмите, чтобы повторить.</string>
@@ -272,4 +273,22 @@
     <string name="text_reset">Вернуть правила</string>
     <string name="text_used">Прочитано. Примените на странице для родителей.</string>
     <string name="text_malformed">Строка %1$d: %2$s</string>
+    <string name="section_segments">Фрагменты видео</string>
+    <string name="summary_segments_off">Ничего не пропускается</string>
+    <string name="segments_intro">Плеер пропускает части видео, отмеченные людьми, по общим данным SponsorBlock. Запрос идёт один раз на видео, по короткому хешу, общему для многих видео.</string>
+    <string name="segment_sponsor">Спонсоры</string>
+    <string name="segment_selfpromo">Самореклама</string>
+    <string name="segment_interaction">Просьбы подписаться или поставить лайк</string>
+    <string name="segment_intro">Вступления</string>
+    <string name="segment_outro">Концовки и титры</string>
+    <string name="segment_preview">Анонсы и пересказы</string>
+    <string name="segment_music_offtopic">Немузыкальные части клипов</string>
+    <string name="segment_filler">Отступления от темы</string>
+    <string name="segments_mirror">Зеркало вместо общего сервера (пусто: общий сервер)</string>
+    <string name="segments_mirror_wrong">Зеркало — это веб-адрес с https:// без параметров запроса.</string>
+    <string name="segments_mirror_save">Сохранить зеркало</string>
+    <string name="segments_mirror_saved">Сохранено.</string>
+    <string name="segments_credit">Данные SponsorBlock (sponsor.ajay.app), CC BY-NC-SA 4.0.</string>
+    <string name="player_segments_credit">Фрагменты пропущены по данным SponsorBlock, CC BY-NC-SA 4.0.</string>
+    <string name="player_segments_failed">Не удалось получить фрагменты; видео идёт без пропусков.</string>
 </resources>

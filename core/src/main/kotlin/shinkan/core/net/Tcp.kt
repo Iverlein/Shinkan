@@ -141,13 +141,16 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
     private var lastActivity = now
     private var repeats = 0
 
+    /** The window last told to the device: what the far side's writes leave room for. */
+    private var advertised = WINDOW
+
     val closed: Boolean get() = state == State.CLOSED
 
     /** How many bytes of the far side's may be taken now. */
     val room: Int get() = if (finWanted || closed) 0 else maxOf(0, BUFFER - queued)
 
     private fun segment(seq: Long, flags: Int, payload: ByteArray = ByteArray(0), mss: Int? = null) =
-        Tcp4.build(local, remote, localPort, remotePort, seq, clientNext, flags, WINDOW, payload, mss)
+        Tcp4.build(local, remote, localPort, remotePort, seq, clientNext, flags, advertised, payload, mss)
 
     /** The far side answered: the device gets its SYN ACK. */
     fun connected(): Step {
@@ -217,10 +220,12 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
     }
 
     /**
-     * A segment from the device. [accept] is false while the far side's writes lag:
-     * new data is then left unacknowledged, to come again.
+     * A segment from the device. [free] is the room left for writes to the far side:
+     * the window told to the device follows it, so the device slows down by itself.
+     * Data past it, which a device keeping to its window does not send, is left
+     * unacknowledged to come again.
      */
-    fun segment(t: Tcp4, accept: Boolean = true, at: Long = now): Step {
+    fun segment(t: Tcp4, free: Int = WINDOW, at: Long = now): Step {
         now = at
         lastActivity = at
         if (closed) return Step(close = true)
@@ -232,6 +237,8 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
         if (state == State.CONNECTING) return Step()
         val out = mutableListOf<ByteArray>()
         if (t.has(Tcp4.ACK)) acknowledged(t, out)
+        val accept = t.payload.size <= free
+        advertised = minOf(WINDOW, maxOf(0, free - t.payload.size))
 
         var write: ByteArray? = null
         var shutdown = false
@@ -270,6 +277,17 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
             val first = sent.first()
             out += segment(first.seq, Tcp4.ACK or Tcp4.PSH, first.data)
         }
+    }
+
+    /**
+     * The far side's writes caught up, with [free] the room now. A device told of a
+     * small window is told of the larger one; otherwise its next segment carries it.
+     */
+    fun drained(free: Int): Step {
+        val window = minOf(WINDOW, free)
+        if (closed || state != State.OPEN || advertised >= MSS * 4 || window < MSS * 4) return Step()
+        advertised = window
+        return Step(listOf(segment(sendNext, Tcp4.ACK)))
     }
 
     /** Time passing: what was sent and not acknowledged goes again; a long silence ends the flow. */

@@ -90,13 +90,31 @@ class TcpTest {
         assertEquals(1004L, read(step).single().ack)
     }
 
-    @Test fun `data the far side cannot take yet waits to come again`() {
+    @Test fun `data past the room left waits to come again`() {
         val flow = open()
         val data = from(1001, isn + 1, Tcp4.ACK or Tcp4.PSH, "abc".toByteArray())
-        val held = flow.segment(data, accept = false)
+        val held = flow.segment(data, free = 2)
         assertNull(held.write)
         assertTrue(held.packets.isEmpty())
         assertArrayEquals("abc".toByteArray(), flow.segment(data).write)
+    }
+
+    @Test fun `the window told to the device follows the room left`() {
+        val flow = open()
+        val ack = read(flow.segment(from(1001, isn + 1, Tcp4.ACK, ByteArray(1000)), free = 3000)).single()
+        assertEquals(2000, ack.window)
+        assertEquals(TcpFlow.WINDOW, read(flow.segment(from(2001, isn + 1, Tcp4.ACK, ByteArray(1000)), free = 200_000)).single().window)
+    }
+
+    @Test fun `a window closed is opened by the writes catching up`() {
+        val flow = open()
+        val closed = read(flow.segment(from(1001, isn + 1, Tcp4.ACK, ByteArray(1000)), free = 1000)).single()
+        assertEquals(0, closed.window)
+        assertTrue(flow.drained(TcpFlow.MSS).packets.isEmpty())
+        val update = read(flow.drained(100_000)).single()
+        assertEquals(TcpFlow.WINDOW, update.window)
+        assertEquals(2001L, update.ack)
+        assertTrue(flow.drained(100_000).packets.isEmpty())
     }
 
     @Test fun `data sent again is not written again`() {

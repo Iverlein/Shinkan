@@ -66,7 +66,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 7b | The open device: `device` stages and the pinned rest page | done 2026-11-04 |
 | 7c | The open device: the device ceiling by clamp | done 2026-11-04 |
 | 8 | Permissions of the usable apps | done 2026-11-04 |
-| 9 | QR provisioning | |
+| 9 | QR provisioning | built 2026-11-04, the flow itself not run on any device: *Done when* still open |
 | 10 | Release 1.0 | done 2026-11-02: tags `v1.0`, then `v1.0.1` with the two fixes of the release check |
 | 11a | The tunnel: all routes through a userspace TCP relay | |
 | 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | |
@@ -864,6 +864,27 @@ the QR path beside the adb one.
 **Done when.** A factory-reset emulator provisioned by the QR flow (six
 taps on the welcome screen) ends on Shinkan's setup page with the hold
 applied.
+
+**As built.** `tools/provision_qr.py`, the encoder included, byte mode at
+level M; `tools/test_provision_qr.py` reads its codes back with `zbarimg`.
+`admin/ProvisioningActivity`, not in this block's first text: from Android 12
+provisioning needs the app's two answers. The setup page names the QR way.
+
+**Not proved.** `shinkan-test` has no setup wizard (no Play), so there is no
+welcome screen to tap. `managedprovisioning` is there, but
+`PROVISION_MANAGED_DEVICE_FROM_TRUSTED_SOURCE`, the action a wizard's QR
+reader ends in, started with `adb root` on a device marked unprovisioned,
+says "Can't set up device" (`Invalid parameter found!`) for a bare component
+name as for the whole payload, so the failure says nothing of the payload.
+The camera, the download, the checksum and the system's calls into
+`ProvisioningActivity` are all unrun. Checked instead, 2026-11-04: 33 codes
+of versions 1 to 38 read back by `zbarimg`, the payload among them; on the
+emulator, as device owner with no PIN set, both actions ran through the
+activity with no crash, and *compliance* applied the hold: Chrome and the
+launcher suspended and Shinkan the home, neither so on a device owner without
+it. Those actions came from `adb root`, not from the system's provisioning,
+and the answer to the mode could not be read back. What is left needs an image
+with a setup wizard, or a real device the owner chooses to reset.
 
 ### 10. Release 1.0 [§11]
 

@@ -84,6 +84,15 @@ on the device, by design, so the child cannot use it either.
 
 Tapping the welcome screen six times opens the QR provisioning flow, which
 downloads the APK from a URL and verifies its checksum. ROADMAP block 9.
+`tools/provision_qr.py` writes the code from a release's address and SHA-256:
+the receiver, the address, the checksum (URL-safe base64, no padding) and
+`LEAVE_ALL_SYSTEM_APPS_ENABLED`, without which the setup disables the system
+apps the open device keeps. From Android 12 the system also asks the app which
+mode it takes (`ACTION_GET_PROVISIONING_MODE`, answered
+`PROVISIONING_MODE_FULLY_MANAGED_DEVICE`) and hands over at the end
+(`ACTION_ADMIN_POLICY_COMPLIANCE`, which applies the hold); both are
+`ProvisioningActivity`, open only to `BIND_DEVICE_ADMIN`. The whole flow has
+not been run: see ROADMAP block 9.
 
 ### 3.3 What a device owner is not
 
@@ -706,8 +715,8 @@ door left open is never found open by the child.
 
 ### 8.3 Setup
 
-Shown while Shinkan is not device owner: the adb command of §3.1 and what
-follows. Once held, the first opening asks for the PIN to be set and for the
+Shown while Shinkan is not device owner: the adb command of §3.1, what
+follows, and the QR way of §3.2. Once held, the first opening asks for the PIN to be set and for the
 form: the closed device needs nothing more; the open device lists every
 launchable package, none closed.
 

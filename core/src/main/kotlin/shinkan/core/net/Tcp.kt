@@ -2,8 +2,8 @@ package shinkan.core.net
 
 import java.nio.ByteBuffer
 
-/** An IPv4/TCP segment as the tun device hands it (SPEC §5.2). Sequence numbers are unsigned, in a Long. */
-class Tcp4(
+/** A TCP segment as the tun device hands it (SPEC §5.2), over IPv4 or IPv6. Sequence numbers are unsigned, in a Long. */
+class TcpSegment(
     val src: ByteArray,
     val dst: ByteArray,
     val srcPort: Int,
@@ -35,13 +35,14 @@ class Tcp4(
         const val PSH = 8
         const val ACK = 16
 
-        /** The segment in [packet], or null when it is not IPv4/TCP or is truncated. */
-        fun parse(packet: ByteArray, length: Int = packet.size): Tcp4? {
-            if (length < 40 || (packet[0].toInt() shr 4) and 0xf != 4 || packet[9].toInt() != 6) return null
-            val ihl = (packet[0].toInt() and 0xf) * 4
-            if (length < ihl + 20) return null
+        /** The segment in [packet], or null when it is not TCP or is truncated. */
+        fun parse(packet: ByteArray, length: Int = packet.size): TcpSegment? {
+            val ipPacket = IpPacket.parse(packet, length) ?: return null
+            if (ipPacket.protocol != IpPacket.TCP) return null
+            val ihl = ipPacket.start
+            val end = ipPacket.end
+            if (end < ihl + 20) return null
             val b = ByteBuffer.wrap(packet, 0, length)
-            val end = minOf(b.getShort(2).toInt() and 0xffff, length)
             val offset = ((packet[ihl + 12].toInt() shr 4) and 0xf) * 4
             if (offset < 20 || end < ihl + offset) return null
             var mss: Int? = null
@@ -59,8 +60,8 @@ class Tcp4(
                     }
                 }
             }
-            return Tcp4(
-                packet.copyOfRange(12, 16), packet.copyOfRange(16, 20),
+            return TcpSegment(
+                ipPacket.src, ipPacket.dst,
                 b.getShort(ihl).toInt() and 0xffff, b.getShort(ihl + 2).toInt() and 0xffff,
                 b.getInt(ihl + 4).toLong() and 0xffffffffL, b.getInt(ihl + 8).toLong() and 0xffffffffL,
                 packet[ihl + 13].toInt() and 0x3f, b.getShort(ihl + 14).toInt() and 0xffff,
@@ -75,24 +76,18 @@ class Tcp4(
         ): ByteArray {
             val tcpHeader = if (mss == null) 20 else 24
             val tcpLength = tcpHeader + payload.size
-            val total = 20 + tcpLength
-            val p = ByteBuffer.allocate(total)
-            p.put(0x45).put(0).putShort(total.toShort()).putShort(0).putShort(0x4000.toShort())
-                .put(64).put(6).putShort(0).put(src).put(dst)
+            val header = IpPacket.headerSize(src)
+            val p = ByteBuffer.allocate(header + tcpLength)
+            IpPacket.build(p, src, dst, IpPacket.TCP, tcpLength)
             p.putShort(srcPort.toShort()).putShort(dstPort.toShort()).putInt(seq.toInt()).putInt(ack.toInt())
                 .put(((tcpHeader / 4) shl 4).toByte()).put(flags.toByte()).putShort(window.toShort()).putShort(0).putShort(0)
             if (mss != null) p.put(2).put(4).putShort(mss.toShort())
             p.put(payload)
             val bytes = p.array()
-            val ipSum = Checksum.of(bytes, 0, 20)
-            bytes[10] = (ipSum shr 8).toByte()
-            bytes[11] = ipSum.toByte()
             // The pseudo header's sum is carried in, so the segment is not copied to be summed.
-            var pseudo = 6L + tcpLength
-            for (i in 12 until 20 step 2) pseudo += ((bytes[i].toInt() and 0xff) shl 8) or (bytes[i + 1].toInt() and 0xff)
-            val sum = Checksum.of(bytes, 20, tcpLength, pseudo)
-            bytes[36] = (sum shr 8).toByte()
-            bytes[37] = sum.toByte()
+            val sum = Checksum.of(bytes, header, tcpLength, IpPacket.pseudoSum(src, dst, IpPacket.TCP, tcpLength))
+            bytes[header + 16] = (sum shr 8).toByte()
+            bytes[header + 17] = sum.toByte()
             return bytes
         }
 
@@ -107,7 +102,7 @@ class Tcp4(
  * order and are rarely lost, so this is TCP in its plainest form: no options but the
  * MSS, no window scaling, a segment out of order dropped and asked for again.
  */
-class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
+class TcpFlow(syn: TcpSegment, isn: Long, private var now: Long = 0) {
     /** What follows a call: [packets] for the tunnel, [write] for the far side, then a half or a whole close. */
     class Step(
         val packets: List<ByteArray> = emptyList(),
@@ -150,7 +145,7 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
     val room: Int get() = if (finWanted || closed) 0 else maxOf(0, BUFFER - queued)
 
     private fun segment(seq: Long, flags: Int, payload: ByteArray = ByteArray(0), mss: Int? = null) =
-        Tcp4.build(local, remote, localPort, remotePort, seq, clientNext, flags, advertised, payload, mss)
+        TcpSegment.build(local, remote, localPort, remotePort, seq, clientNext, flags, advertised, payload, mss)
 
     /** The far side answered: the device gets its SYN ACK. */
     fun connected(): Step {
@@ -159,13 +154,13 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
         return Step(listOf(synAck()))
     }
 
-    private fun synAck() = segment(isn, Tcp4.SYN or Tcp4.ACK, mss = MSS)
+    private fun synAck() = segment(isn, TcpSegment.SYN or TcpSegment.ACK, mss = MSS)
 
     /** The far side refused or failed: the device gets a reset. */
     fun failed(): Step {
         val wasOpen = !closed
         state = State.CLOSED
-        return Step(if (wasOpen) listOf(segment(sendNext, Tcp4.RST or Tcp4.ACK)) else emptyList(), close = true)
+        return Step(if (wasOpen) listOf(segment(sendNext, TcpSegment.RST or TcpSegment.ACK)) else emptyList(), close = true)
     }
 
     /** [data] came from the far side. */
@@ -199,12 +194,12 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
             val data = waiting.removeFirst()
             if (sent.isEmpty()) lastProgress = now
             sent.addLast(Chunk(sendNext, data))
-            out += segment(sendNext, Tcp4.ACK or Tcp4.PSH, data)
+            out += segment(sendNext, TcpSegment.ACK or TcpSegment.PSH, data)
             sendNext = (sendNext + data.size) and MASK
         }
         if (finWanted && waiting.isEmpty() && finSeq == null) {
             finSeq = sendNext
-            out += segment(sendNext, Tcp4.FIN or Tcp4.ACK)
+            out += segment(sendNext, TcpSegment.FIN or TcpSegment.ACK)
             sendNext = (sendNext + 1) and MASK
         }
         return out
@@ -225,18 +220,18 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
      * Data past it, which a device keeping to its window does not send, is left
      * unacknowledged to come again.
      */
-    fun segment(t: Tcp4, free: Int = WINDOW, at: Long = now): Step {
+    fun segment(t: TcpSegment, free: Int = WINDOW, at: Long = now): Step {
         now = at
         lastActivity = at
         if (closed) return Step(close = true)
-        if (t.has(Tcp4.RST)) {
+        if (t.has(TcpSegment.RST)) {
             state = State.CLOSED
             return Step(close = true)
         }
-        if (t.has(Tcp4.SYN)) return Step(if (state == State.OPENING) listOf(synAck()) else emptyList())
+        if (t.has(TcpSegment.SYN)) return Step(if (state == State.OPENING) listOf(synAck()) else emptyList())
         if (state == State.CONNECTING) return Step()
         val out = mutableListOf<ByteArray>()
-        if (t.has(Tcp4.ACK)) acknowledged(t, out)
+        if (t.has(TcpSegment.ACK)) acknowledged(t, out)
         val accept = t.payload.size <= free
         advertised = minOf(WINDOW, maxOf(0, free - t.payload.size))
 
@@ -249,19 +244,19 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
                 write = if (offset == 0) t.payload else t.payload.copyOfRange(offset, t.payload.size)
                 clientNext = (clientNext + fresh) and MASK
             }
-            if (accept) out += segment(sendNext, Tcp4.ACK)
+            if (accept) out += segment(sendNext, TcpSegment.ACK)
         }
-        if (t.has(Tcp4.FIN) && !clientFin && diff((t.seq + t.payload.size) and MASK, clientNext) == 0) {
+        if (t.has(TcpSegment.FIN) && !clientFin && diff((t.seq + t.payload.size) and MASK, clientNext) == 0) {
             clientNext = (clientNext + 1) and MASK
             clientFin = true
             shutdown = true
-            out += segment(sendNext, Tcp4.ACK)
+            out += segment(sendNext, TcpSegment.ACK)
         }
         out += flush()
         return finish(out, write, shutdown)
     }
 
-    private fun acknowledged(t: Tcp4, out: MutableList<ByteArray>) {
+    private fun acknowledged(t: TcpSegment, out: MutableList<ByteArray>) {
         clientWindow = t.window
         val advance = diff(t.ack, acked)
         if (state == State.OPENING && diff(t.ack, sendNext) == 0) state = State.OPEN
@@ -275,7 +270,7 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
         } else if (advance == 0 && t.payload.isEmpty() && sent.isNotEmpty() && ++repeats == 3) {
             // Three of the same: the first unacknowledged segment was lost.
             val first = sent.first()
-            out += segment(first.seq, Tcp4.ACK or Tcp4.PSH, first.data)
+            out += segment(first.seq, TcpSegment.ACK or TcpSegment.PSH, first.data)
         }
     }
 
@@ -287,7 +282,7 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
         val window = minOf(WINDOW, free)
         if (closed || state != State.OPEN || advertised >= MSS * 4 || window < MSS * 4) return Step()
         advertised = window
-        return Step(listOf(segment(sendNext, Tcp4.ACK)))
+        return Step(listOf(segment(sendNext, TcpSegment.ACK)))
     }
 
     /** Time passing: what was sent and not acknowledged goes again; a long silence ends the flow. */
@@ -296,12 +291,12 @@ class TcpFlow(syn: Tcp4, isn: Long, private var now: Long = 0) {
         if (closed) return Step(close = true)
         if (at - lastActivity > IDLE_MS) {
             state = State.CLOSED
-            return Step(listOf(segment(sendNext, Tcp4.RST or Tcp4.ACK)), close = true)
+            return Step(listOf(segment(sendNext, TcpSegment.RST or TcpSegment.ACK)), close = true)
         }
         if (state == State.OPEN && (sent.isNotEmpty() || unackedFin()) && at - lastProgress >= RESEND_MS) {
             lastProgress = at
-            val out = sent.map { segment(it.seq, Tcp4.ACK or Tcp4.PSH, it.data) }.toMutableList()
-            finSeq?.takeIf { unackedFin() }?.let { out += segment(it, Tcp4.FIN or Tcp4.ACK) }
+            val out = sent.map { segment(it.seq, TcpSegment.ACK or TcpSegment.PSH, it.data) }.toMutableList()
+            finSeq?.takeIf { unackedFin() }?.let { out += segment(it, TcpSegment.FIN or TcpSegment.ACK) }
             return Step(out)
         }
         return Step()

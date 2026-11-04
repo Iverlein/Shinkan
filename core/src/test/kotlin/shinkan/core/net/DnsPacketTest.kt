@@ -45,13 +45,13 @@ class DnsPacketTest {
 
     @Test fun `a built datagram parses back and verifies`() {
         val src = byteArrayOf(10, 111, 0, 2); val dst = byteArrayOf(10, 111, 0, 1)
-        val bytes = Udp4.build(src, dst, 53, 40000, query)
-        val u = Udp4.parse(bytes)!!
+        val bytes = UdpDatagram.build(src, dst, 53, 40000, query)
+        val u = UdpDatagram.parse(bytes)!!
         assertArrayEquals(src, u.src); assertArrayEquals(dst, u.dst)
         assertEquals(53, u.srcPort); assertEquals(40000, u.dstPort)
         assertArrayEquals(query, u.payload)
         assertEquals(0, Checksum.of(bytes, 0, 20))   // a header with its checksum sums to zero
-        assertNull(Udp4.parse(bytes.copyOf(20)))
-        assertNull(Udp4.parse(bytes.copyOf().also { it[9] = 6 }))   // TCP
+        assertNull(UdpDatagram.parse(bytes.copyOf(20)))
+        assertNull(UdpDatagram.parse(bytes.copyOf().also { it[9] = 6 }))   // TCP
     }
 }

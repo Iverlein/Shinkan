@@ -10,7 +10,7 @@ class SeenHosts(private val limit: Int = 4096) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>) = size > limit
     }
 
-    /** Records the IPv4 addresses in the DNS [answer] as those of the name its question asked for. */
+    /** Records the addresses in the DNS [answer] as those of the name its question asked for. */
     @Synchronized
     fun learn(answer: ByteArray, name: String) {
         addresses(answer).forEach { names[key(it)] = name }
@@ -23,9 +23,10 @@ class SeenHosts(private val limit: Int = 4096) {
 
     companion object {
         private const val TYPE_A = 1
+        private const val TYPE_AAAA = 28
         private const val CLASS_IN = 1
 
-        /** The A records of a DNS response, whatever name they sit under; none when it cannot be read. */
+        /** The A and AAAA records of a DNS response, whatever name they sit under; none when it cannot be read. */
         fun addresses(message: ByteArray): List<ByteArray> {
             if (message.size < 12) return emptyList()
             fun u16(i: Int) = ((message[i].toInt() and 0xff) shl 8) or (message[i + 1].toInt() and 0xff)
@@ -45,7 +46,8 @@ class SeenHosts(private val limit: Int = 4096) {
                 val length = u16(i + 8)
                 i += 10
                 if (i + length > message.size) return out
-                if (type == TYPE_A && kind == CLASS_IN && length == 4) out += message.copyOfRange(i, i + 4)
+                val address = (type == TYPE_A && length == 4) || (type == TYPE_AAAA && length == 16)
+                if (address && kind == CLASS_IN) out += message.copyOfRange(i, i + length)
                 i += length
             }
             return out

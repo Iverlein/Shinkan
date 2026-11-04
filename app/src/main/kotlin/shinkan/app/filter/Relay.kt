@@ -159,7 +159,7 @@ class Relay(
             return
         }
         val now = SystemClock.elapsedRealtime()
-        apply(key, connection, connection.flow.segment(t, connection.pendingBytes < MAX_PENDING, now))
+        apply(key, connection, connection.flow.segment(t, MAX_PENDING - connection.pendingBytes, now))
     }
 
     /** A segment of no connection known, or a port refused: the device is told, and stops. */
@@ -196,7 +196,10 @@ class Relay(
                 connection.channel.finishConnect()
                 apply(id, connection, connection.flow.connected())
             }
-            if (key.isValid && key.isWritable) drain(connection)
+            if (key.isValid && key.isWritable) {
+                drain(connection)
+                apply(id, connection, connection.flow.drained(MAX_PENDING - connection.pendingBytes))
+            }
             if (key.isValid && key.isReadable) read(id, connection)
         } catch (e: Exception) {
             apply(id, connection, connection.flow.failed())

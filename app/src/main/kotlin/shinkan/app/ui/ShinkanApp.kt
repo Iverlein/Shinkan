@@ -197,4 +197,6 @@ private fun SetupPage(command: String) = Column(Modifier.verticalScroll(remember
     Text(command, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium)
     Spacer(Modifier.height(16.dp))
     Text(stringResource(R.string.setup_after))
+    Spacer(Modifier.height(16.dp))
+    Text(stringResource(R.string.setup_qr))
 }

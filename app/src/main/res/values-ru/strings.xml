@@ -295,4 +295,5 @@
     <string name="apps_deny_camera">Без камеры</string>
     <string name="apps_deny_microphone">Без микрофона</string>
     <string name="apps_deny_location">Без геолокации</string>
+    <string name="setup_qr">На только что сброшенном устройстве есть второй способ: шесть раз нажмите на экран приветствия и отсканируйте код, который tools/provision_qr.py делает из релиза. Shinkan скачается и сам примет устройство.</string>
 </resources>

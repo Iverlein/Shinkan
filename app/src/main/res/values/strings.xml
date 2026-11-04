@@ -291,4 +291,5 @@
     <string name="apps_deny_camera">No camera</string>
     <string name="apps_deny_microphone">No microphone</string>
     <string name="apps_deny_location">No location</string>
+    <string name="setup_qr">On a device just reset there is a second way: tap the welcome screen six times and scan the code that tools/provision_qr.py makes from a release. Shinkan is downloaded and takes the device by itself.</string>
 </resources>

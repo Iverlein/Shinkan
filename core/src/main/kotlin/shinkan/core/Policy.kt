@@ -178,6 +178,22 @@ data class Policy(
     fun closedPackagesAt(now: LocalDateTime): Set<String> =
         closed.filter { pkg -> windows.none { it.pkg == pkg && it.contains(now) } }.toSet()
 
+    /**
+     * The doors usable at [now]: on the closed device those the plan opens; on the
+     * open device, whose plan speaks of the whole screen, both of them but in a rest,
+     * which covers everything (SPEC §4.1, §4.7).
+     */
+    fun doorsAt(now: LocalDateTime, state: PlanState = PlanState()): Set<Door> = when (mode) {
+        Mode.CLOSED -> openAt(now, state)
+        Mode.OPEN -> if (resolve(now, state).resting) emptySet() else setOf(Door.BROWSER, Door.PLAYER)
+    }
+
+    /** The apps closed at [now], sorted, each with when it next opens: what the open device's home lists (SPEC §8.1). */
+    fun closedApps(now: LocalDateTime): List<ClosedApp> =
+        closedPackagesAt(now).sorted().map { pkg ->
+            ClosedApp(pkg, windows.filter { it.pkg == pkg }.mapNotNull { it.openingAfter(now) }.minOrNull())
+        }
+
     /** The plan day holding [now]: its own date, or the day before while a span of that day crosses midnight. */
     private fun currentDay(now: LocalDateTime): LocalDate? {
         val today = now.toLocalDate()
@@ -209,6 +225,9 @@ data class Policy(
             Rest.Parent -> s.copy(spent = stage.seconds, restParent = true)
         }
 }
+
+/** A package closed now, and the next start of a window of its within a week, or null when it has none. */
+data class ClosedApp(val pkg: String, val opens: LocalDateTime?)
 
 /** The two forms of the hold (SPEC §4.1). */
 enum class Mode { CLOSED, OPEN }
@@ -314,6 +333,10 @@ data class Window(
             (now.dayOfWeek in days && t >= from) || (now.dayOfWeek.minus(1) in days && t < to)
         }
     }
+
+    /** The window's next start after [now], within a week. */
+    internal fun openingAfter(now: LocalDateTime): LocalDateTime? =
+        (0L..7L).map { now.toLocalDate().plusDays(it) }.filter { it.dayOfWeek in days }.map { it.atTime(from) }.firstOrNull { it > now }
 
     /** The window's opening and closing moments in the week after [now]. */
     internal fun edgesAfter(now: LocalDateTime): List<LocalDateTime> {

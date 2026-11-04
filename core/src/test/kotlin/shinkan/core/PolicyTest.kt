@@ -165,4 +165,52 @@ class PolicyTest {
         assertThrows(PolicyText.Malformed::class.java) { PolicyText.parse("start file:///sdcard/x.html") }
         assertThrows(PolicyText.Malformed::class.java) { PolicyText.parse("start") }
     }
+
+    private val game = "com.example.game"
+
+    private fun openWith(vararg windows: Window) =
+        Policy(mode = Mode.OPEN, closed = setOf(game, "com.example.other"), windows = windows.toList())
+
+    @Test fun `a closed app says when its next window starts`() {
+        val policy = openWith(
+            Window(game, setOf(DayOfWeek.SATURDAY), LocalTime.of(10, 0), LocalTime.of(12, 0)),
+            Window(game, setOf(DayOfWeek.WEDNESDAY), LocalTime.of(16, 0), LocalTime.of(17, 0)),
+        )
+        // 2026-11-04 is a Wednesday.
+        val apps = policy.closedApps(LocalDateTime.of(2026, 11, 4, 15, 0))
+        assertEquals(
+            listOf(ClosedApp(game, LocalDateTime.of(2026, 11, 4, 16, 0)), ClosedApp("com.example.other", null)),
+            apps,
+        )
+    }
+
+    @Test fun `past today's window the next one is another day's`() {
+        val policy = openWith(Window(game, setOf(DayOfWeek.WEDNESDAY), LocalTime.of(16, 0), LocalTime.of(17, 0)))
+        assertEquals(
+            LocalDateTime.of(2026, 11, 11, 16, 0),
+            policy.closedApps(LocalDateTime.of(2026, 11, 4, 18, 0)).first { it.pkg == game }.opens,
+        )
+    }
+
+    @Test fun `an app inside its window is not listed`() {
+        val policy = openWith(Window(game, setOf(DayOfWeek.WEDNESDAY), LocalTime.of(22, 0), LocalTime.of(6, 0)))
+        // Thursday before six: the window that crossed midnight still holds.
+        assertEquals(listOf("com.example.other"), policy.closedApps(LocalDateTime.of(2026, 11, 5, 5, 0)).map { it.pkg })
+    }
+
+    @Test fun `the doors of the open device stand open but in a rest`() {
+        val plan = Plan(DayOfWeek.entries.toSet(), listOf(Stage.Budget(setOf(Door.DEVICE), 1, Rest.Minutes(5))))
+        val policy = Policy(mode = Mode.OPEN, plans = listOf(plan))
+        val now = LocalDateTime.of(2026, 11, 4, 15, 0)
+        val doors = setOf(Door.BROWSER, Door.PLAYER)
+        assertEquals(doors, policy.doorsAt(now))
+        val resting = policy.count(now, PlanState(), Door.DEVICE, 60)
+        assertEquals(emptySet<Door>(), policy.doorsAt(now, resting))
+        assertEquals(doors, policy.doorsAt(now.plusMinutes(5), resting))
+    }
+
+    @Test fun `the doors of the closed device are the plan's`() {
+        val plan = Plan(DayOfWeek.entries.toSet(), listOf(Stage.Budget(setOf(Door.PLAYER), 1)))
+        assertEquals(setOf(Door.PLAYER), Policy(plans = listOf(plan)).doorsAt(LocalDateTime.of(2026, 11, 4, 15, 0)))
+    }
 }

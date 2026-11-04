@@ -1,6 +1,7 @@
 package shinkan.core
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -207,6 +208,30 @@ class PolicyTest {
         val resting = policy.count(now, PlanState(), Door.DEVICE, 60)
         assertEquals(emptySet<Door>(), policy.doorsAt(now, resting))
         assertEquals(doors, policy.doorsAt(now.plusMinutes(5), resting))
+    }
+
+    @Test fun `the open device is pinned for its rest alone`() {
+        val plan = Plan(DayOfWeek.entries.toSet(), listOf(Stage.Budget(setOf(Door.DEVICE), 1, Rest.Minutes(5))))
+        val policy = Policy(mode = Mode.OPEN, plans = listOf(plan))
+        val now = LocalDateTime.of(2026, 11, 4, 15, 0)
+        assertFalse(policy.pinnedAt(now))
+        val resting = policy.count(now, PlanState(), Door.DEVICE, 60)
+        assertTrue(policy.pinnedAt(now, resting))
+        assertTrue(policy.pinnedAt(now.plusMinutes(4), resting))
+        assertFalse(policy.pinnedAt(now.plusMinutes(5), resting))
+        assertFalse(policy.pinnedAt(now, policy.openNow(now, resting)))
+    }
+
+    @Test fun `a rest the parent ends stays pinned`() {
+        val plan = Plan(DayOfWeek.entries.toSet(), listOf(Stage.Budget(setOf(Door.DEVICE), 1, Rest.Parent)))
+        val policy = Policy(mode = Mode.OPEN, plans = listOf(plan))
+        val now = LocalDateTime.of(2026, 11, 4, 15, 0)
+        val resting = policy.count(now, PlanState(), Door.DEVICE, 60)
+        assertTrue(policy.pinnedAt(now.plusHours(3), resting))
+    }
+
+    @Test fun `the closed device is always pinned`() {
+        assertTrue(Policy().pinnedAt(LocalDateTime.of(2026, 11, 4, 15, 0)))
     }
 
     @Test fun `the doors of the closed device are the plan's`() {

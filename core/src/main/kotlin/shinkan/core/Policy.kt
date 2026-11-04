@@ -188,6 +188,10 @@ data class Policy(
         Mode.OPEN -> if (resolve(now, state).resting) emptySet() else setOf(Door.BROWSER, Door.PLAYER)
     }
 
+    /** Whether Shinkan holds the screen in lock task at [now]: always on the closed device, on the open one in a rest (SPEC §4.1, §4.7). */
+    fun pinnedAt(now: LocalDateTime, state: PlanState = PlanState()): Boolean =
+        mode == Mode.CLOSED || resolve(now, state).resting
+
     /** The apps closed at [now], sorted, each with when it next opens: what the open device's home lists (SPEC §8.1). */
     fun closedApps(now: LocalDateTime): List<ClosedApp> =
         closedPackagesAt(now).sorted().map { pkg ->

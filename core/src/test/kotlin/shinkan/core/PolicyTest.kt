@@ -142,7 +142,7 @@ class PolicyTest {
         val empty = good.copy(plans = listOf(Plan(setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), emptyList())))
         val problem = PolicyText.problem(empty)!!
         assertEquals(2, problem.line)
-        assertEquals("a plan without stages", problem.why)
+        assertEquals(TextProblem.PLAN_WITHOUT_STAGES, problem.problem)
         assertEquals("plan mon,fri", problem.text)
     }
 
@@ -242,6 +242,15 @@ class PolicyTest {
         val policy = PolicyText.parse(text)
         assertEquals(mapOf("com.a" to setOf(Capability.CAMERA, Capability.LOCATION), "com.b" to setOf(Capability.MICROPHONE)), policy.denied)
         assertEquals(text, PolicyText.render(policy))
+    }
+
+    @Test fun `a word the parser does not know comes back as it was typed`() {
+        val door = assertThrows(PolicyText.Malformed::class.java) { PolicyText.parse("volume attic 40") }
+        assertEquals(TextProblem.UNKNOWN_DOOR, door.problem)
+        assertEquals("attic", door.detail)
+        val day = assertThrows(PolicyText.Malformed::class.java) { PolicyText.parse("plan someday") }
+        assertEquals(TextProblem.UNKNOWN_DAY, day.problem)
+        assertEquals("someday", day.detail)
     }
 
     @Test fun `a wrong permission line names its line`() {

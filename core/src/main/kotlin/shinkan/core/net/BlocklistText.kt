@@ -1,5 +1,7 @@
 package shinkan.core.net
 
+import shinkan.core.TextProblem
+
 /**
  * The block list as text, one rule per line (SPEC §6.4), the stored form:
  *
@@ -16,7 +18,8 @@ package shinkan.core.net
  * lets a name of the built-in list through, with its subdomains.
  */
 object BlocklistText {
-    class Malformed(val line: Int, val text: String, val why: String) : IllegalArgumentException("line $line: $why: $text")
+    class Malformed(val line: Int, val text: String, val problem: TextProblem, val detail: String = "") :
+        IllegalArgumentException("line $line: $problem $detail: $text")
 
     fun parse(text: String): Blocklist {
         var list = Blocklist()
@@ -26,13 +29,13 @@ object BlocklistText {
             val parts = line.split(Regex("\\s+"), limit = 4)
             when (parts[0]) {
                 "site" -> {
-                    if (parts.size != 2) throw Malformed(i + 1, line, "site takes one domain")
+                    if (parts.size != 2) throw Malformed(i + 1, line, TextProblem.SITE)
                     list += parts[1]
                 }
                 "creator" -> {
-                    if (parts.size < 3) throw Malformed(i + 1, line, "creator takes platform, reference and name")
+                    if (parts.size < 3) throw Malformed(i + 1, line, TextProblem.CREATOR)
                     val platform = Platform.entries.firstOrNull { it.name.equals(parts[1], ignoreCase = true) }
-                        ?: throw Malformed(i + 1, line, "unknown platform")
+                        ?: throw Malformed(i + 1, line, TextProblem.UNKNOWN_PLATFORM)
                     list += Creator(platform, parts[2], parts.getOrNull(3) ?: parts[2])
                 }
                 "player" -> {
@@ -40,42 +43,42 @@ object BlocklistText {
                         player = when (parts.getOrNull(1)) {
                             "allow" -> PlayerMode.ALLOW
                             "block" -> PlayerMode.BLOCK
-                            else -> throw Malformed(i + 1, line, "player is allow or block")
+                            else -> throw Malformed(i + 1, line, TextProblem.PLAYER)
                         },
                     )
                 }
                 "history" -> {
                     val keep = parts.getOrNull(1)?.let { HistoryKeep.byKey(it) }
-                    if (parts.size != 2 || keep == null) throw Malformed(i + 1, line, "history is off, day, week, month or forever")
+                    if (parts.size != 2 || keep == null) throw Malformed(i + 1, line, TextProblem.HISTORY)
                     list = list.copy(history = keep)
                 }
                 "segments" -> {
                     val kinds = line.split(Regex("\\s+")).drop(1).map {
-                        SegmentKind.byKey(it) ?: throw Malformed(i + 1, line, "unknown kind of segment")
+                        SegmentKind.byKey(it) ?: throw Malformed(i + 1, line, TextProblem.UNKNOWN_SEGMENT)
                     }
                     list = list.copy(segments = kinds.toSet())
                 }
                 "mirror" -> {
                     val mirror = parts.getOrNull(1)?.let { Segments.mirror(it) }
-                    if (parts.size != 2 || mirror == null) throw Malformed(i + 1, line, "mirror takes one web address")
+                    if (parts.size != 2 || mirror == null) throw Malformed(i + 1, line, TextProblem.MIRROR)
                     list = list.copy(mirror = mirror)
                 }
                 "allow" -> {
-                    if (parts.size < 3) throw Malformed(i + 1, line, "allow takes platform, reference and name")
+                    if (parts.size < 3) throw Malformed(i + 1, line, TextProblem.ALLOW)
                     val platform = Platform.entries.firstOrNull { it.name.equals(parts[1], ignoreCase = true) }
-                        ?: throw Malformed(i + 1, line, "unknown platform")
+                        ?: throw Malformed(i + 1, line, TextProblem.UNKNOWN_PLATFORM)
                     list = list.copy(allowed = list.allowed + Creator(platform, parts[2], parts.getOrNull(3) ?: parts[2]))
                 }
                 "category" -> {
-                    if (parts.size != 2) throw Malformed(i + 1, line, "category takes one name")
-                    val c = Category.byKey(parts[1]) ?: throw Malformed(i + 1, line, "unknown category")
+                    if (parts.size != 2) throw Malformed(i + 1, line, TextProblem.CATEGORY)
+                    val c = Category.byKey(parts[1]) ?: throw Malformed(i + 1, line, TextProblem.UNKNOWN_CATEGORY)
                     list = list.copy(categories = list.categories + c)
                 }
                 "pass" -> {
-                    if (parts.size != 2) throw Malformed(i + 1, line, "pass takes one domain")
+                    if (parts.size != 2) throw Malformed(i + 1, line, TextProblem.PASS)
                     list = list.copy(passes = list.passes + Host.normalise(parts[1]))
                 }
-                else -> throw Malformed(i + 1, line, "unknown statement")
+                else -> throw Malformed(i + 1, line, TextProblem.UNKNOWN_STATEMENT)
             }
         }
         return list

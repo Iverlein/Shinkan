@@ -30,7 +30,8 @@ import java.time.format.DateTimeFormatter
  * malformed lines raise [PolicyText.Malformed] with the line number.
  */
 object PolicyText {
-    class Malformed(val line: Int, val text: String, val why: String) : IllegalArgumentException("line $line: $why: $text")
+    class Malformed(val line: Int, val text: String, val problem: TextProblem, val detail: String = "") :
+        IllegalArgumentException("line $line: $problem $detail: $text")
 
     /**
      * Why [policy] cannot be stored, or null when it can: its text must read back
@@ -67,7 +68,7 @@ object PolicyText {
 
         fun closePlan() {
             val days = planDays ?: return
-            if (stages.isEmpty()) throw Malformed(planLine, "plan ${days(days)}", "a plan without stages")
+            if (stages.isEmpty()) throw Malformed(planLine, "plan ${days(days)}", TextProblem.PLAN_WITHOUT_STAGES)
             plans += Plan(days, stages.toList())
             planDays = null
             stages.clear()
@@ -79,61 +80,61 @@ object PolicyText {
             val n = i + 1
             val parts = line.split(Regex("\\s+"))
             if (raw.first().isWhitespace()) {
-                if (planDays == null) throw Malformed(n, line, "an indented stage outside a plan")
+                if (planDays == null) throw Malformed(n, line, TextProblem.STAGE_OUTSIDE_PLAN)
                 stages += stage(n, line, parts)
                 return@forEachIndexed
             }
             closePlan()
             when (parts[0]) {
                 "mode" -> {
-                    if (parts.size != 2) throw Malformed(n, line, "mode is closed or open")
+                    if (parts.size != 2) throw Malformed(n, line, TextProblem.MODE)
                     mode = Mode.entries.firstOrNull { it.name.equals(parts[1], ignoreCase = true) }
-                        ?: throw Malformed(n, line, "mode is closed or open")
+                        ?: throw Malformed(n, line, TextProblem.MODE)
                 }
                 "plan" -> {
-                    if (parts.size != 2) throw Malformed(n, line, "plan takes the days")
+                    if (parts.size != 2) throw Malformed(n, line, TextProblem.PLAN_DAYS)
                     val days = days(n, line, parts[1])
-                    days.firstOrNull { it in seenDays }?.let { throw Malformed(n, line, "${dayName(it)} is in an earlier plan") }
+                    days.firstOrNull { it in seenDays }?.let { throw Malformed(n, line, TextProblem.DAY_REPEATED, dayName(it)) }
                     seenDays += days
                     planDays = days
                     planLine = n
                 }
                 "close" -> {
-                    if (parts.size != 2) throw Malformed(n, line, "close takes one package")
+                    if (parts.size != 2) throw Malformed(n, line, TextProblem.CLOSE)
                     closed += parts[1]
                 }
                 "window" -> {
-                    if (parts.size != 4) throw Malformed(n, line, "window takes package, days and hours")
+                    if (parts.size != 4) throw Malformed(n, line, TextProblem.WINDOW)
                     val (from, to) = hours(n, line, parts[3])
                     windows += Window(parts[1], days(n, line, parts[2]), from, to)
                     closed += parts[1]
                 }
                 "permission" -> {
-                    if (parts.size != 4 || parts[2] != "deny") throw Malformed(n, line, "permission takes a package, deny and what")
-                    val capability = Capability.byKey(parts[3]) ?: throw Malformed(n, line, "permission is camera, microphone or location")
+                    if (parts.size != 4 || parts[2] != "deny") throw Malformed(n, line, TextProblem.PERMISSION_SHAPE)
+                    val capability = Capability.byKey(parts[3]) ?: throw Malformed(n, line, TextProblem.PERMISSION_KIND)
                     denied[parts[1]] = denied[parts[1]].orEmpty() + capability
                 }
                 "volume" -> {
-                    if (parts.size != 3) throw Malformed(n, line, "volume takes a door and a percentage")
-                    val door = door(parts[1]) ?: throw Malformed(n, line, "unknown door '${parts[1]}'")
+                    if (parts.size != 3) throw Malformed(n, line, TextProblem.VOLUME_SHAPE)
+                    val door = door(parts[1]) ?: throw Malformed(n, line, TextProblem.UNKNOWN_DOOR, parts[1])
                     val percent = parts[2].removeSuffix("%").toIntOrNull()?.takeIf { it in 0..100 }
-                        ?: throw Malformed(n, line, "volume is 0 to 100")
+                        ?: throw Malformed(n, line, TextProblem.VOLUME_RANGE)
                     volumes[door] = percent
                 }
                 "start" -> {
                     if (parts.size != 2 || !shinkan.core.net.Address.allowed(parts[1])) {
-                        throw Malformed(n, line, "start takes one http or https address")
+                        throw Malformed(n, line, TextProblem.START)
                     }
                     start = parts[1]
                 }
                 "restrict" -> {
-                    if (parts.size != 2) throw Malformed(n, line, "restrict takes one name")
+                    if (parts.size != 2) throw Malformed(n, line, TextProblem.RESTRICT)
                     restrictionsGiven = true
                     if (parts[1] != "none") {
-                        restrictions += Restriction.byName(parts[1]) ?: throw Malformed(n, line, "unknown restriction")
+                        restrictions += Restriction.byName(parts[1]) ?: throw Malformed(n, line, TextProblem.UNKNOWN_RESTRICTION)
                     }
                 }
-                else -> throw Malformed(n, line, "unknown statement")
+                else -> throw Malformed(n, line, TextProblem.UNKNOWN_STATEMENT)
             }
         }
         closePlan()
@@ -143,39 +144,39 @@ object PolicyText {
     private fun stage(n: Int, line: String, parts: List<String>): Stage {
         span.matchEntire(parts[0])?.let {
             val (from, to) = hours(n, line, parts[0])
-            val doors = parts.drop(1).map { door(it) ?: throw Malformed(n, line, "unknown door '$it'") }.toSet()
+            val doors = parts.drop(1).map { door(it) ?: throw Malformed(n, line, TextProblem.UNKNOWN_DOOR, it) }.toSet()
             return Stage.Span(from, to, doors)
         }
         val doors = parts.takeWhile { it.toIntOrNull() == null && it != "rest" }
-        if (doors.isEmpty()) throw Malformed(n, line, "a stage is HH:MM-HH:MM with doors, or doors with minutes")
-        val doorSet = doors.map { door(it) ?: throw Malformed(n, line, "unknown door '$it'") }.toSet()
+        if (doors.isEmpty()) throw Malformed(n, line, TextProblem.STAGE_SHAPE)
+        val doorSet = doors.map { door(it) ?: throw Malformed(n, line, TextProblem.UNKNOWN_DOOR, it) }.toSet()
         val rest = parts.drop(doors.size)
         val minutes = rest.firstOrNull()?.toIntOrNull()?.takeIf { it > 0 }
-            ?: throw Malformed(n, line, "a budget takes its minutes after the doors")
+            ?: throw Malformed(n, line, TextProblem.BUDGET_MINUTES)
         val after = rest.drop(1)
         val restOf = when {
             after.isEmpty() -> null
             after.size == 2 && after[0] == "rest" && after[1] == "parent" -> Rest.Parent
             after.size == 2 && after[0] == "rest" -> Rest.Minutes(
-                after[1].toIntOrNull()?.takeIf { it > 0 } ?: throw Malformed(n, line, "rest takes minutes or parent"),
+                after[1].toIntOrNull()?.takeIf { it > 0 } ?: throw Malformed(n, line, TextProblem.REST),
             )
-            else -> throw Malformed(n, line, "after the minutes only rest with minutes or parent")
+            else -> throw Malformed(n, line, TextProblem.AFTER_MINUTES)
         }
         return Stage.Budget(doorSet, minutes, restOf)
     }
 
     private fun days(n: Int, line: String, text: String): Set<DayOfWeek> =
-        text.split(",").map { dayNames[it.lowercase()] ?: throw Malformed(n, line, "unknown day '$it'") }.toSet()
+        text.split(",").map { dayNames[it.lowercase()] ?: throw Malformed(n, line, TextProblem.UNKNOWN_DAY, it) }.toSet()
 
     private fun hours(n: Int, line: String, text: String): Pair<LocalTime, LocalTime> {
         val parts = text.split("-")
-        if (parts.size != 2) throw Malformed(n, line, "hours are HH:MM-HH:MM")
+        if (parts.size != 2) throw Malformed(n, line, TextProblem.HOURS)
         val (from, to) = try {
             LocalTime.parse(parts[0], hhmm) to LocalTime.parse(parts[1], hhmm)
         } catch (e: Exception) {
-            throw Malformed(n, line, "hours are HH:MM-HH:MM")
+            throw Malformed(n, line, TextProblem.HOURS)
         }
-        if (from == to) throw Malformed(n, line, "hours of zero length")
+        if (from == to) throw Malformed(n, line, TextProblem.ZERO_HOURS)
         return from to to
     }
 

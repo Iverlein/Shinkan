@@ -96,7 +96,8 @@ internal fun isChannelId(ref: String): Boolean = ref.length == 24 && ref.startsW
 /** A reference as compared: a channel id as it is, a handle or a name in lowercase. */
 private fun comparable(ref: String): String = if (isChannelId(ref)) ref else ref.lowercase()
 
-enum class Platform { YOUTUBE, PEERTUBE, SOUNDCLOUD, BANDCAMP }
+/** [title] is the platform's own spelling, the same in every language. */
+enum class Platform(val title: String) { YOUTUBE("YouTube"), PEERTUBE("PeerTube"), SOUNDCLOUD("SoundCloud"), BANDCAMP("Bandcamp") }
 
 object Host {
     /** Lowercase, no trailing dot, no port; an invalid host comes back as is. */

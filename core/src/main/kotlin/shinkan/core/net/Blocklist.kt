@@ -53,9 +53,30 @@ data class Blocklist(
         get() = (if (player == PlayerMode.ALLOW) allowed else creators)
             .filter { it.platform == Platform.YOUTUBE && !isChannelId(it.ref) }.map { it.ref }
 
+    /**
+     * This list after an edit from [before] (SPEC §6.3): the first YouTube creator on
+     * either of the player's lists brings the platform's family as sites, whichever
+     * way it came, a shared link or the door's text. Only the first: a parent who then
+     * takes the family off keeps it off.
+     */
+    fun holdingFamily(before: Blocklist): Blocklist =
+        if (!before.namesCreators && namesCreators) copy(sites = sites + Families.of(OFFICIAL_SITE)) else this
+
+    private val namesCreators: Boolean
+        get() = (creators + allowed).any { it.platform == Platform.YOUTUBE }
+
+    /** Whether the official site is on the list, which holds the official app too (SPEC §7.1). */
+    val holdsOfficialApp: Boolean get() = OFFICIAL_SITE in sites
+
+    /** True for a package of the official app while [holdsOfficialApp]: the device owner suspends it. */
+    fun holdsPackage(name: String): Boolean = holdsOfficialApp && officialPackages.any { name == it || name.startsWith("$it.") }
+
     operator fun plus(site: String) = copy(sites = sites + Host.normalise(site))
     operator fun plus(creator: Creator) = copy(creators = creators + creator)
 }
+
+private const val OFFICIAL_SITE = "youtube.com"
+private val officialPackages = listOf("com.google.android.youtube", "com.google.android.apps.youtube")
 
 /** The player's two modes (SPEC §7.1): a block list of creators, or an allow list. */
 enum class PlayerMode { BLOCK, ALLOW }

@@ -33,7 +33,9 @@ sealed interface Link {
         }
 
         private fun youtube(host: String, path: String, uri: URI): Link? {
-            if (host == "youtu.be") return Item(Platform.YOUTUBE, path.removePrefix("/").substringBefore('/'), uri.toString())
+            if (host == "youtu.be") {
+                return path.removePrefix("/").substringBefore('/').takeIf { it.isNotEmpty() }?.let { Item(Platform.YOUTUBE, it, uri.toString()) }
+            }
             if (youtubeHosts.none { Host.under(host, it) }) return null
             val parts = path.split('/').filter { it.isNotEmpty() }
             val first = parts.firstOrNull() ?: return null

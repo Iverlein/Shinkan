@@ -19,6 +19,10 @@ class LinkTest {
         assertEquals("c/Name", (Link.parse("https://www.youtube.com/c/Name") as Link.CreatorLink).creator.ref)
     }
 
+    @Test fun `a short link with no video is the site`() {
+        assertEquals(Link.Site("youtu.be", Families.of("youtu.be")), Link.parse("https://youtu.be/"))
+    }
+
     @Test fun `youtube videos wait for a lookup of their creator`() {
         assertEquals(Link.Item(Platform.YOUTUBE, "dQw4w9WgXcQ", "https://youtu.be/dQw4w9WgXcQ"), Link.parse("https://youtu.be/dQw4w9WgXcQ"))
         assertEquals("dQw4w9WgXcQ", (Link.parse("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10") as Link.Item).id)

@@ -29,6 +29,41 @@ class BlocklistTest {
         assertEquals(setOf("example.org"), Families.of("example.org"))
     }
 
+    private val someone = Creator(Platform.YOUTUBE, "UCsomeone", "Some One")
+
+    @Test fun `the first creator brings the platform's family`() {
+        val list = (Blocklist() + someone).holdingFamily(Blocklist())
+        assertEquals(Families.of("youtube.com"), list.sites)
+        assertTrue(list.blocksHost("www.youtube.com"))
+        assertTrue(list.blocksHost("rr1.googlevideo.com"))
+    }
+
+    @Test fun `the first allowed creator brings it too`() {
+        val list = Blocklist(allowed = setOf(someone)).holdingFamily(Blocklist())
+        assertTrue(list.holdsOfficialApp)
+    }
+
+    @Test fun `a later creator leaves a family the parent took off`() {
+        val before = Blocklist() + someone
+        val after = (before + Creator(Platform.YOUTUBE, "@other")).holdingFamily(before)
+        assertEquals(emptySet<String>(), after.sites)
+    }
+
+    @Test fun `a creator of another platform brings nothing`() {
+        val list = (Blocklist() + Creator(Platform.PEERTUBE, "someone")).holdingFamily(Blocklist())
+        assertEquals(emptySet<String>(), list.sites)
+    }
+
+    @Test fun `the official packages are held with the site alone`() {
+        val held = Blocklist() + "youtube.com"
+        assertTrue(held.holdsPackage("com.google.android.youtube"))
+        assertTrue(held.holdsPackage("com.google.android.youtube.tv"))
+        assertTrue(held.holdsPackage("com.google.android.apps.youtube.music"))
+        assertFalse(held.holdsPackage("com.google.android.youtubefake"))
+        assertFalse(held.holdsPackage("org.schabi.newpipe"))
+        assertFalse((Blocklist() + someone).holdsPackage("com.google.android.youtube"))
+    }
+
     @Test fun `text round-trip`() {
         val list = Blocklist() + "tiktok.com" + Creator(Platform.YOUTUBE, "@someone", "Some One")
         val text = BlocklistText.render(list)

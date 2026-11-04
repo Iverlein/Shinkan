@@ -48,8 +48,9 @@ data class Udp4(val src: ByteArray, val dst: ByteArray, val srcPort: Int, val ds
 
 /** The Internet checksum of RFC 1071. */
 object Checksum {
-    fun of(data: ByteArray, offset: Int, length: Int): Int {
-        var sum = 0L
+    /** [start] is added in first, a pseudo header's sum for one. */
+    fun of(data: ByteArray, offset: Int, length: Int, start: Long = 0): Int {
+        var sum = start
         var i = offset
         val end = offset + length
         while (i + 1 < end) {

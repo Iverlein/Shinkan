@@ -17,6 +17,9 @@ data class Blocklist(
     val allowed: Set<Creator> = emptySet(),
     /** How long the player keeps its history (SPEC §7.1.1). */
     val history: HistoryKeep = HistoryKeep.FOREVER,
+    /** The kinds of segment the player skips, and a mirror of the API to ask instead (SPEC §7.5). */
+    val segments: Set<SegmentKind> = SegmentKind.DEFAULT,
+    val mirror: String? = null,
 ) {
     /**
      * True when [host] is a blocked site or under one; else when the [builtin]

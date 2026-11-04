@@ -5,10 +5,14 @@ package shinkan.core.net
  *
  *     site tiktok.com
  *     creator youtube @somehandle Some Name
+ *     segments sponsor selfpromo
+ *     mirror https://sb.example.org
  *     category gambling
  *     pass example.org
  *
- * `category` switches on one list of the built-in block list (§6.5); `pass`
+ * `segments` names the kinds the player skips, none when it stands alone, the
+ * defaults of §7.5 when it is missing; `mirror` is asked for them instead of the
+ * public API. `category` switches on one list of the built-in block list (§6.5); `pass`
  * lets a name of the built-in list through, with its subdomains.
  */
 object BlocklistText {
@@ -45,6 +49,17 @@ object BlocklistText {
                     if (parts.size != 2 || keep == null) throw Malformed(i + 1, line, "history is off, day, week, month or forever")
                     list = list.copy(history = keep)
                 }
+                "segments" -> {
+                    val kinds = line.split(Regex("\\s+")).drop(1).map {
+                        SegmentKind.byKey(it) ?: throw Malformed(i + 1, line, "unknown kind of segment")
+                    }
+                    list = list.copy(segments = kinds.toSet())
+                }
+                "mirror" -> {
+                    val mirror = parts.getOrNull(1)?.let { Segments.mirror(it) }
+                    if (parts.size != 2 || mirror == null) throw Malformed(i + 1, line, "mirror takes one web address")
+                    list = list.copy(mirror = mirror)
+                }
                 "allow" -> {
                     if (parts.size < 3) throw Malformed(i + 1, line, "allow takes platform, reference and name")
                     val platform = Platform.entries.firstOrNull { it.name.equals(parts[1], ignoreCase = true) }
@@ -73,6 +88,10 @@ object BlocklistText {
         }
         if (list.player == PlayerMode.ALLOW) appendLine("player allow")
         if (list.history != HistoryKeep.FOREVER) appendLine("history ${list.history.key}")
+        if (list.segments != SegmentKind.DEFAULT) {
+            appendLine(SegmentKind.entries.filter { it in list.segments }.joinToString(" ", "segments ") { it.key }.trimEnd())
+        }
+        list.mirror?.let { appendLine("mirror $it") }
         list.allowed.sortedWith(compareBy({ it.platform }, { it.ref })).forEach {
             appendLine("allow ${it.platform.name.lowercase()} ${it.ref} ${it.name}")
         }

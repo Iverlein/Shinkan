@@ -22,14 +22,14 @@ data class Blocklist(
     val mirror: String? = null,
 ) {
     /**
-     * True when [host] is a blocked site or under one; else when the [builtin]
-     * list blocks it (ads and trackers, and the categories switched on) and no
-     * pass covers it. A pass lets a built-in name through, never a parent's site.
+     * True when [host] is a blocked site or under one; else when it is a known
+     * public resolver or the [builtin] list blocks it (ads and trackers, and the
+     * categories switched on) and no pass covers it. A pass lets a built-in name through, never a parent's site.
      */
     fun blocksHost(host: String, builtin: Builtin = Builtin.NONE): Boolean {
         val h = Host.normalise(host)
         if (sites.any { Host.under(h, it) }) return true
-        if (!builtin.blocks(h, categories)) return false
+        if (!KnownResolvers.has(h) && !builtin.blocks(h, categories)) return false
         return passes.none { Host.under(h, it) }
     }
 
@@ -50,6 +50,9 @@ data class Blocklist(
         val refs = list.filter { it.platform == Platform.YOUTUBE }.map { comparable(it.ref) }.toSet()
         return comparable(ref) in refs || aliases[ref]?.let { comparable(it) in refs } == true
     }
+
+    /** The ports a connection is refused on (SPEC §5.4): a resolver over TCP or TLS, which the filter would not see. */
+    fun refusesPort(port: Int): Boolean = port == 53 || port == 853
 
     /** The creators whose reference is not a channel id: the player resolves these to one. */
     val unresolvedCreators: List<String>

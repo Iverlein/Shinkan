@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 /**
  * IPv4/UDP datagrams as the tun device hands them (SPEC §5.2): read one,
- * build the reply. IPv6 is routed to the filter the same way; block 8.
+ * build the reply. IPv6 is routed to the filter the same way; block 12.
  */
 data class Udp4(val src: ByteArray, val dst: ByteArray, val srcPort: Int, val dstPort: Int, val payload: ByteArray) {
     companion object {

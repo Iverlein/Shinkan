@@ -50,6 +50,16 @@ class TcpTest {
         assertNull(Tcp4.parse(ByteArray(10)))
     }
 
+    @Test fun `a reset acknowledges what the segment took`() {
+        val syn = Tcp4.parse(from(1000, 0, Tcp4.SYN).reset())!!
+        assertTrue(syn.has(Tcp4.RST) && syn.has(Tcp4.ACK))
+        assertEquals(1001L, syn.ack)
+        assertEquals(40000, syn.dstPort)
+        assertEquals(1006L, Tcp4.parse(from(1001, 7, Tcp4.ACK or Tcp4.FIN, "abcd".toByteArray()).reset())!!.ack)
+        assertEquals(7L, Tcp4.parse(from(1001, 7, Tcp4.ACK).reset())!!.seq)
+        assertEquals(0L, Tcp4.parse(from(0xffffffffL, 0, Tcp4.SYN).reset())!!.ack)
+    }
+
     @Test fun `the device's syn is answered once the far side has`() {
         val flow = TcpFlow(from(1000, 0, Tcp4.SYN, mss = 1460), isn)
         val answer = read(flow.connected()).single()

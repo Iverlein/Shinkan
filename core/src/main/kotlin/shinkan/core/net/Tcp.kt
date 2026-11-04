@@ -18,6 +18,16 @@ class Tcp4(
 ) {
     fun has(flag: Int): Boolean = flags and flag != 0
 
+    /**
+     * The reset that answers this segment when no connection takes it. A SYN and a FIN
+     * each count as a byte: a reset that does not acknowledge them is ignored, and the
+     * sender goes on trying.
+     */
+    fun reset(): ByteArray {
+        val next = seq + payload.size + (if (has(SYN)) 1 else 0) + (if (has(FIN)) 1 else 0)
+        return build(dst, src, dstPort, srcPort, ack, next and 0xffffffffL, RST or ACK, 0)
+    }
+
     companion object {
         const val FIN = 1
         const val SYN = 2

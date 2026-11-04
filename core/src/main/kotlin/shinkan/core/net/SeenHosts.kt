@@ -71,6 +71,7 @@ class SeenHosts(private val limit: Int = 4096) {
 /**
  * Whether a datagram goes on (SPEC §5.4). Port 443 to a host the list blocks is QUIC
  * to a blocked site: dropped, and the app falls back to TLS. A host unknown goes on.
+ * Port 853 is a resolver over QUIC, dropped whoever it is.
  */
 fun Blocklist.dropsDatagram(port: Int, host: String?, builtin: Builtin = Builtin.NONE): Boolean =
-    port == 443 && host != null && blocksHost(host, builtin)
+    port == 853 || (port == 443 && host != null && blocksHost(host, builtin))

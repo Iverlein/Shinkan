@@ -61,7 +61,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 6b | The player: the creator block list applied to every list | done 2026-11-02 |
 | 6e | The player: block and allow modes, Home, Creators and History at the bottom, positions kept | done 2026-11-02 |
 | 6c | The player: a shared video resolved to its creator; the official app held | done 2026-11-04 |
-| 6d | The player: SponsorBlock segments | |
+| 6d | The player: SponsorBlock segments | done 2026-11-04 |
 | 7a | The open device: the launcher kept, the named apps closed | |
 | 7b | The open device: `device` stages and the pinned rest page | |
 | 7c | The open device: the device ceiling by clamp | |
@@ -704,6 +704,31 @@ emulator: a video with known segments jumps past them; the request goes to
 the API host only (check in the filter's log at debug level); with the
 mirror set to an unreachable address the video plays without skips and the
 player says so.
+
+**As built.** `core/`: `Segments` (prefix, address, the answer narrowed,
+`skipTo`, `mirror`), `SegmentKind`, the `segments` and `mirror` lines of the
+block list, a small `Json` reader since core takes no library, `SegmentsTest`
+on entries of a real answer. `app/`: `player/SponsorBlock` (not `Segments`,
+which is core's) and a poll of the position five times a second in place of
+a position listener, which Media3 does not have; `ui/parent/SegmentsPage`, a
+section of its own, *Video segments*. The credit stands on the video's page
+where segments were found, the player having no about text. The filter
+cannot show the request as this block first said (Shinkan is outside its
+tunnel since block 5), so a mirror on the host showed what leaves.
+
+Checked on the emulator, 2026-11-04, with the public API: *Am I crazy for
+trying this??* (`ybT8H6QdcDs`, a sponsor segment 7.947 to 45.952 s) played
+to 7.952 s and jumped to 45.952 s, the credit under its uploader. With the
+mirror `http://127.0.0.1:8000` set on the door (through `adb reverse`), the
+one request that arrived was `GET /api/skipSegments/a1b2?categories=…`, the
+prefix alone, no cookie, `okhttp`'s own user agent; a served segment of 50
+to 200 s took the video from 50.076 s to 200 s and it played on to 3:55.
+With `https://mirror.invalid` the note showed and the video played past the
+real segment to 0:56 with no skip; with no kind chosen no request was made
+and neither line showed. A mirror without a scheme is refused on the page.
+The emulator's `c2.goldfish.h264.decoder` fails at each opening and the
+software decoder then takes up to a minute at 1080p, which looks like a
+stall: read the controls' time, not one frame.
 
 ### 7a. The open device: the launcher kept, the named apps closed [§4.1, §4.2]
 

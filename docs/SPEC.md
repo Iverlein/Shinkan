@@ -426,6 +426,8 @@ creator youtube @somehandle Some Name
 player allow
 allow youtube @kurzgesagt Kurzgesagt
 history week
+segments sponsor selfpromo
+mirror https://sb.example.org
 category gambling
 pass example.org
 ```
@@ -433,8 +435,10 @@ pass example.org
 `BlocklistText` parses and renders it; the parent may see and paste it on
 the door's block-list page, which also has a switch per category. `category`
 switches on a list of §6.5; `pass` lets a built-in name through with its
-subdomains, never a parent's site. A change there is stored and read by the
-filter at once, as a shared link is.
+subdomains, never a parent's site. `segments` names the kinds the player
+skips (§7.5): none when it stands alone, the defaults when it is missing;
+`mirror` is asked instead of the public API. A change there is stored and
+read by the filter at once, as a shared link is.
 
 ### 6.5 The built-in list
 
@@ -566,8 +570,23 @@ video for the segments of every video whose id's SHA-256 starts with the
 same four hex characters, so the server sees a bucket of videos, never the
 one played: this is the second named request of §2.1. The categories are
 the parent's choice; `sponsor`, `selfpromo` and `interaction` by default.
-The parent may name a mirror. The code comes from Tubular (GPL-3.0, NewPipe
-with SponsorBlock), block 6d.
+The parent may name a mirror. The request's shape follows Tubular (GPL-3.0,
+NewPipe with SponsorBlock), block 6d.
+
+As built (block 6d): `GET <server>/api/skipSegments/<prefix>?categories=[…]`
+with no cookie and no other mark, leaving outside the tunnel as all of
+Shinkan's requests do (§5.5). The bucket's answer is narrowed to the video on
+the device, and only `skip` actions are kept (`core/.../net/Segments`). A 404
+means nothing is marked. The video plays while the lookup runs; the position
+is looked at five times a second, and a position inside a segment jumps past
+it and any segment overlapping or touching it, however it got there, a seek
+or a resumed position included. Where segments were found, the video's page
+carries the credit; where the server could not be asked, it says the video
+plays without skips. *Video segments* on the door has the eight kinds of the
+API and the mirror, kept with the block list (`segments`, `mirror`, §6.4) and
+stored at once; with no kind chosen no request is made. A mirror over plain
+`http` is refused by the release's network policy and reads as a failed
+lookup.
 
 ### 7.6 The browser
 

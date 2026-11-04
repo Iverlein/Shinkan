@@ -71,6 +71,9 @@ provisions, drives and restores one.
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
 
+The player's segment data comes from [SponsorBlock](https://sponsor.ajay.app)
+(CC BY-NC-SA 4.0), asked for by hash prefix and never stored.
+
 The built-in block list in `app/src/main/assets/blocklist/` keeps its
 sources' licences: Hagezi's DNS blocklists (GPL-3.0), StevenBlack's hosts
 (MIT) and the upstream sources of its extensions (MIT, CC BY 4.0), each

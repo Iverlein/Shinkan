@@ -350,16 +350,24 @@ hold it. Media3's `WAKE_LOCK` is removed from the merged manifest.
 
 ### 5.2 The tunnel
 
-Block 0 routes **DNS only**: the tunnel's address is 10.111.0.1, its resolver
-10.111.0.2, and the one route is that resolver. Every app's name lookups
-enter the tunnel; the rest of the traffic flows as before. The service reads
-IPv4/UDP datagrams to port 53 (`Udp4`), answers or forwards them, and writes
-the reply back with checksums set (`Checksum`, RFC 1071).
+The tunnel's address is 10.111.0.1, its resolver 10.111.0.2, and its route
+all of IPv4 (0.0.0.0/0, since block 11a). The service reads what enters: an
+IPv4/UDP datagram to port 53 (`Udp4`) is answered or forwarded and its reply
+written back with checksums set (`Checksum`, RFC 1071); a TCP segment
+(`Tcp4`) goes to the relay; other UDP and ICMP are dropped until block 11b.
 
-Block 8 routes **everything** (0.0.0.0/0 and ::/0) through a userspace
-TCP/UDP relay so that the filter also sees TLS server names (SNI), drops
-QUIC to blocked hosts, blocks hard-coded resolvers by address, and can tell
-apps apart by connection (`ConnectivityManager.getConnectionOwnerUid`).
+The relay ends each connection in the service and carries it on over a
+protected socket: `TcpFlow` in `core/` is the connection as a state machine
+with no socket in it, `Relay` one thread and a selector over them. It offers
+the MSS option alone, no window scaling (a window of 64 KB), drops a segment
+out of order, and sends again after 400 ms or three repeated acks. A
+connection the far side refuses reaches the app as refused; ten minutes of
+silence ends one. IPv6 has no route until block 12: lockdown refuses it, and
+an app falls back to IPv4.
+
+Block 11b relays UDP and drops QUIC to blocked hosts, 11c reads TLS server
+names and blocks hard-coded resolvers by address, 11d tells apps apart by
+connection (`ConnectivityManager.getConnectionOwnerUid`).
 
 ### 5.3 Answers
 
@@ -386,9 +394,10 @@ back unchanged. Shinkan brings no resolver and no list of its own.
 
 Shinkan's own traffic stays out of its tunnel
 (`VpnService.Builder.addDisallowedApplication` of its own package): inside
-it, the DNS-only route would leave Shinkan nothing but DNS, since lockdown
-exempts the VPN's owner from its drop but not from its route (found on the
-emulator, 2026-11-02). So the player's connections to a platform pass while
+it, its requests would come back into its own relay, and the DNS-only route
+before block 11a left it nothing but DNS, since lockdown exempts the VPN's
+owner from its drop but not from its route (found on the emulator,
+2026-11-02). So the player's connections to a platform pass while
 the platform's hosts are blocked for every other app (§7.1), with no lookup
 of the sender. In return Shinkan's own pages apply the block list
 themselves: the browser asks `Blocklist.blocksHost` (the parent's sites,
@@ -825,18 +834,12 @@ uninstalled. Release asks for the PIN once more.
   uBlock Origin blocks them, elements are hidden only where a simple rule
   allows. A third-party browser on the open device gets the host filter and
   nothing more.
-- **Until block 11a**, an app that resolves names by itself over HTTPS or by
+- **Until block 11c**, an app that resolves names by itself over HTTPS or by
   address slips the DNS filter; Shinkan's own browser cannot, it resolves
   through the system (§7.6).
-- **Until block 11a, other apps on a held device reach nothing but DNS.**
-  Lockdown (§5.1) refuses every app's traffic that does not pass through
-  the tunnel, and the tunnel routes DNS alone (§5.2): names resolve,
-  nothing else leaves (found on the emulator 2026-11-01: `dumpsys
-  connectivity` lists every uid but Shinkan's under the lockdown rules,
-  `ping 8.8.8.8` gets `EACCES`). Shinkan's own browser and player are not
-  held back by it: Shinkan is outside its tunnel and exempt from lockdown
-  (§5.5). On the closed device nothing else runs; the open device waits on
-  the relay of 11a, or on lockdown lifted (ROADMAP, *Open*).
+- **Until block 11b, other apps on a held device have TCP alone**, and until
+  block 12 IPv4 alone: QUIC falls back to TLS, and what needs UDP (a call, a
+  game) does not work.
 - **The browser's cosmetic filtering** is none: only request rules apply
   (§7.6).
 - **The volume ceiling of the open device** is one for the device and a

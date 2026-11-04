@@ -68,7 +68,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 8 | Permissions of the usable apps | done 2026-11-04 |
 | 9 | QR provisioning | built 2026-11-04, the flow itself not run on any device: *Done when* still open |
 | 10 | Release 1.0 | done 2026-11-02: tags `v1.0`, then `v1.0.1` with the two fixes of the release check |
-| 11a | The tunnel: all routes through a userspace TCP relay | |
+| 11a | The tunnel: all routes through a userspace TCP relay | done 2026-11-04 |
 | 11b | The tunnel: UDP relayed, QUIC to blocked hosts dropped | |
 | 11c | The tunnel: SNI read and refused, resolvers by address refused, known DoH hosts built in | |
 | 11d | The tunnel: the per-app pass for the player over TCP | |
@@ -940,20 +940,30 @@ player's TCP by uid (`getConnectionOwnerUid(IPPROTO_TCP, …)`).
 check (a 50 MB download through the relay within twice the direct time on
 the emulator).
 
+**11a as built.** `core/.../net/Tcp`: `Tcp4` and `TcpFlow`, the connection as a
+state machine that returns what to do (`TcpTest`, 24 cases, among them a
+300 KB transfer with one segment in twenty lost and sequence numbers across
+the wrap). `filter/Relay`: one thread, a selector, what `TcpFlow` says done
+to sockets. Written from the protocol, with no study of RethinkDNS's relay.
+
+Checked on the emulator, 2026-11-04, under lockdown, from the shell's uid
+(which got `EACCES` before) to a server on the host's LAN address (Shinkan's
+uid does not reach 10.0.2.2): 50 MB of random data in 2.34 s against 2.62 s
+direct, its SHA-256 equal, `tun0` up by 54.8 MB; eight such at once in 27.5 s,
+all eight equal; 30 MB up with its SHA-256 equal, in under 15.7 s of which 5
+are `nc`'s own wait, with no direct figure to set beside it; a closed port
+read as `Connection refused`. Chrome on the open form drew a Wikipedia article
+over TLS, 1.7 MB through `tun0`. On the closed form the parent's site and an ad
+name were refused, `www.wikipedia.org` resolved, and the player played at
+1080p from outside the tunnel. toybox `nc` to example.org printed nothing, the
+same on a clean device with no relay.
+
 ### 12. IPv6 in the tunnel [§5.2]
 
 **Builds.** `Udp6`, the IPv6 route and the relay for both families.
 
 ## Open
 
-- 2026-11-01: lockdown (SPEC §5.1) with the DNS-only tunnel of blocks 0 to
-  10 refuses every other app's traffic but DNS. Since block 5 Shinkan is
-  outside its own tunnel and its browser and player reach the network, so
-  the closed device of 1.0 is not held back (SPEC §5.5); the question
-  remains for the open device of block 7: `setAlwaysOnVpnPackage(…,
-  lockdown = false)` until block 11a, or 11a before 7a. The owner's call.
-  7a was built with lockdown left on, the stricter of the two, so the
-  question stands.
 - 2026-11-04: on the open device, what of the hours no stage opens: after a
   plan's last stage, or on a day with no plan? §4.7 says nothing is open,
   and on the closed device that greys the doors. Block 7b pins the rest page
@@ -962,6 +972,9 @@ the emulator).
 
 ## Decided
 
+- 2026-11-04: the lockdown question of 2026-11-01 (the DNS-only tunnel left
+  every other app no network) is gone with 11a: lockdown stayed on, and the
+  open device's apps reach the network through the relay.
 - 2026-11-01: device owner, not accessibility or overlays (SPEC §2.2).
 - 2026-11-01: the app filters all the device's traffic itself, as the
   always-on lockdown VPN; `INTERNET` for the tunnel and nothing else

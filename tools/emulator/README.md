@@ -73,8 +73,8 @@ end. Build the APK first: `./gradlew :app:assembleDebug`.
   broadcast` to it reaches nothing and still says `result=0`.
 - **Setting the PIN applies the hold**: lock task, the restrictions, the
   suspensions and the filter with lockdown. The beta skips
-  `no_debugging_features`, so adb stays; under lockdown nothing but DNS
-  leaves the device (SPEC §9.4).
+  `no_debugging_features`, so adb stays; the shell's traffic then goes
+  through the relay, TCP alone (SPEC §9.4).
 - **The parent door closes after two minutes without a touch.** For the
   check of it, the beta reads a shorter idle time from a system property:
   `adb shell setprop debug.shinkan.door_idle 15` (seconds; `0` or unset is

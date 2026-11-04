@@ -15,7 +15,7 @@ paths:
   with tests. `DeviceHold` only turns the result into `DevicePolicyManager`
   calls; a new control is one documented call, named in SPEC §5.
 - **A test for every rule.** A change to `Policy`, `Plan`, `PlanState`, `Window`, `PolicyText`,
-  `Blocklist`, `Link`, `DnsQuestion` or `Udp4` comes with a case in
+  `Blocklist`, `Link`, `DnsQuestion`, `Udp4`, `Tcp4` or `TcpFlow` comes with a case in
   `core/src/test/`; the overnight window, the window edge, the plan day's edges, the subdomain
   match and the checksums are the ones most easily broken.
 - **The tunnel carries the device's traffic, never Shinkan's.** A change to

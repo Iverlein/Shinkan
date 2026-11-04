@@ -86,15 +86,16 @@ class DeviceHold(private val context: Context) {
      * device owner itself, and the only package lock task may pin, with none of
      * the system's lock task features (no home, no recents, no notifications)
      * until block A1 tunes them. [shinkan.app.MainActivity] starts lock task.
-     * On the open device the launcher stays and nothing is pinned.
+     * On the open device the device's launcher is the home and nothing is pinned.
      */
     private fun applyHome(policy: Policy) {
+        val home = IntentFilter(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            addCategory(Intent.CATEGORY_DEFAULT)
+        }
         when (policy.mode) {
             Mode.CLOSED -> {
-                val home = IntentFilter(Intent.ACTION_MAIN).apply {
-                    addCategory(Intent.CATEGORY_HOME)
-                    addCategory(Intent.CATEGORY_DEFAULT)
-                }
+                otherHomes().forEach { dpm.clearPackagePersistentPreferredActivities(admin, it) }
                 dpm.addPersistentPreferredActivity(admin, home, ComponentName(context, MainActivity::class.java))
                 dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
                 // The keyguard stays, behind the home (which shows over it), so a parent can unlock with the
@@ -103,6 +104,9 @@ class DeviceHold(private val context: Context) {
             }
             Mode.OPEN -> {
                 dpm.clearPackagePersistentPreferredActivities(admin, context.packageName)
+                // Shinkan is a home too, by its manifest, so with the preference gone the Home key
+                // would ask which: the device's own launcher is named instead (SPEC §4.1).
+                deviceHome()?.let { dpm.addPersistentPreferredActivity(admin, home, it) }
                 dpm.setLockTaskPackages(admin, emptyArray())
             }
         }
@@ -117,7 +121,8 @@ class DeviceHold(private val context: Context) {
     private fun applyPackages(policy: Policy, now: LocalDateTime) {
         // On the closed device the other homes are held too: when Shinkan's process dies, the
         // system resumes the launcher's old task, not the persistent home (found 2026-11-02).
-        val launchable = launchablePackages() + if (policy.mode == Mode.CLOSED) otherHomes() else emptyList()
+        // They are in this list on both forms, for the open one to resume what the closed one held.
+        val launchable = (launchablePackages() + otherHomes()).distinct()
         val held = when (policy.mode) {
             Mode.CLOSED -> launchable.toSet()
             Mode.OPEN -> policy.closedPackagesAt(now) + launchable.filter(BlocklistStore(context).blocklist::holdsPackage)
@@ -152,6 +157,15 @@ class DeviceHold(private val context: Context) {
             .map { it.activityInfo.packageName }
             .distinct()
             .filter { it != context.packageName && it != "android" }
+    }
+
+    /** The device's own launcher: the home of the highest priority that is not Shinkan's, which leaves out Settings' fallback. */
+    private fun deviceHome(): ComponentName? {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        return context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+            .filter { it.activityInfo.packageName != context.packageName && it.activityInfo.packageName != "android" }
+            .maxByOrNull { it.priority }
+            ?.let { ComponentName(it.activityInfo.packageName, it.activityInfo.name) }
     }
 
     private fun scheduleNext(policy: Policy, state: PlanState, now: LocalDateTime) {
@@ -189,6 +203,7 @@ class DeviceHold(private val context: Context) {
         val all = (launchablePackages() + otherHomes()).distinct().toTypedArray()
         if (all.isNotEmpty()) dpm.setPackagesSuspended(admin, all, false)
         dpm.clearPackagePersistentPreferredActivities(admin, context.packageName)
+        otherHomes().forEach { dpm.clearPackagePersistentPreferredActivities(admin, it) }
         dpm.setLockTaskPackages(admin, emptyArray())
         runCatching { dpm.setAlwaysOnVpnPackage(admin, null, false) }
         context.stopService(Intent(context, FilterService::class.java))

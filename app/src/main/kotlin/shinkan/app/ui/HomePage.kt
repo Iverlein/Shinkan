@@ -9,9 +9,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -27,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -37,6 +41,7 @@ import io.github.iverlein.shinkan.R
 import kotlinx.coroutines.delay
 import shinkan.app.admin.PolicyStore
 import shinkan.core.Door
+import shinkan.core.Mode
 import shinkan.core.PlanState
 import shinkan.core.Policy
 import shinkan.core.Stage
@@ -47,7 +52,8 @@ import java.time.format.FormatStyle
 import java.time.format.TextStyle
 
 /**
- * The child's home on the closed device (SPEC §8.1): two large doors, the
+ * The child's home (SPEC §8.1), on the open device the page Shinkan opens on, with
+ * the closed apps under the doors: two large doors, the
  * browser and the player, one above the other in portrait and side by side in
  * landscape; a door the plan has closed is greyed and says when it opens next.
  * An open door with a budget says what is left of it. During a rest the
@@ -60,7 +66,8 @@ fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onP
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     val policy = remember(now, counted) { store.policy }
     val state = policy.resolve(now, counted)
-    val open = policy.openAt(now, state)
+    val open = policy.doorsAt(now, state)
+    val held = policy.mode == Mode.CLOSED
 
     // Look again at the next edge of the plan, and at least once a minute.
     LaunchedEffect(now) {
@@ -71,7 +78,8 @@ fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onP
         now = LocalDateTime.now()
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { now = LocalDateTime.now() }
-    BackHandler {}
+    // On the open device Shinkan is an app like any other: Back leaves it for the launcher.
+    BackHandler(enabled = held) {}
 
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     Column(Modifier.fillMaxSize()) {
@@ -99,8 +107,28 @@ fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onP
                 doors(Modifier.weight(1f).fillMaxSize())
             }
         }
+        if (!held) ClosedApps(policy, now)
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onParent) { Text(stringResource(R.string.home_parent)) }
+    }
+}
+
+/** The open device's closed apps by name, each with when it opens next (SPEC §8.1). */
+@Composable
+private fun ClosedApps(policy: Policy, now: LocalDateTime) {
+    val apps = policy.closedApps(now)
+    if (apps.isEmpty()) return
+    val pm = LocalContext.current.packageManager
+    Spacer(Modifier.height(16.dp))
+    Text(stringResource(R.string.home_closed_apps), style = MaterialTheme.typography.titleMedium)
+    Column(Modifier.heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
+        apps.forEach { app ->
+            val name = runCatching { pm.getApplicationLabel(pm.getApplicationInfo(app.pkg, 0)).toString() }.getOrDefault(app.pkg)
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                Text(name, Modifier.weight(1f))
+                Text(opensNote(app.opens, now), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
     }
 }
 

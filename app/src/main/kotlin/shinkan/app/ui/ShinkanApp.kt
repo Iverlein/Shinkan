@@ -99,7 +99,7 @@ fun ShinkanApp(
             Page.PLAYER -> Door.PLAYER
             else -> return@LaunchedEffect
         }
-        if (door !in store.policy.openAt(LocalDateTime.now(), counted)) page = Page.HOME
+        if (door !in store.policy.doorsAt(LocalDateTime.now(), counted)) page = Page.HOME
     }
     val behindPin = page == Page.DOOR || page == Page.DOOR_PIN || page == Page.RELEASE_PIN
 

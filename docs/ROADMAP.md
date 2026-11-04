@@ -1083,15 +1083,14 @@ end, 16:19, every app resumed with no tap. On the closed device `browser player
 
 ## Open
 
-- 2026-11-04: on the open device, what of the hours no stage opens: after a
-  plan's last stage, or on a day with no plan? §4.7 says nothing is open,
-  and on the closed device that greys the doors. Block 7b pins the rest page
-  during a rest alone, as its section says, since a page pinned all day also
-  shuts out the phone app. The owner's call. A budget used up with no rest is
-  settled (Decided); the hours no span opens are not.
+Nothing waits for the owner.
 
 ## Decided
 
+- 2026-11-04: on the open device the hours no span opens stay free: after a
+  plan's last span and on a day with no plan the apps are usable and nothing is
+  pinned, since a page pinned all day would also shut out the phone app. On the
+  closed device those hours grey the doors (SPEC §4.7).
 - 2026-11-04: a plan is spans, each with its own budgets; a rest fills its
   budget again until the span ends; no budget stands as a stage, what 1.0 wrote
   turned into a span as it is read; a budget used up with no rest greys the

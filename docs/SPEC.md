@@ -308,7 +308,9 @@ in rounds, an hour on and half an hour off, until it ends. A budget with no
 rest is spent once: its doors stay closed to the span's end. The span's end
 ends everything in it, a rest included, and the next span starts with its own
 budgets whole; minutes never pass from one span to another. Outside every span
-nothing is open until the next one starts. A plan belongs to the day its first
+nothing is open until the next one starts: on the closed device the doors are
+greyed; on the open device, whose plan speaks of a budget and not of a curfew,
+the apps stay usable and nothing is pinned. A plan belongs to the day its first
 span starts, and a span may cross midnight.
 
 A door whose budget is used up with no rest is greyed and says so, *Budget used

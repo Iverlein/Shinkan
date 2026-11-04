@@ -855,6 +855,8 @@ uninstalled. Release asks for the PIN once more.
   own browser cannot, it resolves through the system (§7.6).
 - **Until block 12, other apps on a held device have IPv4 alone**, and no
   ICMP at all.
+- **Uploads through the relay are slow**, about a tenth of a direct
+  connection's speed on the emulator (ROADMAP, *Open*); downloads are not.
 - **The browser's cosmetic filtering** is none: only request rules apply
   (§7.6).
 - **The volume ceiling of the open device** is one for the device and a

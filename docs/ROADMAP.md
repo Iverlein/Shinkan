@@ -950,9 +950,9 @@ Checked on the emulator, 2026-11-04, under lockdown, from the shell's uid
 (which got `EACCES` before) to a server on the host's LAN address (Shinkan's
 uid does not reach 10.0.2.2): 50 MB of random data in 2.34 s against 2.62 s
 direct, its SHA-256 equal, `tun0` up by 54.8 MB; eight such at once in 27.5 s,
-all eight equal; 30 MB up with its SHA-256 equal, in under 15.7 s of which 5
-are `nc`'s own wait, with no direct figure to set beside it; a closed port
-read as `Connection refused`. Chrome on the open form drew a Wikipedia article
+all eight equal; 30 MB up with its SHA-256 equal, but in 10.8 to 15.7 s
+against 1.5 s direct (*Open* below); a closed port read as
+`Connection refused`. Chrome on the open form drew a Wikipedia article
 over TLS, 1.7 MB through `tun0`. On the closed form the parent's site and an ad
 name were refused, `www.wikipedia.org` resolved, and the player played at
 1080p from outside the tunnel. toybox `nc` to example.org printed nothing, the
@@ -995,6 +995,15 @@ full route (11a). It comes back only if that changes.
 
 ## Open
 
+- 2026-11-04: the relay uploads about ten times slower than a direct
+  connection: 30 MB in 10.8 to 15.7 s against 1.5 s, whole, with the device's
+  `RetransSegs` up by 1232 in the 10.8 s run, about one data segment in
+  seventeen. Downloads are not touched (50 MB in 2.34 s against 2.62 s), and
+  this block's check speaks of downloads alone. `TcpFlow` drops a segment out
+  of order, so each gap sends the sender back; whether the gaps are real or the
+  retransmits spurious is not known. First to try: count what `Relay` drops,
+  then a queue for segments ahead of a gap, and a window that shrinks with
+  `pendingBytes` in place of leaving data unacknowledged.
 - 2026-11-04: on the open device, what of the hours no stage opens: after a
   plan's last stage, or on a day with no plan? §4.7 says nothing is open,
   and on the closed device that greys the doors. Block 7b pins the rest page

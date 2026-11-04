@@ -40,4 +40,5 @@ enum class TextProblem {
     UNKNOWN_DOOR,
     UNKNOWN_DAY,
     DAY_REPEATED,
+    DOOR_REPEATED,
 }

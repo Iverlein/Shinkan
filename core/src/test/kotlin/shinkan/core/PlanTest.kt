@@ -187,15 +187,154 @@ class PlanTest {
         assertEquals(PlanState(monday, 3, 5), policy.resolve(at(2, "11:00"), stale))
     }
 
+    // The owner's example: the morning free, the day in rounds of 60 and 30 (SPEC §4.7).
+    private val rounds = PolicyText.parse(
+        """
+        plan mon
+          06:00-09:00 player
+          10:00-19:00 browser player 60 rest 30
+          19:00-21:00 browser,player 45
+        """.trimIndent(),
+    )
+
+    @Test fun `a door with no budget in its span runs free to the span's end`() {
+        val s = use(rounds, at(2, "06:00"), PlanState(), Door.PLAYER, 179)
+        assertEquals(player, rounds.openAt(at(2, "08:59"), s))
+        assertNull(rounds.budgetLeft(at(2, "08:59"), s, Door.PLAYER))
+        assertEquals(emptySet<Door>(), rounds.openAt(at(2, "09:00"), s))
+        assertEquals(emptySet<Door>(), rounds.openAt(at(2, "09:59"), s))
+    }
+
+    @Test fun `each span of a day has its own budget`() {
+        assertEquals(both, rounds.openAt(at(2, "10:00")))
+        assertEquals(3600L, rounds.budgetLeft(at(2, "10:00"), PlanState(), Door.PLAYER))
+        assertNull(rounds.budgetLeft(at(2, "10:00"), PlanState(), Door.BROWSER))
+        assertEquals(45 * 60L, rounds.budgetLeft(at(2, "19:00"), PlanState(), Door.BROWSER))
+    }
+
+    @Test fun `sixty minutes of the player rest that door alone`() {
+        var s = rounds.resolve(at(2, "10:00"), PlanState())
+        s = use(rounds, at(2, "10:00"), s, Door.PLAYER, 59)
+        assertEquals(60L, rounds.budgetLeft(at(2, "10:59"), s, Door.PLAYER))
+        assertEquals(both, rounds.openAt(at(2, "10:59"), s))
+        s = use(rounds, at(2, "10:59"), s, Door.PLAYER, 1)
+        assertTrue(s.resting)
+        assertEquals(browser, rounds.openAt(at(2, "11:00"), s))
+        assertEquals(browser, rounds.openAt(at(2, "11:29"), s))
+        assertEquals(at(2, "11:30"), rounds.nextChange(at(2, "11:00"), s))
+        assertEquals(at(2, "11:30"), rounds.budgetOf(Door.PLAYER, at(2, "11:00"), s)?.restEnd)
+        assertEquals(at(2, "11:30"), rounds.nextOpening(Door.PLAYER, at(2, "11:00"), s))
+    }
+
+    @Test fun `the browser's use goes on while the player rests and does not touch its budget`() {
+        var s = rounds.resolve(at(2, "10:00"), PlanState())
+        s = use(rounds, at(2, "10:00"), s, Door.PLAYER, 60)
+        val during = use(rounds, at(2, "11:00"), s, Door.BROWSER, 20)
+        assertEquals(s, during)
+        assertEquals(browser, rounds.openAt(at(2, "11:20"), during))
+    }
+
+    @Test fun `a rest in a span fills its budget again, round after round`() {
+        var s = rounds.resolve(at(2, "10:00"), PlanState())
+        var start = at(2, "10:00")
+        repeat(3) {
+            s = use(rounds, start, s, Door.PLAYER, 60)
+            assertEquals(browser, rounds.openAt(start.plusMinutes(60), s))
+            start = start.plusMinutes(90)
+            assertEquals(both, rounds.openAt(start, s))
+            s = rounds.resolve(start, s)
+            assertEquals(3600L, rounds.budgetLeft(start, s, Door.PLAYER))
+        }
+        assertEquals(at(2, "14:30"), start)
+    }
+
+    @Test fun `the span's end ends its rest, and the next span starts fresh`() {
+        val s = use(rounds, at(2, "17:50"), rounds.resolve(at(2, "17:50"), PlanState()), Door.PLAYER, 60)
+        assertEquals(at(2, "19:20"), rounds.budgetOf(Door.PLAYER, at(2, "18:50"), s)?.restEnd)
+        assertEquals(browser, rounds.openAt(at(2, "18:59"), s))
+        assertEquals(both, rounds.openAt(at(2, "19:00"), s))
+        assertFalse(rounds.resolve(at(2, "19:00"), s).resting)
+        assertEquals(PlanState(monday, 2), rounds.resolve(at(2, "19:00"), s))
+    }
+
+    @Test fun `doors joined by a comma share their minutes`() {
+        var s = rounds.resolve(at(2, "19:00"), PlanState())
+        s = use(rounds, at(2, "19:00"), s, Door.BROWSER, 30)
+        s = use(rounds, at(2, "19:30"), s, Door.PLAYER, 14)
+        assertEquals(60L, rounds.budgetLeft(at(2, "19:44"), s, Door.BROWSER))
+        s = use(rounds, at(2, "19:44"), s, Door.PLAYER, 1)
+        assertEquals(emptySet<Door>(), rounds.openAt(at(2, "19:45"), s))
+    }
+
+    @Test fun `a budget with no rest stays shut to its span's end and is no rest`() {
+        val p = PolicyText.parse("plan mon\n  10:00-12:00 browser player 30\n  12:00-13:00 player")
+        val s = use(p, at(2, "10:00"), p.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 30)
+        assertFalse(s.resting)
+        assertEquals(browser, p.openAt(at(2, "11:59"), s))
+        assertNull(p.budgetLeft(at(2, "11:59"), s, Door.PLAYER))
+        assertEquals(at(2, "12:00"), p.nextOpening(Door.PLAYER, at(2, "10:30"), s))
+        assertEquals(player, p.openAt(at(2, "12:00"), s))
+    }
+
+    @Test fun `a rest a parent ends holds its door until the parent opens, then the budget fills`() {
+        val p = PolicyText.parse("plan mon\n  10:00-19:00 browser player 60 rest parent")
+        val s = use(p, at(2, "10:00"), p.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 60)
+        assertEquals(browser, p.openAt(at(2, "18:59"), s))
+        assertEquals(at(2, "19:00"), p.nextChange(at(2, "12:00"), s))
+        val opened = p.openNow(at(2, "12:00"), s)
+        assertFalse(opened.resting)
+        assertEquals(both, p.openAt(at(2, "12:00"), opened))
+        assertEquals(3600L, p.budgetLeft(at(2, "12:00"), opened, Door.PLAYER))
+    }
+
+    @Test fun `open now ends a rest in a span and leaves the other budget's use`() {
+        val p = PolicyText.parse("plan mon\n  10:00-19:00 browser 120 player 60 rest 30")
+        var s = use(p, at(2, "10:00"), p.resolve(at(2, "10:00"), PlanState()), Door.BROWSER, 10)
+        s = use(p, at(2, "10:10"), s, Door.PLAYER, 60)
+        val opened = p.openNow(at(2, "11:15"), s)
+        assertEquals(both, p.openAt(at(2, "11:15"), opened))
+        assertEquals(110 * 60L, p.budgetLeft(at(2, "11:15"), opened, Door.BROWSER))
+    }
+
+    @Test fun `next change in a span takes the nearest budget's end`() {
+        val p = PolicyText.parse("plan mon\n  10:00-19:00 browser 120 player 60 rest 30")
+        var s = p.resolve(at(2, "10:00"), PlanState())
+        s = use(p, at(2, "10:00"), s, Door.PLAYER, 45)
+        assertEquals(at(2, "11:00"), p.nextChange(at(2, "10:45"), s))
+        assertEquals(15 * 60L, p.budgetLeft(at(2, "10:45"), s))
+    }
+
+    @Test fun `no use counts before a span starts`() {
+        val s = rounds.count(at(2, "09:30"), PlanState(monday, 1), Door.PLAYER, 600)
+        assertEquals(PlanState(monday, 1), s)
+        assertEquals(emptyList<BudgetNow>(), rounds.budgets(at(2, "09:30"), s))
+    }
+
+    @Test fun `a budget of the open device's span rests and pins it, and the rest ends`() {
+        val p = PolicyText.parse("mode open\nplan mon\n  10:00-19:00 device 60 rest 30")
+        val s = use(p, at(2, "10:00"), p.resolve(at(2, "10:00"), PlanState()), Door.DEVICE, 60)
+        assertTrue(p.pinnedAt(at(2, "11:29"), s))
+        assertEquals(emptySet<Door>(), p.doorsAt(at(2, "11:29"), s))
+        assertFalse(p.pinnedAt(at(2, "11:30"), s))
+        assertEquals(3600L, p.budgetLeft(at(2, "11:30"), s, Door.DEVICE))
+    }
+
+    @Test fun `a stored use from an edited span is dropped`() {
+        val stale = PlanState(monday, 0, uses = mapOf(4 to Use(100)))
+        assertEquals(PlanState(monday, 0), rounds.resolve(at(2, "07:00"), stale))
+    }
+
     @Test fun `the stored state reads back as it was`() {
         val states = listOf(
             PlanState(),
             PlanState(monday, 1, 1800, at(2, "12:00")),
             PlanState(monday, 1, 3600, restParent = true),
             PlanState(monday, 2, 75),
+            PlanState(monday, 1, uses = mapOf(0 to Use(600), 1 to Use(3600, at(2, "12:00")), 2 to Use(3600, restParent = true))),
         )
         for (s in states) assertEquals(s, PolicyText.parseState(PolicyText.renderState(s)))
         assertEquals("day=2026-11-02 stage=1 spent=1800 rest=2026-11-02T12:00", PolicyText.renderState(states[1]))
+        assertEquals("day=2026-11-02 stage=1 spent=0 b0=600 b1=3600,2026-11-02T12:00 b2=3600,parent", PolicyText.renderState(states[4]))
         assertEquals(PlanState(), PolicyText.parseState("day=yesterday stage=x"))
         assertEquals(PlanState(), PolicyText.parseState(""))
     }

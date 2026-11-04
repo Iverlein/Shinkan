@@ -66,6 +66,55 @@ class PolicyTest {
         assertEquals(setOf(Restriction.FACTORY_RESET), p.restrictions)
     }
 
+    @Test fun `a span carries budgets on its doors, written back as read`() {
+        val text = """
+            mode closed
+            plan mon
+              06:00-09:00 player
+              10:00-19:00 browser player 60 rest 30
+              19:00-21:00 browser,player 45
+              21:00-22:00 browser 10 rest parent player 20
+        """.trimIndent() + "\n"
+        val p = PolicyText.parse(text)
+        val stages = p.plans[0].stages.map { it as Stage.Span }
+        assertEquals(emptyList<Stage.Budget>(), stages[0].budgets)
+        assertEquals(setOf(Door.BROWSER, Door.PLAYER), stages[1].doors)
+        assertEquals(listOf(Stage.Budget(setOf(Door.PLAYER), 60, Rest.Minutes(30))), stages[1].budgets)
+        assertEquals(listOf(Stage.Budget(setOf(Door.BROWSER, Door.PLAYER), 45)), stages[2].budgets)
+        assertEquals(
+            listOf(Stage.Budget(setOf(Door.BROWSER), 10, Rest.Parent), Stage.Budget(setOf(Door.PLAYER), 20)),
+            stages[3].budgets,
+        )
+        assertEquals(text, PolicyText.render(p))
+    }
+
+    @Test fun `what 1_0 wrote reads and writes back unchanged`() {
+        val text = """
+            mode closed
+            plan mon,tue
+              06:00-10:00 browser player
+              player 30 rest 90
+              browser player 120
+            plan sat
+              player 60 rest parent
+        """.trimIndent() + "\n"
+        val p = PolicyText.parse(text)
+        assertEquals(Stage.Budget(setOf(Door.PLAYER), 30, Rest.Minutes(90)), p.plans[0].stages[1])
+        assertEquals(text, PolicyText.render(p))
+    }
+
+    @Test fun `a span's budget refuses what it cannot mean`() {
+        fun problem(line: String) = assertThrows(PolicyText.Malformed::class.java) { PolicyText.parse("plan mon\n  $line") }.problem
+        assertEquals(TextProblem.DOOR_REPEATED, problem("10:00-12:00 player player 60"))
+        assertEquals(TextProblem.DOOR_REPEATED, problem("10:00-12:00 player 60 browser,player 30"))
+        assertEquals(TextProblem.BUDGET_MINUTES, problem("10:00-12:00 player 0"))
+        assertEquals(TextProblem.BUDGET_MINUTES, problem("10:00-12:00 player rest 30"))
+        assertEquals(TextProblem.BUDGET_MINUTES, problem("10:00-12:00 browser,player"))
+        assertEquals(TextProblem.REST, problem("10:00-12:00 player 60 rest"))
+        assertEquals(TextProblem.REST, problem("10:00-12:00 player 60 rest soon"))
+        assertEquals(TextProblem.UNKNOWN_DOOR, problem("10:00-12:00 player 60 tv"))
+    }
+
     @Test fun `restrictions default when none are written, none is none`() {
         assertEquals(Restriction.DEFAULT, PolicyText.parse("mode closed").restrictions)
         assertEquals(emptySet<Restriction>(), PolicyText.parse("restrict none").restrictions)

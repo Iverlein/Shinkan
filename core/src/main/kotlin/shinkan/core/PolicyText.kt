@@ -12,9 +12,9 @@ import java.time.format.DateTimeFormatter
  *
  *     mode closed
  *     plan mon,tue,wed,thu,fri
- *       06:00-10:00 browser player
- *       player 30 rest 90
- *       browser 120
+ *       06:00-09:00 browser player
+ *       10:00-19:00 browser player 60 rest 30
+ *       19:00-21:00 browser,player 45
  *     close com.example.game
  *     window com.example.game sat,sun 10:00-12:00
  *     permission com.example.game deny camera
@@ -22,9 +22,11 @@ import java.time.format.DateTimeFormatter
  *     start https://www.wikipedia.org
  *     restrict factory_reset
  *
- * A `plan` line takes the indented lines under it as its stages: a span
- * (`HH:MM-HH:MM` and the doors open in it) or a budget (the doors, the minutes,
- * and `rest` with minutes or `parent`). A `window` closes its package too. No
+ * A `plan` line takes the indented lines under it as its stages. A span is
+ * `HH:MM-HH:MM` and the doors open in it, a door free unless minutes follow it,
+ * then `rest` with minutes or `parent`; doors joined by a comma share their
+ * minutes. A line with no hours (the doors, the minutes, the rest) is a budget
+ * standing as a stage, as 1.0 wrote it. A `window` closes its package too. No
  * `restrict` line means the default set, `restrict none` an empty one. Blank
  * lines and lines starting with # are skipped. Unknown statements and
  * malformed lines raise [PolicyText.Malformed] with the line number.
@@ -144,8 +146,7 @@ object PolicyText {
     private fun stage(n: Int, line: String, parts: List<String>): Stage {
         span.matchEntire(parts[0])?.let {
             val (from, to) = hours(n, line, parts[0])
-            val doors = parts.drop(1).map { door(it) ?: throw Malformed(n, line, TextProblem.UNKNOWN_DOOR, it) }.toSet()
-            return Stage.Span(from, to, doors)
+            return span(n, line, from, to, parts.drop(1))
         }
         val doors = parts.takeWhile { it.toIntOrNull() == null && it != "rest" }
         if (doors.isEmpty()) throw Malformed(n, line, TextProblem.STAGE_SHAPE)
@@ -156,14 +157,45 @@ object PolicyText {
         val after = rest.drop(1)
         val restOf = when {
             after.isEmpty() -> null
-            after.size == 2 && after[0] == "rest" && after[1] == "parent" -> Rest.Parent
-            after.size == 2 && after[0] == "rest" -> Rest.Minutes(
-                after[1].toIntOrNull()?.takeIf { it > 0 } ?: throw Malformed(n, line, TextProblem.REST),
-            )
+            after.size == 2 && after[0] == "rest" -> rest(n, line, after[1])
             else -> throw Malformed(n, line, TextProblem.AFTER_MINUTES)
         }
         return Stage.Budget(doorSet, minutes, restOf)
     }
+
+    /** What follows a span's hours: doors, each group free or with its minutes and rest. */
+    private fun span(n: Int, line: String, from: LocalTime, to: LocalTime, parts: List<String>): Stage.Span {
+        val free = linkedSetOf<Door>()
+        val budgets = mutableListOf<Stage.Budget>()
+        var i = 0
+        while (i < parts.size) {
+            val group = parts[i++].split(",").map { door(it) ?: throw Malformed(n, line, TextProblem.UNKNOWN_DOOR, it) }.toSet()
+            val next = parts.getOrNull(i)
+            val minutes = next?.toIntOrNull()
+            if (minutes == null) {
+                if (group.size > 1 || next == "rest") throw Malformed(n, line, TextProblem.BUDGET_MINUTES)
+                free += group
+                continue
+            }
+            if (minutes <= 0) throw Malformed(n, line, TextProblem.BUDGET_MINUTES)
+            i++
+            var restOf: Rest? = null
+            if (parts.getOrNull(i) == "rest") {
+                restOf = rest(n, line, parts.getOrNull(i + 1))
+                i += 2
+            }
+            budgets += Stage.Budget(group, minutes, restOf)
+        }
+        val counted = budgets.flatMap { it.doors }
+        counted.firstOrNull { it in free || counted.count { c -> c == it } > 1 }?.let {
+            throw Malformed(n, line, TextProblem.DOOR_REPEATED, it.name.lowercase())
+        }
+        return Stage.Span(from, to, free + counted, budgets)
+    }
+
+    private fun rest(n: Int, line: String, text: String?): Rest =
+        if (text == "parent") Rest.Parent
+        else Rest.Minutes(text?.toIntOrNull()?.takeIf { it > 0 } ?: throw Malformed(n, line, TextProblem.REST))
 
     private fun days(n: Int, line: String, text: String): Set<DayOfWeek> =
         text.split(",").map { dayNames[it.lowercase()] ?: throw Malformed(n, line, TextProblem.UNKNOWN_DAY, it) }.toSet()
@@ -201,7 +233,8 @@ object PolicyText {
 
     private fun days(days: Set<DayOfWeek>) = DayOfWeek.entries.filter { it in days }.joinToString(",") { dayName(it) }
 
-    private fun doors(doors: Set<Door>) = Door.entries.filter { it in doors }.joinToString(" ") { it.name.lowercase() }
+    private fun doors(doors: Set<Door>, between: String = " ") =
+        Door.entries.filter { it in doors }.joinToString(between) { it.name.lowercase() }
 
     fun render(policy: Policy): String = buildString {
         appendLine("mode ${policy.mode.name.lowercase()}")
@@ -230,7 +263,9 @@ object PolicyText {
     /**
      * The plan state as the app stores it (SPEC §4.7), one line of `key=value`:
      * `day=2026-11-02 stage=1 spent=1800 rest=2026-11-02T12:00`, with
-     * `rest=parent` for a rest a parent ends. Nothing but these is kept.
+     * `rest=parent` for a rest a parent ends, and for each budget of a span
+     * touched `b0=600`, `b1=3600,2026-11-02T12:00` or `b1=3600,parent`. Nothing
+     * but these is kept.
      */
     fun renderState(state: PlanState): String = buildList {
         state.day?.let { add("day=$it") }
@@ -239,6 +274,10 @@ object PolicyText {
         when {
             state.restParent -> add("rest=parent")
             state.restEnd != null -> add("rest=${state.restEnd}")
+        }
+        state.uses.toSortedMap().forEach { (i, use) ->
+            val rest = if (use.restParent) ",parent" else use.restEnd?.let { ",$it" }.orEmpty()
+            add("b$i=${use.spent}$rest")
         }
     }.joinToString(" ")
 
@@ -253,6 +292,14 @@ object PolicyText {
                 spent = fields["spent"]?.toLong() ?: 0,
                 restEnd = rest?.takeIf { it != "parent" }?.let(LocalDateTime::parse),
                 restParent = rest == "parent",
+                uses = fields.filterKeys { it.matches(Regex("b\\d+")) }.entries.associate { (key, value) ->
+                    val (spent, end) = (value.split(",") + "").take(2)
+                    key.drop(1).toInt() to Use(
+                        spent.toLong(),
+                        end.takeIf { it.isNotEmpty() && it != "parent" }?.let(LocalDateTime::parse),
+                        end == "parent",
+                    )
+                },
             )
         } catch (e: Exception) {
             PlanState()
@@ -261,15 +308,20 @@ object PolicyText {
 
     /** One stage as its indented line shows it, without the indent. */
     fun render(stage: Stage): String = when (stage) {
-        is Stage.Span -> listOf("${stage.from.format(hhmm)}-${stage.to.format(hhmm)}", doors(stage.doors))
-            .filter { it.isNotEmpty() }.joinToString(" ")
-        is Stage.Budget -> buildString {
-            append("${doors(stage.doors)} ${stage.minutes}")
-            when (val r = stage.rest) {
-                null -> Unit
-                is Rest.Minutes -> append(" rest ${r.minutes}")
-                Rest.Parent -> append(" rest parent")
-            }
+        is Stage.Span -> {
+            val free = stage.doors - stage.budgets.flatMap { it.doors }.toSet()
+            (listOf("${stage.from.format(hhmm)}-${stage.to.format(hhmm)}", doors(free)) + stage.budgets.map { render(it, ",") })
+                .filter { it.isNotEmpty() }.joinToString(" ")
+        }
+        is Stage.Budget -> render(stage, " ")
+    }
+
+    private fun render(budget: Stage.Budget, between: String): String = buildString {
+        append("${doors(budget.doors, between)} ${budget.minutes}")
+        when (val r = budget.rest) {
+            null -> Unit
+            is Rest.Minutes -> append(" rest ${r.minutes}")
+            Rest.Parent -> append(" rest parent")
         }
     }
 }

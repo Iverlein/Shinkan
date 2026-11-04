@@ -48,7 +48,7 @@ data class Policy(
         return when (stage) {
             is Stage.Span -> {
                 val t = plan.spanTimes(day).getValue(s.stage)
-                if (now >= t.first && now < t.second) stage.doors else emptySet()
+                if (now >= t.first && now < t.second) stage.doors - stopped(stage, s) else emptySet()
             }
             is Stage.Budget -> if (s.resting) emptySet() else stage.doors
         }
@@ -58,8 +58,8 @@ data class Policy(
      * [state] carried to [now] by the clock alone (SPEC §4.7): the plan day that
      * holds [now] (a new day starts fresh), a span that has started taking over
      * whatever ran, a span past its end giving way to the next stage, a rest in
-     * minutes past its end doing the same. Use is never counted here; that is
-     * [count].
+     * minutes past its end doing the same, and inside a span a rest past its end
+     * filling its budget again. Use is never counted here; that is [count].
      */
     fun resolve(now: LocalDateTime, state: PlanState): PlanState {
         val day = currentDay(now) ?: return PlanState()
@@ -70,11 +70,11 @@ data class Policy(
             // A later span that has started takes over whatever runs.
             val jump = spans.filter { (i, t) -> i > s.stage && t.first <= now }.keys.maxOrNull()
             if (jump != null) s = PlanState(day, jump)
-            val stage = plan.stages.getOrNull(s.stage) ?: return s
+            val stage = plan.stages.getOrNull(s.stage) ?: return s.copy(uses = emptyMap())
             when (stage) {
                 is Stage.Span -> {
                     if (now >= spans.getValue(s.stage).second) { s = PlanState(day, s.stage + 1); continue }
-                    return s.copy(spent = 0, restEnd = null, restParent = false)
+                    return s.copy(spent = 0, restEnd = null, restParent = false, uses = settle(stage, s.uses, now))
                 }
                 is Stage.Budget -> {
                     if (s.restParent) return s
@@ -92,13 +92,17 @@ data class Policy(
 
     /**
      * [seconds] of use of [door] counted at [now] (SPEC §4.7): added to the
-     * running budget when it names the door; a budget used up ends, at the
-     * moment it ran out, in its rest or in the next stage.
+     * running budget when it names the door. A budget used up ends at the moment
+     * it ran out: inside a span in its rest, or else its doors stay closed to the
+     * span's end; as a stage of its own in its rest or in the next stage.
      */
     fun count(now: LocalDateTime, state: PlanState, door: Door, seconds: Long): PlanState {
         val s = resolve(now, state)
         val day = s.day ?: return s
-        val stage = planFor(day)?.stages?.getOrNull(s.stage) as? Stage.Budget ?: return s
+        val plan = planFor(day) ?: return s
+        val running = plan.stages.getOrNull(s.stage)
+        if (running is Stage.Span) return countInSpan(plan, running, now, s, door, seconds)
+        val stage = running as? Stage.Budget ?: return s
         if (s.resting || door !in stage.doors || seconds <= 0) return s
         val total = s.spent + seconds
         if (total < stage.seconds) return s.copy(spent = total)
@@ -106,28 +110,58 @@ data class Policy(
         return resolve(now, spend(s.copy(spent = stage.seconds), stage, ranOut))
     }
 
-    /** The parent's *Open now* during a rest (SPEC §8.2): the rest ends and the next stage begins. */
+    private fun countInSpan(plan: Plan, span: Stage.Span, now: LocalDateTime, s: PlanState, door: Door, seconds: Long): PlanState {
+        val i = span.budgets.indexOfFirst { door in it.doors }
+        if (i < 0 || seconds <= 0 || now < plan.spanTimes(s.day!!).getValue(s.stage).first) return s
+        val budget = span.budgets[i]
+        val use = s.uses[i] ?: Use()
+        if (use.resting || use.spent >= budget.seconds) return s
+        val total = use.spent + seconds
+        if (total < budget.seconds) return s.copy(uses = s.uses + (i to use.copy(spent = total)))
+        val ranOut = now.minusSeconds(total - budget.seconds)
+        return resolve(now, s.copy(uses = s.uses + (i to spent(budget, ranOut))))
+    }
+
+    /** The parent's *Open now* during a rest (SPEC §8.2): inside a span the rests end and their budgets fill again; a budget stage's rest gives way to the next stage. */
     fun openNow(now: LocalDateTime, state: PlanState): PlanState {
         val s = resolve(now, state)
         val day = s.day ?: return s
         if (!s.resting) return s
+        if (s.uses.values.any { it.resting }) return resolve(now, s.copy(uses = s.uses.filterValues { !it.resting }))
         return resolve(now, PlanState(day, s.stage + 1))
     }
 
-    /** The running budget's seconds left in [state] at [now], or null when no budget runs. */
-    fun budgetLeft(now: LocalDateTime, state: PlanState): Long? {
-        if (plans.isEmpty()) return null
+    /** The budgets of what runs at [now]: a budget stage's own, or those of a span under way (SPEC §4.7). */
+    fun budgets(now: LocalDateTime, state: PlanState): List<BudgetNow> {
+        if (plans.isEmpty()) return emptyList()
         val s = resolve(now, state)
-        val day = s.day ?: return null
-        val stage = planFor(day)?.stages?.getOrNull(s.stage) as? Stage.Budget ?: return null
-        if (s.resting) return null
-        return stage.seconds - s.spent
+        val day = s.day ?: return emptyList()
+        val plan = planFor(day) ?: return emptyList()
+        return when (val stage = plan.stages.getOrNull(s.stage)) {
+            is Stage.Budget -> listOf(BudgetNow(stage, (stage.seconds - s.spent).takeUnless { s.resting }, s.restEnd, s.restParent))
+            is Stage.Span -> {
+                if (now < plan.spanTimes(day).getValue(s.stage).first) return emptyList()
+                stage.budgets.mapIndexed { i, budget ->
+                    val use = s.uses[i] ?: Use()
+                    BudgetNow(budget, (budget.seconds - use.spent).takeIf { it > 0 && !use.resting }, use.restEnd, use.restParent)
+                }
+            }
+            null -> emptyList()
+        }
     }
+
+    /** The budget that counts [door] at [now], or null when the door runs free or nothing runs. */
+    fun budgetOf(door: Door, now: LocalDateTime, state: PlanState): BudgetNow? =
+        budgets(now, state).firstOrNull { door in it.budget.doors }
+
+    /** The seconds left at [now] of the budget that counts [door], or of the one nearest its end; null when none runs down. */
+    fun budgetLeft(now: LocalDateTime, state: PlanState, door: Door? = null): Long? =
+        budgets(now, state).filter { door == null || door in it.budget.doors }.mapNotNull { it.left }.minOrNull()
 
     /**
      * The next moment after [now] at which [openAt] or [closedPackagesAt] can
      * change, or null when nothing is timed: the next span's start or the
-     * current one's end, a rest's end, [now] plus the running budget's
+     * current one's end, a rest's end, [now] plus each running budget's
      * remainder, the end of the plan day or the start of the next, and on the
      * open device the closed apps' window edges (SPEC §4.2).
      */
@@ -145,9 +179,9 @@ data class Policy(
                 plan.spanTimes(day).forEach { (i, t) ->
                     if (i >= s.stage) { edges += t.first; edges += t.second }
                 }
-                s.restEnd?.let { edges += it }
-                if (withBudget && !s.resting) {
-                    (plan.stages.getOrNull(s.stage) as? Stage.Budget)?.let { edges += now.plusSeconds(it.seconds - s.spent) }
+                budgets(now, s).forEach { b ->
+                    b.restEnd?.let { edges += it }
+                    if (withBudget) b.left?.let { edges += now.plusSeconds(it) }
                 }
                 edges += dayEnd(day)
             }
@@ -233,6 +267,32 @@ data class Policy(
         return maxOf(midnight, last)
     }
 
+    /** The doors of [span] stopped in [s]: their budget rests, or is used up with no rest to fill it. */
+    private fun stopped(span: Stage.Span, s: PlanState): Set<Door> =
+        span.budgets.filterIndexed { i, budget -> s.uses[i]?.let { it.resting || it.spent >= budget.seconds } == true }
+            .flatMap { it.doors }.toSet()
+
+    /** The uses of [span]'s budgets carried to [now]: a rest over fills its budget again, a budget used up rests. */
+    private fun settle(span: Stage.Span, uses: Map<Int, Use>, now: LocalDateTime): Map<Int, Use> = buildMap {
+        uses.forEach { (i, use) ->
+            val budget = span.budgets.getOrNull(i) ?: return@forEach
+            val end = use.restEnd
+            when {
+                use.restParent -> put(i, use)
+                end != null -> if (now < end) put(i, use)
+                use.spent >= budget.seconds -> put(i, spent(budget, now))
+                else -> put(i, use)
+            }
+        }
+    }
+
+    /** A budget of a span used up at [ranOut]: into its rest, or stopped until the span ends. */
+    private fun spent(budget: Stage.Budget, ranOut: LocalDateTime): Use = when (val rest = budget.rest) {
+        null -> Use(budget.seconds)
+        is Rest.Minutes -> Use(budget.seconds, ranOut.plusMinutes(rest.minutes.toLong()))
+        Rest.Parent -> Use(budget.seconds, restParent = true)
+    }
+
     private fun spend(s: PlanState, stage: Stage.Budget, ranOut: LocalDateTime): PlanState =
         when (val rest = stage.rest) {
             null -> PlanState(s.day, s.stage + 1)
@@ -297,13 +357,25 @@ data class Plan(val days: Set<DayOfWeek>, val stages: List<Stage>) {
     }
 }
 
-/** A stage of a plan (SPEC §4.7): a clock span with the doors open in it, or a budget of minutes of use. */
+/**
+ * A stage of a plan (SPEC §4.7): a clock span with the doors open in it, each
+ * free or counted by one of the span's own [Span.budgets]; or, as 1.0 wrote it,
+ * a budget of minutes of use standing as a stage of its own.
+ */
 sealed interface Stage {
     val doors: Set<Door>
 
-    data class Span(val from: LocalTime, val to: LocalTime, override val doors: Set<Door>) : Stage {
+    data class Span(
+        val from: LocalTime,
+        val to: LocalTime,
+        override val doors: Set<Door>,
+        val budgets: List<Budget> = emptyList(),
+    ) : Stage {
         init {
             require(from != to) { "span of zero length" }
+            val counted = budgets.flatMap { it.doors }
+            require(counted.all { it in doors }) { "a budget on a door the span keeps closed" }
+            require(counted.size == counted.toSet().size) { "a door in two budgets" }
         }
     }
 
@@ -316,6 +388,18 @@ sealed interface Stage {
         val seconds: Long get() = minutes * 60L
     }
 }
+
+/**
+ * A budget as it stands now (SPEC §4.7): the seconds [left] of it, null when it is
+ * not running down; its rest's end on the wall clock, or [restParent] until a
+ * parent opens. A budget with neither and nothing left stays shut to its span's end.
+ */
+data class BudgetNow(
+    val budget: Stage.Budget,
+    val left: Long?,
+    val restEnd: LocalDateTime?,
+    val restParent: Boolean,
+)
 
 /** What follows a spent budget: minutes on the wall clock, or until a parent opens the door. */
 sealed interface Rest {
@@ -331,12 +415,23 @@ sealed interface Rest {
 /**
  * Where the plan stands, as the app keeps it in device-protected storage
  * (SPEC §4.7): the plan [day], the [stage] index in it, the seconds [spent] of
- * a budget, and a running rest: its [restEnd] on the wall clock, or
- * [restParent] until a parent opens. Nothing else is kept (§2.5).
+ * a budget stage, and a running rest: its [restEnd] on the wall clock, or
+ * [restParent] until a parent opens; for a span, [uses] holds the same of each
+ * of its budgets, by index, and only of those touched. Nothing else is kept (§2.5).
  */
 data class PlanState(
     val day: LocalDate? = null,
     val stage: Int = 0,
+    val spent: Long = 0,
+    val restEnd: LocalDateTime? = null,
+    val restParent: Boolean = false,
+    val uses: Map<Int, Use> = emptyMap(),
+) {
+    val resting: Boolean get() = restParent || restEnd != null || uses.values.any { it.resting }
+}
+
+/** One budget of the running span: the seconds [spent] since it last filled, and its rest. */
+data class Use(
     val spent: Long = 0,
     val restEnd: LocalDateTime? = null,
     val restParent: Boolean = false,

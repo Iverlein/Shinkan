@@ -360,7 +360,8 @@ segment (`Tcp4`) and any other datagram go to the relay; ICMP is dropped.
 The relay ends each connection in the service and carries it on over a
 protected socket: `TcpFlow` in `core/` is the connection as a state machine
 with no socket in it, `Relay` one thread and a selector over them. It offers
-the MSS option alone, no window scaling (a window of 64 KB), drops a segment
+the MSS option alone, no window scaling (a window of at most 64 KB, shrinking
+as writes to the far side lag and reopened as they catch up), drops a segment
 out of order, and sends again after 400 ms or three repeated acks. A
 connection the far side refuses reaches the app as refused; ten minutes of
 silence ends one. IPv6 has no route until block 12: lockdown refuses it, and
@@ -855,8 +856,6 @@ uninstalled. Release asks for the PIN once more.
   own browser cannot, it resolves through the system (§7.6).
 - **Until block 12, other apps on a held device have IPv4 alone**, and no
   ICMP at all.
-- **Uploads through the relay are slow**, about a tenth of a direct
-  connection's speed on the emulator (ROADMAP, *Open*); downloads are not.
 - **The browser's cosmetic filtering** is none: only request rules apply
   (§7.6).
 - **The volume ceiling of the open device** is one for the device and a

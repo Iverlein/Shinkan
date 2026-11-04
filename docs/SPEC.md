@@ -243,7 +243,10 @@ granted by a device owner), so the ceiling is **one for the device**
 (`volume device`): the filter's foreground service listens for
 `AudioManager.VOLUME_CHANGED_ACTION` and sets the media stream back to the
 ceiling when it is exceeded, a clamp that acts after the change, not a lock
-(§9.4). The child may always go lower. Ringer and alarm streams are the
+(§9.4), and the hold does the same whenever it is applied, for a stream
+already above a ceiling just set. `volume device` means nothing on the
+closed device, nor a door's line on the open one (`Policy.deviceCeiling`).
+The child may always go lower. Ringer and alarm streams are the
 device's own. Block 3d for the doors, 7c for the device.
 
 ### 4.7 The day plan: spans, budgets and rests

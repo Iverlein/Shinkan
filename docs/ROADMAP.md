@@ -64,7 +64,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 6d | The player: SponsorBlock segments | done 2026-11-04 |
 | 7a | The open device: the launcher kept, the named apps closed | done 2026-11-04 |
 | 7b | The open device: `device` stages and the pinned rest page | done 2026-11-04 |
-| 7c | The open device: the device ceiling by clamp | |
+| 7c | The open device: the device ceiling by clamp | done 2026-11-04 |
 | 8 | Permissions of the usable apps | |
 | 9 | QR provisioning | |
 | 10 | Release 1.0 | done 2026-11-02: tags `v1.0`, then `v1.0.1` with the two fixes of the release check |
@@ -815,6 +815,17 @@ the ceiling.
 
 **Done when.** With `volume device 30`, the system volume slider snaps
 back to 30 % within a second; lower values hold.
+
+**As built.** `plan/DeviceVolume`, registered by `FilterService` beside
+`PlanClock.Screen`; `Policy.deviceCeiling`, the open device's alone; the
+arithmetic is `Volume.opening`. The hold also clamps when applied, for a
+stream already above a ceiling just set, which the broadcast alone misses.
+
+Checked on the emulator, 2026-11-04, on the speaker's 15 steps, with
+`volume device 30` (index 4): a stream at 12 came down to 4 on *Apply now*;
+with Maps in front three presses up each read 4 within 0.8 s; down gave 3
+and 2, up 3 and 4, and up again 4. On the closed form with the same line the
+keys passed 4 freely. The volume keys were the check, not the slider.
 
 ### 8. Permissions of the usable apps [§4.5]
 

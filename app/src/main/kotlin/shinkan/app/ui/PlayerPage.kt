@@ -153,7 +153,7 @@ fun PlayerPage(onClose: () -> Unit) {
     val softwareDecoders = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
     // The quality asked for: the screen's shorter side, never below 1080 (SPEC §7.2); the child may change it.
     var quality by remember {
-        val m = context.resources.displayMetrics
+        val m = resources.displayMetrics
         mutableStateOf(Quality.default(minOf(m.widthPixels, m.heightPixels)))
     }
     var streams by remember { mutableStateOf<Media.Streams?>(null) }
@@ -507,7 +507,7 @@ fun PlayerPage(onClose: () -> Unit) {
                                     Box {
                                         TextButton(
                                             onClick = { open = true },
-                                            modifier = Modifier.semantics { contentDescription = context.getString(R.string.player_quality) },
+                                            modifier = Modifier.semantics { contentDescription = resources.getString(R.string.player_quality) },
                                         ) { Text(stringResource(R.string.player_height_open, playingHeight)) }
                                         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                                             offered.forEach { h ->

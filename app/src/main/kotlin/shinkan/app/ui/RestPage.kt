@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -84,7 +85,7 @@ fun RestPage(policy: Policy, state: PlanState, onParent: () -> Unit) {
         } else {
             val shown = (left + 59) / 60
             Text(shown.toString(), style = MaterialTheme.typography.displayLarge)
-            Text(stringResource(R.string.rest_minutes_left), style = MaterialTheme.typography.titleMedium)
+            Text(pluralStringResource(R.plurals.rest_minutes_left, shown.toInt()), style = MaterialTheme.typography.titleMedium)
         }
     }
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE

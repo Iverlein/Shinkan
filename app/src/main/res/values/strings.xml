@@ -14,7 +14,10 @@
     <string name="home_left">%1$d min left</string>
 
     <!-- The rest (SPEC §8.7) -->
-    <string name="rest_minutes_left">minutes of rest</string>
+    <plurals name="rest_minutes_left">
+        <item quantity="one">minute of rest</item>
+        <item quantity="other">minutes of rest</item>
+    </plurals>
     <string name="rest_parent">Resting until a parent opens the doors</string>
 
     <!-- The day plan on the parent door (SPEC §8.2) -->
@@ -28,13 +31,13 @@
 
     <!-- The doors (SPEC §8.1) -->
     <string name="door_browser">Browser</string>
-    <string name="door_player">YouTube</string>
+    <string name="door_player" translatable="false">YouTube</string>
     <string name="door_device">This device</string>
     <string name="player_search">Search</string>
     <string name="player_quality">Video quality</string>
-    <string name="player_height">%1$dp</string>
-    <string name="player_height_open">%1$dp ▾</string>
-    <string name="player_height_playing">%1$dp ✓</string>
+    <string name="player_height" translatable="false">%1$dp</string>
+    <string name="player_height_open" translatable="false">%1$dp ▾</string>
+    <string name="player_height_playing" translatable="false">%1$dp ✓</string>
     <string name="player_home">Home</string>
     <string name="player_creators">Creators</string>
     <string name="player_history">History</string>
@@ -146,6 +149,7 @@
         <item quantity="other">%1$d apps closed</item>
     </plurals>
     <string name="summary_volumes_none">No ceiling</string>
+    <string name="summary_volume">%1$s %2$d %%</string>
     <string name="summary_restrictions_default">The default set</string>
     <string name="summary_restrictions_count">%1$d of %2$d</string>
     <string name="summary_text">Read, copy or paste the whole policy</string>
@@ -233,7 +237,7 @@
     <string name="restriction_config_vpn">No changing the VPN</string>
 
     <!-- The block list (SPEC §6, §6.5) -->
-    <string name="summary_blocklist">%1$d sites, %2$d creators; %3$s</string>
+    <string name="summary_blocklist">Sites: %1$d, creators: %2$d; %3$s</string>
     <string name="summary_blocklist_ads">ads and trackers</string>
     <string name="blocklist_intro">What the filter refuses on the whole device. A site blocks itself and every subdomain; sharing a link to Shinkan adds one. A creator is hidden in the player.</string>
     <string name="blocklist_official">YouTube\'s own site and app are blocked, with the player\'s connections left through. Take the line site youtube.com off the list below to lift it.</string>
@@ -292,4 +296,41 @@
     <string name="apps_deny_microphone">No microphone</string>
     <string name="apps_deny_location">No location</string>
     <string name="setup_qr">On a device just reset there is a second way: tap the welcome screen six times and scan the code that tools/provision_qr.py makes from a release. Shinkan is downloaded and takes the device by itself.</string>
+
+    <!-- What is wrong with a line of the text (SPEC §4.4, §6.4); TextProblem in core. -->
+    <string name="problem_plan_without_stages">a plan without stages</string>
+    <string name="problem_stage_outside_plan">an indented stage outside a plan</string>
+    <string name="problem_mode">mode is closed or open</string>
+    <string name="problem_plan_days">plan takes the days</string>
+    <string name="problem_day_repeated">%1$s is in an earlier plan</string>
+    <string name="problem_close">close takes one package</string>
+    <string name="problem_window">window takes package, days and hours</string>
+    <string name="problem_permission_shape">permission takes a package, deny and what</string>
+    <string name="problem_permission_kind">permission is camera, microphone or location</string>
+    <string name="problem_volume_shape">volume takes a door and a percentage</string>
+    <string name="problem_unknown_door">unknown door \'%1$s\'</string>
+    <string name="problem_volume_range">volume is 0 to 100</string>
+    <string name="problem_start">start takes one http or https address</string>
+    <string name="problem_restrict">restrict takes one name</string>
+    <string name="problem_unknown_restriction">unknown restriction</string>
+    <string name="problem_unknown_statement">unknown statement</string>
+    <string name="problem_stage_shape">a stage is HH:MM-HH:MM with doors, or doors with minutes</string>
+    <string name="problem_budget_minutes">a budget takes its minutes after the doors</string>
+    <string name="problem_rest">rest takes minutes or parent</string>
+    <string name="problem_after_minutes">after the minutes only rest with minutes or parent</string>
+    <string name="problem_unknown_day">unknown day \'%1$s\'</string>
+    <string name="problem_hours">hours are HH:MM-HH:MM</string>
+    <string name="problem_zero_hours">hours of zero length</string>
+    <string name="problem_site">site takes one domain</string>
+    <string name="problem_creator">creator takes platform, reference and name</string>
+    <string name="problem_unknown_platform">unknown platform</string>
+    <string name="problem_player">player is allow or block</string>
+    <string name="problem_history">history is off, day, week, month or forever</string>
+    <string name="problem_unknown_segment">unknown kind of segment</string>
+    <string name="problem_mirror">mirror takes one web address</string>
+    <string name="problem_allow">allow takes platform, reference and name</string>
+    <string name="problem_category">category takes one name</string>
+    <string name="problem_unknown_category">unknown category</string>
+    <string name="problem_pass">pass takes one domain</string>
+    <string name="text_invalid">This text does not make a valid policy.</string>
 </resources>

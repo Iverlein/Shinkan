@@ -208,10 +208,10 @@ fun TextPage(policy: Policy, onChange: (Policy) -> Unit) {
                 note = resources.getString(R.string.text_used)
             } catch (e: PolicyText.Malformed) {
                 wrong = true
-                note = resources.getString(R.string.text_malformed, e.line, "${e.why}: ${e.text}")
+                note = resources.getString(R.string.text_malformed, e.line, "${resources.problem(e.problem, e.detail)}: ${e.text}")
             } catch (e: IllegalArgumentException) {
                 wrong = true
-                note = e.message
+                note = resources.getString(R.string.text_invalid)
             }
         }) { Text(stringResource(R.string.text_use)) }
         OutlinedButton(onClick = {

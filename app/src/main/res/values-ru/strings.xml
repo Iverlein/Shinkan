@@ -1,60 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Russian, in 1.0 beside English (ROADMAP A3). -->
-<resources>
+<!-- Russian. Terms and typography: docs/russian.md; checked by tools/check_strings.py. -->
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Setup (SPEC §3) -->
-    <string name="setup_title">Shinkan ещё не держит это устройство</string>
-    <string name="setup_body">Shinkan нужно один раз сделать владельцем устройства, пока на нём нет ни одного аккаунта. Подключите его по USB с включённой отладкой и выполните:</string>
-    <string name="setup_after">Затем снова откройте Shinkan. Отладка выключается вместе с защитой; чтобы потом освободить устройство, откройте раздел для родителей и введите PIN.</string>
+    <string name="setup_title">Shinkan ещё не управляет этим устройством</string>
+    <string name="setup_body">Shinkan нужно один раз назначить владельцем устройства, пока на нём нет ни одного аккаунта. Подключите устройство по USB с\u00A0включённой отладкой и\u00A0выполните команду:</string>
+    <string name="setup_after">Затем снова откройте Shinkan. Защита отключает отладку; чтобы снять её, откройте раздел «Родителям» и\u00A0введите PIN-код.</string>
 
     <!-- The child's home (SPEC §8.1) -->
-    <string name="home_opens_at">Откроется в %1$s</string>
-    <string name="home_opens_on">Откроется %1$s в %2$s</string>
+    <string name="home_opens_at">Откроется в\u00A0%1$s</string>
+    <string name="home_opens_on">Откроется: %1$s, %2$s</string>
     <string name="home_closed">Закрыто</string>
-    <string name="home_left">Осталось %1$d мин</string>
-    <string name="home_resting">Отдых: %1$d мин</string>
+    <string name="home_left">Ещё %1$d\u00A0мин</string>
+    <string name="home_resting">Отдых: %1$d\u00A0мин</string>
     <string name="home_resting_parent">Отдых, пока не откроет родитель</string>
 
-    <!-- The rest (SPEC §8.7) -->
-    <string name="rest_minutes_left">минут отдыха</string>
+    <!-- The rest (SPEC §8.7): the number stands above these words, so "one" has no %d. -->
+    <plurals name="rest_minutes_left" tools:ignore="ImpliedQuantity">
+        <item quantity="one">минута отдыха</item>
+        <item quantity="few">минуты отдыха</item>
+        <item quantity="many">минут отдыха</item>
+        <item quantity="other">минуты отдыха</item>
+    </plurals>
     <string name="rest_parent">Отдых, пока родитель не откроет двери</string>
 
     <!-- The day plan on the parent door (SPEC §8.2) -->
-    <string name="plan_none">Распорядка дня нет: двери открыты в любое время.</string>
-    <string name="plan_done">Распорядок на сегодня закончился; двери откроются в следующий день распорядка.</string>
+    <string name="plan_none">Распорядка дня нет: двери открыты в\u00A0любое время.</string>
+    <string name="plan_done">Распорядок на сегодня закончился; двери откроются в\u00A0следующий день распорядка.</string>
     <string name="plan_now">Сейчас</string>
-    <string name="plan_left">До конца лимита %1$d мин</string>
-    <string name="plan_rest_until">Отдых до %1$s</string>
+    <string name="plan_left">До конца лимита: %1$d\u00A0мин</string>
+    <string name="plan_rest_until">Отдых до\u00A0%1$s</string>
     <string name="plan_rest_parent">Отдых, пока не откроет родитель.</string>
     <string name="plan_open_now">Открыть сейчас</string>
 
     <!-- The doors (SPEC §8.1) -->
     <string name="door_browser">Браузер</string>
-    <string name="door_player">YouTube</string>
     <string name="door_device">Устройство</string>
     <string name="player_search">Поиск</string>
     <string name="player_quality">Качество видео</string>
-    <string name="player_height">%1$dp</string>
-    <string name="player_height_open">%1$dp ▾</string>
-    <string name="player_height_playing">%1$dp ✓</string>
     <string name="player_home">Главная</string>
     <string name="player_creators">Авторы</string>
     <string name="player_history">История</string>
-    <string name="player_no_history">Здесь появятся видео, которые вы смотрите, с местом, где вы остановились.</string>
+    <string name="player_no_history">Здесь появятся просмотренные видео. Продолжить можно с\u00A0того места, где просмотр остановился.</string>
     <string name="player_continue">Продолжить просмотр</string>
-    <string name="player_newest">Новое от ваших авторов</string>
-    <string name="player_start">Найдите видео.</string>
-    <string name="player_no_allowed">Ни один автор пока не разрешён. Родитель добавляет их в разделе для родителей или поделившись каналом с Shinkan.</string>
-    <string name="player_no_recent">Здесь появятся авторы видео, которые вы смотрите.</string>
+    <string name="player_newest">Новое от авторов</string>
+    <string name="player_start">Введите запрос, чтобы найти видео.</string>
+    <string name="player_no_allowed">Разрешённых авторов пока нет. Родитель может добавить их в\u00A0разделе «Родителям» или поделиться каналом с\u00A0Shinkan.</string>
+    <string name="player_no_recent">Здесь появятся авторы просмотренных видео.</string>
     <string name="player_nothing">Ничего не найдено. Попробуйте другие слова.</string>
-    <string name="player_error">Платформа не ответила. Попробуйте ещё раз.</string>
+    <string name="player_error">Сервис не ответил. Попробуйте ещё раз.</string>
     <string name="player_more">Показать ещё</string>
-    <string name="player_more_failed">Платформа не ответила. Нажмите, чтобы повторить.</string>
+    <string name="player_more_failed">Сервис не ответил. Нажмите, чтобы повторить.</string>
     <string name="player_blocked">Этот автор заблокирован на устройстве.</string>
-    <string name="player_no_stream">У этого видео нет потока, который может воспроизвести плеер.</string>
+    <string name="player_no_stream">У\u00A0этого видео нет потока, который может воспроизвести плеер.</string>
     <string name="door_close">Закрыть</string>
     <string name="door_unlock">Разблокировать</string>
     <string name="door_locked">Эта дверь откроется, когда родитель разблокирует устройство после включения.</string>
-    <string name="browser_back">На страницу назад</string>
+    <string name="browser_back">Предыдущая страница</string>
     <string name="browser_reload">Обновить</string>
     <string name="browser_address">Адрес или поиск</string>
     <string name="browser_blocked">Этот сайт заблокирован на устройстве.</string>
@@ -62,53 +63,53 @@
 
     <!-- The parent door (SPEC §8.2) -->
     <string name="parent_title">Родителям</string>
-    <string name="parent_status_held">Shinkan держит это устройство.</string>
-    <string name="parent_mode_closed">Закрытое устройство: Shinkan — весь домашний экран.</string>
-    <string name="parent_mode_open">Открытое устройство: лаунчер остаётся, названные приложения закрыты.</string>
+    <string name="parent_status_held">Shinkan управляет этим устройством.</string>
+    <string name="parent_mode_closed">Закрытое устройство: Shinkan\u00A0— это весь главный экран.</string>
+    <string name="parent_mode_open">Открытое устройство: главный экран остаётся, выбранные приложения закрыты.</string>
     <string name="parent_back">Назад</string>
 
     <!-- The PIN (SPEC §9.1) -->
-    <string name="pin_set_title">Задайте PIN родителя</string>
-    <string name="pin_set_first">Выберите PIN из %1$d или более цифр. Это единственный ключ к устройству: сохраните его.</string>
-    <string name="pin_set_again">Введите тот же PIN ещё раз.</string>
-    <string name="pin_too_short">PIN — это четыре или более цифр.</string>
-    <string name="pin_mismatch">PIN не совпали. Выберите PIN заново.</string>
-    <string name="pin_enter">Введите PIN.</string>
-    <string name="pin_wrong">Неверный PIN.</string>
-    <string name="pin_wait">Попробуйте снова через %1$d с.</string>
+    <string name="pin_set_title">Задайте PIN-код родителя</string>
+    <string name="pin_set_first">Придумайте PIN-код не короче %1$d\u00A0цифр. Это единственный ключ к\u00A0устройству: сохраните его.</string>
+    <string name="pin_set_again">Введите тот же PIN-код ещё раз.</string>
+    <string name="pin_too_short">В\u00A0PIN-коде должно быть не меньше четырёх цифр.</string>
+    <string name="pin_mismatch">PIN-коды не совпали. Задайте PIN-код заново.</string>
+    <string name="pin_enter">Введите PIN-код.</string>
+    <string name="pin_wrong">Неверный PIN-код.</string>
+    <string name="pin_wait">Повторите через %1$d\u00A0с.</string>
     <string name="pin_checking">Проверка…</string>
-    <string name="pin_ok">OK</string>
+    <string name="pin_ok">ОК</string>
     <string name="pin_backspace">Стереть цифру</string>
     <string name="pin_cancel">Отмена</string>
 
     <!-- Release (SPEC §9.3) -->
-    <string name="release_button">Освободить устройство</string>
-    <string name="release_title">Освободить устройство</string>
+    <string name="release_button">Снять защиту с\u00A0устройства</string>
+    <string name="release_title">Снять защиту с\u00A0устройства</string>
 
     <!-- The launcher icon (SPEC §8.5) -->
     <string name="parent_icon">Значок</string>
-    <string name="parent_icon_hint">Лаунчер покажет новый значок, когда вы выйдете из Shinkan.</string>
+    <string name="parent_icon_hint">Значок на главном экране сменится, когда вы выйдете из\u00A0Shinkan.</string>
     <string name="icon_crest">Герб</string>
     <string name="icon_gate">Ворота</string>
-    <string name="icon_gate_drawn">Рисованные ворота</string>
+    <string name="icon_gate_drawn">Рисунок</string>
     <string name="icon_seal">Печать</string>
 
     <!-- The share target (SPEC §6.2) -->
-    <string name="share_label">Заблокировать в Shinkan</string>
-    <string name="share_no_link">В том, чем поделились, нет ссылки.</string>
-    <string name="share_site">Заблокировать %1$s на устройстве вместе со всеми поддоменами и этими адресами: %2$s</string>
-    <string name="share_creator">Заблокировать %1$s на %2$s в плеере.</string>
+    <string name="share_label">Заблокировать в\u00A0Shinkan</string>
+    <string name="share_no_link">В\u00A0отправленном тексте нет ссылки.</string>
+    <string name="share_site">Заблокировать %1$s на устройстве вместе со всеми поддоменами и\u00A0этими адресами: %2$s</string>
+    <string name="share_creator">Заблокировать автора «%1$s» на\u00A0%2$s в\u00A0плеере.</string>
     <string name="share_item_asking">Ищем автора видео…</string>
-    <string name="share_item_failed">Не удалось найти автора видео. Возможно, видео закрыто или удалено, либо нет сети.</string>
+    <string name="share_item_failed">Не удалось найти автора видео. Возможно, видео закрыто или удалено либо нет сети.</string>
     <string name="share_retry">Повторить</string>
-    <string name="share_family">Это первый автор: сайт и приложение YouTube блокируются для всего на устройстве, кроме плеера. Они остаются в списке как сайты, и оттуда их можно убрать.</string>
+    <string name="share_family">Это первый автор: сайт и\u00A0приложение YouTube блокируются для всего на устройстве, кроме плеера. Они остаются в\u00A0списке как сайты, и\u00A0оттуда их можно убрать.</string>
     <string name="share_cancel">Отмена</string>
     <string name="share_block">Заблокировать</string>
-    <string name="share_allow">Разрешить в плеере</string>
+    <string name="share_allow">Разрешить в\u00A0плеере</string>
 
     <!-- The filter (SPEC §5) -->
     <string name="filter_channel">Фильтр</string>
-    <string name="filter_notice">Shinkan фильтрует это устройство</string>
+    <string name="filter_notice">Shinkan фильтрует трафик устройства</string>
 
     <!-- The parent's editor (SPEC §8.2, §4.4) -->
     <string name="edit_title">Правила</string>
@@ -136,35 +137,36 @@
 
     <string name="summary_form_closed">Закрытое устройство</string>
     <string name="summary_form_open">Открытое устройство</string>
-    <string name="summary_plans_none">Нет: двери открыты в любое время</string>
+    <string name="summary_plans_none">Нет: двери открыты в\u00A0любое время</string>
     <plurals name="summary_plans">
-        <item quantity="one">%1$d распорядок</item>
-        <item quantity="few">%1$d распорядка</item>
-        <item quantity="many">%1$d распорядков</item>
-        <item quantity="other">%1$d распорядка</item>
+        <item quantity="one">%1$d\u00A0распорядок</item>
+        <item quantity="few">%1$d\u00A0распорядка</item>
+        <item quantity="many">%1$d\u00A0распорядков</item>
+        <item quantity="other">%1$d\u00A0распорядка</item>
     </plurals>
     <plurals name="summary_apps">
-        <item quantity="one">%1$d приложение закрыто</item>
-        <item quantity="few">%1$d приложения закрыты</item>
-        <item quantity="many">%1$d приложений закрыто</item>
-        <item quantity="other">%1$d приложения закрыто</item>
+        <item quantity="one">%1$d\u00A0приложение закрыто</item>
+        <item quantity="few">%1$d\u00A0приложения закрыты</item>
+        <item quantity="many">%1$d\u00A0приложений закрыто</item>
+        <item quantity="other">%1$d\u00A0приложения закрыто</item>
     </plurals>
     <string name="summary_volumes_none">Без ограничения</string>
+    <string name="summary_volume">%1$s %2$d\u00A0%%</string>
     <string name="summary_restrictions_default">Набор по умолчанию</string>
-    <string name="summary_restrictions_count">%1$d из %2$d</string>
+    <string name="summary_restrictions_count">%1$d из\u00A0%2$d</string>
     <string name="summary_text">Прочитать, скопировать или вставить все правила</string>
 
     <!-- Form (SPEC §4.1) -->
     <string name="form_closed">Закрытое устройство</string>
-    <string name="form_closed_body">Shinkan — весь домашний экран: браузер и плеер в часы распорядка. Все остальные приложения приостановлены.</string>
+    <string name="form_closed_body">Shinkan\u00A0— это весь главный экран: браузер и\u00A0плеер в\u00A0часы распорядка. Все остальные приложения приостановлены.</string>
     <string name="form_open">Открытое устройство</string>
-    <string name="form_open_body">У устройства остаётся свой лаунчер; названные вами приложения закрыты всегда или вне своих окон.</string>
+    <string name="form_open_body">Обычный главный экран остаётся; выбранные вами приложения закрыты всегда или вне своих окон.</string>
 
     <!-- Day plans (SPEC §4.7) -->
-    <string name="plans_intro">Один распорядок на набор дней недели. Его этапы идут по порядку: промежуток времени, в который открыты указанные двери, или лимит минут использования с отдыхом после него.</string>
+    <string name="plans_intro">Один распорядок на набор дней недели. Его этапы идут по порядку: промежуток времени, когда открыты указанные двери, или лимит минут использования, после которого может идти отдых.</string>
     <string name="plans_add">Добавить распорядок</string>
     <string name="plans_remove">Удалить распорядок</string>
-    <string name="plans_no_stage">В распорядке нужен хотя бы один этап.</string>
+    <string name="plans_no_stage">В\u00A0распорядке нужен хотя бы один этап.</string>
     <string name="plans_add_span">Добавить промежуток</string>
     <string name="plans_add_budget">Добавить лимит</string>
     <string name="stage_up">Выше</string>
@@ -173,21 +175,21 @@
     <string name="stage_remove">Удалить</string>
     <string name="stage_span">Промежуток времени</string>
     <string name="stage_budget">Лимит минут</string>
-    <string name="stage_from">С (ЧЧ:ММ)</string>
-    <string name="stage_to">До (ЧЧ:ММ)</string>
-    <string name="stage_doors">Открыты в нём</string>
-    <string name="stage_budget_doors">Считается для</string>
+    <string name="stage_from">С\u00A0(ЧЧ:ММ)</string>
+    <string name="stage_to">До\u00A0(ЧЧ:ММ)</string>
+    <string name="stage_doors">Открытые двери</string>
+    <string name="stage_budget_doors">Считать для дверей</string>
     <string name="stage_minutes">Минут использования</string>
     <string name="stage_rest_none">Без отдыха после</string>
-    <string name="stage_rest_minutes">Отдых в минутах</string>
+    <string name="stage_rest_minutes">Отдых на заданное время</string>
     <string name="stage_rest_parent">Отдых, пока не откроет родитель</string>
     <string name="stage_rest_length">Минут отдыха</string>
     <string name="stage_closed">Двери закрыты</string>
-    <string name="minutes_short">%1$d мин</string>
-    <string name="stage_bad_time">Время — ЧЧ:ММ, от 00:00 до 23:59.</string>
-    <string name="stage_same_time">Промежуток начинается и кончается в одно время.</string>
+    <string name="minutes_short">%1$d\u00A0мин</string>
+    <string name="stage_bad_time">Укажите время в\u00A0формате ЧЧ:ММ, от\u00A000:00 до\u00A023:59.</string>
+    <string name="stage_same_time">Промежуток начинается и\u00A0заканчивается в\u00A0одно и\u00A0то же время.</string>
     <string name="stage_no_door">Выберите хотя бы одну дверь.</string>
-    <string name="stage_bad_minutes">Минуты — целое число больше нуля.</string>
+    <string name="stage_bad_minutes">Укажите целое число минут больше нуля.</string>
     <string name="day_mon">Пн</string>
     <string name="day_tue">Вт</string>
     <string name="day_wed">Ср</string>
@@ -198,50 +200,50 @@
 
     <!-- Closed apps of the open device (SPEC §4.2) -->
     <string name="apps_intro">На открытом устройстве закрытое приложение приостановлено всегда или вне заданных ему окон.</string>
-    <string name="apps_closed_form">Закрытое устройство приостанавливает все приложения; заданное здесь действует, когда режим — открытое устройство.</string>
+    <string name="apps_closed_form">Закрытое устройство приостанавливает все приложения; заданное здесь действует, когда выбран режим «Открытое устройство».</string>
     <string name="apps_window_add">Добавить окно</string>
     <string name="apps_window_remove">Удалить</string>
     <string name="apps_always">Закрыто всегда</string>
-    <string name="apps_window_title">Окно, в которое доступно %1$s</string>
+    <string name="apps_window_title">Окно, когда доступно приложение %1$s</string>
     <string name="apps_no_day">Выберите хотя бы один день.</string>
 
     <!-- Volume (SPEC §4.6) -->
-    <string name="volumes_intro">Наибольшая громкость медиа как доля от максимума устройства. Тише ребёнок может сделать всегда.</string>
-    <string name="volumes_ceiling">Предел: %1$d %%</string>
+    <string name="volumes_intro">Наибольшая громкость медиа как доля от максимума устройства. Убавить звук ребёнок может всегда.</string>
+    <string name="volumes_ceiling">Предел: %1$d\u00A0%%</string>
     <string name="volumes_none">Без предела</string>
 
     <!-- The browser's start page (SPEC §7.6) -->
-    <string name="start_intro">Страница, с которой открывается браузер. Адрес или имя сайта; всё остальное станет поиском с безопасным поиском.</string>
+    <string name="start_intro">Страница, с\u00A0которой открывается браузер: адрес или название сайта. Всё остальное станет запросом в\u00A0безопасном поиске.</string>
     <string name="start_label">Стартовая страница</string>
     <string name="start_use">Использовать</string>
-    <string name="start_none">Без стартовой страницы</string>
+    <string name="start_none">Не задавать</string>
     <string name="start_summary_none">Нет: браузер открывается на адресной строке</string>
 
     <!-- Restrictions (SPEC §4.3) -->
-    <string name="restrictions_intro">Что самому устройству нельзя. Набор по умолчанию сохраняет защиту и фильтр; передача файлов по USB и учётные данные открыты по умолчанию и нужны для более строгих домов.</string>
+    <string name="restrictions_intro">Что нельзя делать на самом устройстве. Набор по умолчанию сохраняет защиту и\u00A0фильтр; передача файлов по USB и\u00A0учётные данные по умолчанию открыты, их закрывают для более строгих правил.</string>
     <string name="restrictions_default">Вернуть набор по умолчанию</string>
-    <string name="restrictions_warn_hold">Открыт выход из-под защиты: ребёнок может стереть устройство, загрузить его без Shinkan, добавить пользователя без защиты или подключить компьютер как терминал.</string>
-    <string name="restrictions_warn_filter">Открыт обход фильтра: ребёнок может настроить другой VPN или частный DNS-сервер.</string>
-    <string name="restriction_factory_reset">Без сброса настроек из Настроек</string>
+    <string name="restrictions_warn_hold">Открыт выход из-под защиты: ребёнок может стереть устройство, загрузить его без Shinkan, добавить пользователя без защиты или управлять устройством с\u00A0компьютера.</string>
+    <string name="restrictions_warn_filter">Открыт обход фильтра: ребёнок может настроить другой VPN или персональный DNS-сервер.</string>
+    <string name="restriction_factory_reset">Без сброса до заводских настроек</string>
     <string name="restriction_safe_boot">Без безопасного режима</string>
     <string name="restriction_add_user">Без новых пользователей</string>
     <string name="restriction_install_apps">Без установки приложений</string>
-    <string name="restriction_install_unknown_sources">Без приложений из неизвестных источников</string>
+    <string name="restriction_install_unknown_sources">Без приложений из\u00A0неизвестных источников</string>
     <string name="restriction_uninstall_apps">Без удаления приложений</string>
-    <string name="restriction_modify_accounts">Без добавления и удаления аккаунтов</string>
-    <string name="restriction_config_date_time">Без смены даты, времени и часового пояса</string>
+    <string name="restriction_modify_accounts">Без добавления и\u00A0удаления аккаунтов</string>
+    <string name="restriction_config_date_time">Без смены даты, времени и\u00A0часового пояса</string>
     <string name="restriction_debugging_features">Без отладки по USB</string>
     <string name="restriction_usb_file_transfer">Без передачи файлов по USB</string>
     <string name="restriction_config_credentials">Без изменения учётных данных</string>
-    <string name="restriction_config_private_dns">Без смены частного DNS</string>
+    <string name="restriction_config_private_dns">Без смены персонального DNS-сервера</string>
     <string name="restriction_config_vpn">Без смены VPN</string>
 
     <!-- The block list (SPEC §6, §6.5) -->
     <string name="summary_blocklist">Сайтов: %1$d, авторов: %2$d; %3$s</string>
-    <string name="summary_blocklist_ads">реклама и трекеры</string>
-    <string name="blocklist_intro">Что фильтр не пропускает на всём устройстве. Сайт блокируется со всеми поддоменами; поделиться ссылкой с Shinkan — значит добавить сайт. Автор скрывается в плеере.</string>
-    <string name="blocklist_official">Сайт и приложение YouTube заблокированы, соединения плеера проходят. Чтобы снять блокировку, уберите из списка ниже строку site youtube.com.</string>
-    <string name="blocklist_ads">Реклама и трекеры блокируются всегда, по списку, встроенному в Shinkan. Включите ещё:</string>
+    <string name="summary_blocklist_ads">реклама и\u00A0трекеры</string>
+    <string name="blocklist_intro">Что фильтр не пропускает на всём устройстве. Сайт блокируется со всеми поддоменами; чтобы добавить сайт, поделитесь ссылкой с\u00A0Shinkan. Автор скрывается в\u00A0плеере.</string>
+    <string name="blocklist_official">Сайт и\u00A0приложение YouTube заблокированы, соединения плеера проходят. Чтобы снять блокировку, уберите из\u00A0списка ниже строку site youtube.com.</string>
+    <string name="blocklist_ads">Реклама и\u00A0трекеры блокируются всегда, по списку, встроенному в\u00A0Shinkan. Включите ещё:</string>
     <string name="category_gambling">Азартные игры</string>
     <string name="category_porn">Порнография</string>
     <string name="category_fakenews">Фейковые новости</string>
@@ -257,21 +259,21 @@
     <string name="player_keep_forever">До очистки</string>
     <string name="player_history_clear">Очистить историю плеера</string>
     <string name="player_history_cleared">История очищена.</string>
-    <string name="blocklist_text">Блокировки текстом: site, creator, category и pass для имени из встроенного списка, которое нужно пропустить</string>
+    <string name="blocklist_text">Блокировки текстом: site, creator, category и\u00A0pass для имени из\u00A0встроенного списка, которое нужно пропустить</string>
     <string name="blocklist_save">Сохранить список</string>
     <string name="blocklist_saved">Сохранено; фильтр уже читает список.</string>
     <string name="text_reset_list">Вернуть список</string>
 
     <!-- Theme (SPEC §8.6) -->
-    <string name="theme_system">Как в системе</string>
+    <string name="theme_system">Как в\u00A0системе</string>
     <string name="theme_paper">Рисовая бумага, светлая</string>
-    <string name="theme_sumi">Суми, тёмная</string>
+    <string name="theme_sumi">Тушь суми, тёмная</string>
 
     <!-- The policy as text (SPEC §4.4) -->
-    <string name="text_intro">Все правила, по одному на строку, как их записывает SPEC §4.4 Shinkan. Слова правил — английские. Измените или вставьте текст и используйте его; кнопка «Применить» применяет правила.</string>
+    <string name="text_intro">Все правила, по одному на строку, в\u00A0формате раздела\u00A04.4 спецификации Shinkan. Ключевые слова\u00A0— английские. Измените или вставьте текст и\u00A0нажмите «Использовать текст», затем «Применить» в\u00A0разделе «Родителям».</string>
     <string name="text_use">Использовать текст</string>
     <string name="text_reset">Вернуть правила</string>
-    <string name="text_used">Прочитано. Примените на странице для родителей.</string>
+    <string name="text_used">Прочитано. Примените правила в\u00A0разделе «Родителям».</string>
     <string name="text_malformed">Строка %1$d: %2$s</string>
     <string name="section_segments">Фрагменты видео</string>
     <string name="summary_segments_off">Ничего не пропускается</string>
@@ -280,20 +282,57 @@
     <string name="segment_selfpromo">Самореклама</string>
     <string name="segment_interaction">Просьбы подписаться или поставить лайк</string>
     <string name="segment_intro">Вступления</string>
-    <string name="segment_outro">Концовки и титры</string>
-    <string name="segment_preview">Анонсы и пересказы</string>
+    <string name="segment_outro">Концовки и\u00A0титры</string>
+    <string name="segment_preview">Анонсы и\u00A0пересказы</string>
     <string name="segment_music_offtopic">Немузыкальные части клипов</string>
     <string name="segment_filler">Отступления от темы</string>
     <string name="segments_mirror">Зеркало вместо общего сервера (пусто: общий сервер)</string>
-    <string name="segments_mirror_wrong">Зеркало — это веб-адрес с https:// без параметров запроса.</string>
+    <string name="segments_mirror_wrong">Зеркало\u00A0— это веб-адрес с\u00A0https:// без параметров запроса.</string>
     <string name="segments_mirror_save">Сохранить зеркало</string>
     <string name="segments_mirror_saved">Сохранено.</string>
-    <string name="segments_credit">Данные SponsorBlock (sponsor.ajay.app), CC BY-NC-SA 4.0.</string>
-    <string name="player_segments_credit">Фрагменты пропущены по данным SponsorBlock, CC BY-NC-SA 4.0.</string>
+    <string name="segments_credit">Данные SponsorBlock (sponsor.ajay.app), CC BY-NC-SA\u00A04.0.</string>
+    <string name="player_segments_credit">Фрагменты пропущены по данным SponsorBlock, CC BY-NC-SA\u00A04.0.</string>
     <string name="player_segments_failed">Не удалось получить фрагменты; видео идёт без пропусков.</string>
     <string name="home_closed_apps">Закрытые приложения</string>
     <string name="apps_deny_camera">Без камеры</string>
     <string name="apps_deny_microphone">Без микрофона</string>
     <string name="apps_deny_location">Без геолокации</string>
-    <string name="setup_qr">На только что сброшенном устройстве есть второй способ: шесть раз нажмите на экран приветствия и отсканируйте код, который tools/provision_qr.py делает из релиза. Shinkan скачается и сам примет устройство.</string>
+    <string name="setup_qr">На только что сброшенном устройстве есть другой способ: шесть раз коснитесь экрана приветствия и\u00A0отсканируйте QR-код, который tools/provision_qr.py создаёт из\u00A0релиза. Shinkan скачается и\u00A0сам станет владельцем устройства.</string>
+
+    <!-- What is wrong with a line of the text (SPEC §4.4, §6.4); TextProblem in core. -->
+    <string name="problem_plan_without_stages">в\u00A0распорядке нет этапов</string>
+    <string name="problem_stage_outside_plan">строка с\u00A0отступом стоит вне распорядка</string>
+    <string name="problem_mode">после mode нужно closed или open</string>
+    <string name="problem_plan_days">после plan нужны дни</string>
+    <string name="problem_day_repeated">%1$s уже есть в\u00A0одном из\u00A0распорядков выше</string>
+    <string name="problem_close">после close нужно одно имя пакета</string>
+    <string name="problem_window">после window нужны пакет, дни и\u00A0часы</string>
+    <string name="problem_permission_shape">после permission нужны пакет, deny и\u00A0разрешение</string>
+    <string name="problem_permission_kind">разрешение\u00A0— это camera, microphone или location</string>
+    <string name="problem_volume_shape">после volume нужны дверь и\u00A0процент</string>
+    <string name="problem_unknown_door">неизвестная дверь «%1$s»</string>
+    <string name="problem_volume_range">громкость\u00A0— от\u00A00 до\u00A0100</string>
+    <string name="problem_start">после start нужен один адрес http или https</string>
+    <string name="problem_restrict">после restrict нужно одно имя</string>
+    <string name="problem_unknown_restriction">неизвестное ограничение</string>
+    <string name="problem_unknown_statement">неизвестное правило</string>
+    <string name="problem_stage_shape">этап\u00A0— это ЧЧ:ММ-ЧЧ:ММ с\u00A0дверями или двери с\u00A0минутами</string>
+    <string name="problem_budget_minutes">после дверей лимита нужны минуты</string>
+    <string name="problem_rest">после rest нужны минуты или parent</string>
+    <string name="problem_after_minutes">после минут возможен только rest с\u00A0минутами или parent</string>
+    <string name="problem_unknown_day">неизвестный день «%1$s»</string>
+    <string name="problem_hours">часы записываются как ЧЧ:ММ-ЧЧ:ММ</string>
+    <string name="problem_zero_hours">промежуток нулевой длины</string>
+    <string name="problem_site">после site нужен один домен</string>
+    <string name="problem_creator">после creator нужны платформа, ссылка и\u00A0имя</string>
+    <string name="problem_unknown_platform">неизвестная платформа</string>
+    <string name="problem_player">после player нужно allow или block</string>
+    <string name="problem_history">после history нужно off, day, week, month или forever</string>
+    <string name="problem_unknown_segment">неизвестный вид фрагмента</string>
+    <string name="problem_mirror">после mirror нужен один веб-адрес</string>
+    <string name="problem_allow">после allow нужны платформа, ссылка и\u00A0имя</string>
+    <string name="problem_category">после category нужно одно имя</string>
+    <string name="problem_unknown_category">неизвестная категория</string>
+    <string name="problem_pass">после pass нужен один домен</string>
+    <string name="text_invalid">Из\u00A0этого текста нельзя составить правила.</string>
 </resources>

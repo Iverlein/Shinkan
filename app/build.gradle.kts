@@ -29,6 +29,14 @@ android {
         }
     }
 
+    // The two languages of the interface (SPEC §8.6): libraries' other translations stay
+    // out, so no page mixes a third language in, and the system's per-app language list
+    // is written from these.
+    androidResources {
+        localeFilters += listOf("en", "ru")
+        generateLocaleConfig = true
+    }
+
     // F-Droid rejects the dependency list AGP embeds encrypted with Google's key.
     dependenciesInfo {
         includeInApk = false

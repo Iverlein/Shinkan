@@ -89,7 +89,7 @@ class ShareActivity : ComponentActivity() {
                             link == null -> Text(stringResource(R.string.share_no_link))
                             link is Link.Site -> Text(stringResource(R.string.share_site, link.domain, link.family.sorted().joinToString(", ")))
                             creator != null -> {
-                                Text(stringResource(R.string.share_creator, creator.name, creator.platform.name.lowercase()))
+                                Text(stringResource(R.string.share_creator, creator.name, creator.platform.title))
                                 // The parent is told before the tap (SPEC §6.3).
                                 val now = store.blocklist
                                 if ((now + creator).holdingFamily(now).sites != now.sites) {

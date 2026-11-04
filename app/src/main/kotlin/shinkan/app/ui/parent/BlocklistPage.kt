@@ -129,7 +129,7 @@ fun BlocklistPage() {
                 note = resources.getString(R.string.blocklist_saved)
             } catch (e: BlocklistText.Malformed) {
                 wrong = true
-                note = resources.getString(R.string.text_malformed, e.line, "${e.why}: ${e.text}")
+                note = resources.getString(R.string.text_malformed, e.line, "${resources.problem(e.problem, e.detail)}: ${e.text}")
             }
         }) { Text(stringResource(R.string.blocklist_save)) }
         OutlinedButton(onClick = {

@@ -41,6 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.iverlein.shinkan.R
 import shinkan.app.LauncherIcon
@@ -50,6 +51,7 @@ import shinkan.app.plan.PlanClock
 import shinkan.app.ui.parent.AppsPage
 import shinkan.app.ui.parent.BlocklistPage
 import shinkan.app.ui.parent.SegmentsPage
+import shinkan.app.ui.parent.problem
 import shinkan.app.ui.parent.segmentsSummary
 import shinkan.app.ui.parent.blocklistSummary
 import shinkan.app.ui.parent.FormPage
@@ -116,7 +118,7 @@ fun ParentPage(
     fun applyDraft(): Boolean {
         val problem = PolicyText.problem(draft)
         if (problem != null) {
-            message = resources.getString(R.string.edit_problem, problem.line, problem.why)
+            message = resources.getString(R.string.edit_problem, problem.line, resources.problem(problem.problem, problem.detail))
             return false
         }
         val clean = PolicyText.parse(PolicyText.render(draft))
@@ -250,7 +252,7 @@ private fun summary(section: Section, policy: Policy, theme: ThemePin): String =
         stringResource(R.string.summary_volumes_none)
     } else {
         val parts = mutableListOf<String>()
-        policy.volumes.forEach { (door, percent) -> parts += "${stringResource(doorLabel(door))} $percent %" }
+        policy.volumes.forEach { (door, percent) -> parts += stringResource(R.string.summary_volume, stringResource(doorLabel(door)), percent) }
         parts.joinToString(", ")
     }
     Section.RESTRICTIONS -> if (policy.restrictions == Restriction.DEFAULT) {
@@ -296,17 +298,19 @@ private fun IconChoice(store: PolicyStore) {
     var chosen by remember { mutableStateOf(LauncherIcon.chosen(store)) }
     Text(stringResource(R.string.parent_icon), style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    // Equal columns: a long name in one language must not squeeze another into broken words.
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         LauncherIcon.entries.forEach { icon ->
             val selected = icon == chosen
             Column(
                 Modifier
+                    .weight(1f)
                     .clip(RoundedCornerShape(12.dp))
                     .selectable(selected = selected, role = Role.RadioButton) {
                         store.icon = icon.key
                         chosen = icon
                     }
-                    .padding(8.dp),
+                    .padding(vertical = 8.dp, horizontal = 2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 val ring = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
@@ -322,7 +326,7 @@ private fun IconChoice(store: PolicyStore) {
                     Image(painterResource(icon.foreground), contentDescription = null, Modifier.requiredSize(92.dp))
                 }
                 Spacer(Modifier.height(4.dp))
-                Text(stringResource(icon.label), style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(icon.label), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
             }
         }
     }

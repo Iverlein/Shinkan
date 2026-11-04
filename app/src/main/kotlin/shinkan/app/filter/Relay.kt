@@ -5,9 +5,11 @@ import android.os.SystemClock
 import android.util.Log
 import shinkan.core.net.Tcp4
 import shinkan.core.net.TcpFlow
+import shinkan.core.net.Udp4
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
+import java.nio.channels.DatagramChannel
 import java.nio.channels.SelectionKey
 import java.nio.channels.Selector
 import java.nio.channels.SocketChannel
@@ -16,9 +18,10 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * The device's TCP through the tunnel (SPEC §5.2): each connection an app opens ends
- * here, in a [TcpFlow], and goes on over a protected socket of the service's. One
- * thread and a selector; the tun device's reader hands segments in by [accept]. The
- * sockets carry the device's traffic and nothing of Shinkan's own (§2.1).
+ * here, in a [TcpFlow], and goes on over a protected socket of the service's; each
+ * sender's datagrams to one address go on over a socket of their own until they fall
+ * silent. One thread and a selector; the tun device's reader hands packets in by
+ * [accept]. The sockets carry the device's traffic and nothing of Shinkan's own (§2.1).
  */
 class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -> Unit) : Runnable {
     private class Connection(val flow: TcpFlow, val channel: SocketChannel) {
@@ -30,8 +33,12 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
 
     private data class Key(val address: Int, val srcPort: Int, val dstPort: Int)
 
+    /** The datagrams of one sender to one address and port. */
+    private class Exchange(val first: Udp4, val channel: DatagramChannel, var last: Long)
+
     private val selector = Selector.open()
-    private val inbox = ConcurrentLinkedQueue<Tcp4>()
+    private val inbox = ConcurrentLinkedQueue<Any>()
+    private val exchanges = HashMap<Key, Exchange>()
     private val connections = HashMap<Key, Connection>()
     private val random = SecureRandom()
     private val buffer = ByteBuffer.allocate(READ_SIZE)
@@ -45,6 +52,12 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
         selector.wakeup()
     }
 
+    /** A datagram from the tun device, from any thread. */
+    fun accept(datagram: Udp4) {
+        inbox.add(datagram)
+        selector.wakeup()
+    }
+
     fun stop() {
         running = false
         selector.wakeup()
@@ -54,17 +67,25 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
         try {
             while (running) {
                 selector.select(TICK_MS)
-                while (true) handle(inbox.poll() ?: break)
+                while (true) {
+                    when (val packet = inbox.poll() ?: break) {
+                        is Tcp4 -> handle(packet)
+                        is Udp4 -> handle(packet)
+                    }
+                }
                 val keys = selector.selectedKeys().iterator()
                 while (keys.hasNext()) {
                     val key = keys.next()
                     keys.remove()
-                    if (key.isValid) ready(key)
+                    if (key.isValid) (key.attachment() as? Exchange)?.let(::answer) ?: ready(key)
                 }
                 val now = SystemClock.elapsedRealtime()
                 if (now - lastTick >= TICK_MS) {
                     lastTick = now
                     connections.entries.toList().forEach { (k, c) -> apply(k, c, c.flow.tick(now)) }
+                    exchanges.entries.removeAll { (_, e) ->
+                        (now - e.last > UDP_IDLE_MS).also { if (it) runCatching { e.channel.close() } }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -72,11 +93,51 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
         } finally {
             connections.values.forEach { runCatching { it.channel.close() } }
             connections.clear()
+            exchanges.values.forEach { runCatching { it.channel.close() } }
+            exchanges.clear()
             runCatching { selector.close() }
         }
     }
 
     private fun keyOf(t: Tcp4) = Key(t.dst.fold(0) { a, b -> (a shl 8) or (b.toInt() and 0xff) }, t.srcPort, t.dstPort)
+
+    private fun handle(d: Udp4) {
+        val key = Key(d.dst.fold(0) { a, b -> (a shl 8) or (b.toInt() and 0xff) }, d.srcPort, d.dstPort)
+        val exchange = exchanges[key] ?: open(key, d) ?: return
+        exchange.last = SystemClock.elapsedRealtime()
+        // A datagram that cannot go is lost, as any may be; the app asks again or gives up.
+        runCatching { exchange.channel.write(ByteBuffer.wrap(d.payload)) }
+    }
+
+    private fun open(key: Key, d: Udp4): Exchange? {
+        if (exchanges.size >= MAX_EXCHANGES) return null
+        val channel = DatagramChannel.open()
+        return try {
+            channel.configureBlocking(false)
+            if (!service.protect(channel.socket())) throw IllegalStateException("not protected")
+            channel.connect(InetSocketAddress(InetAddress.getByAddress(d.dst), d.dstPort))
+            Exchange(d, channel, SystemClock.elapsedRealtime()).also {
+                channel.register(selector, SelectionKey.OP_READ, it)
+                exchanges[key] = it
+            }
+        } catch (e: Exception) {
+            runCatching { channel.close() }
+            null
+        }
+    }
+
+    /** What the far side sent back, to the sender, as from where it was sent. */
+    private fun answer(exchange: Exchange) {
+        val datagrams = ByteBuffer.allocate(MAX_DATAGRAM)
+        val first = exchange.first
+        while (true) {
+            datagrams.clear()
+            val n = runCatching { exchange.channel.read(datagrams) }.getOrDefault(0)
+            if (n <= 0) return
+            exchange.last = SystemClock.elapsedRealtime()
+            toTunnel(Udp4.build(first.dst, first.src, first.dstPort, first.srcPort, datagrams.array().copyOf(n)))
+        }
+    }
 
     private fun handle(t: Tcp4) {
         val key = keyOf(t)
@@ -117,7 +178,7 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
     }
 
     private fun ready(key: SelectionKey) {
-        val id = key.attachment() as Key
+        val id = key.attachment() as? Key ?: return
         val connection = connections[id] ?: return
         try {
             if (key.isConnectable) {
@@ -192,5 +253,10 @@ class Relay(private val service: VpnService, private val toTunnel: (ByteArray) -
         const val READ_SIZE = 32 * 1024
         const val MAX_PENDING = 256 * 1024
         const val MAX_CONNECTIONS = 1024
+        const val MAX_EXCHANGES = 512
+        const val UDP_IDLE_MS = 60_000L
+
+        /** The largest datagram that fits the tunnel's MTU. */
+        const val MAX_DATAGRAM = 1472
     }
 }

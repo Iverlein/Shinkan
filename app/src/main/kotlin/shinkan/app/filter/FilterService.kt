@@ -18,6 +18,8 @@ import shinkan.app.plan.DeviceVolume
 import shinkan.app.plan.PlanClock
 import shinkan.core.net.Blocklist
 import shinkan.core.net.DnsQuestion
+import shinkan.core.net.SeenHosts
+import shinkan.core.net.dropsDatagram
 import shinkan.core.net.Tcp4
 import shinkan.core.net.Udp4
 import java.io.FileInputStream
@@ -34,7 +36,7 @@ import java.util.concurrent.atomic.AtomicReference
  * The filter (SPEC §5): a VPN that takes all the device's IPv4. Every query
  * for a blocked host is answered NXDOMAIN; every other query goes to the
  * network's own resolver through a protected socket and comes back as is. TCP
- * goes on through the [Relay]; other UDP is dropped until block 11b.
+ * and other UDP go on through the [Relay], but QUIC to a blocked host.
  */
 class FilterService : VpnService() {
     private var tun: ParcelFileDescriptor? = null
@@ -44,6 +46,7 @@ class FilterService : VpnService() {
     private val screen = PlanClock.Screen()
     private val volume = DeviceVolume()
     private var relay: Relay? = null
+    private val seen = SeenHosts()
     private var output: FileOutputStream? = null
 
     /** The screen's broadcasts for the day plan's counter (SPEC §4.7) and the volume's for the device ceiling (§4.6), for as long as the filter runs. */
@@ -98,7 +101,12 @@ class FilterService : VpnService() {
                 continue
             }
             val datagram = Udp4.parse(buffer, n) ?: continue
-            if (datagram.dstPort != 53) continue
+            if (datagram.dstPort != 53) {
+                val blocked = blocklist.get().dropsDatagram(datagram.dstPort, seen.nameOf(datagram.dst), builtin)
+                if (blocked && BuildConfig.DEBUG) Log.d(TAG, "dropped quic to ${seen.nameOf(datagram.dst)}")
+                if (!blocked) tcp.accept(datagram)
+                continue
+            }
             val question = DnsQuestion.parse(datagram.payload)
             if (question != null && question.isAddressQuery && blocklist.get().blocksHost(question.name, builtin)) {
                 // Only the beta names what it blocked: nothing about the child is logged (SPEC §2.5).
@@ -106,12 +114,12 @@ class FilterService : VpnService() {
                 reply(output, datagram, DnsQuestion.refuse(datagram.payload))
                 continue
             }
-            upstreams.execute { forward(output, datagram) }
+            upstreams.execute { forward(output, datagram, question?.name) }
         }
     }
 
     /** Asks the network's resolver and writes its answer back into the tunnel. */
-    private fun forward(output: FileOutputStream, datagram: Udp4) {
+    private fun forward(output: FileOutputStream, datagram: Udp4, name: String?) {
         val resolver = upstream() ?: return
         try {
             DatagramSocket().use { socket ->
@@ -120,7 +128,9 @@ class FilterService : VpnService() {
                 socket.send(DatagramPacket(datagram.payload, datagram.payload.size, InetSocketAddress(resolver, 53)))
                 val answer = DatagramPacket(ByteArray(4096), 4096)
                 socket.receive(answer)
-                reply(output, datagram, answer.data.copyOf(answer.length))
+                val payload = answer.data.copyOf(answer.length)
+                if (name != null) seen.learn(payload, name)
+                reply(output, datagram, payload)
             }
         } catch (e: SocketTimeoutException) {
             Log.w(TAG, "resolver $resolver timed out")

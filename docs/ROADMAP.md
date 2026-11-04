@@ -75,7 +75,7 @@ order. Numbers are identifiers and do not change when the order does.
 | 12 | IPv6 in the tunnel | done 2026-11-04 |
 | A1 | Lock task features tuned on real devices: notifications, power dialog, keyguard [§4.1] | |
 | A2 | The icon drawn: the crest by default; the gate, the drawn gate and the seal 関 chosen on the parent door [§8.5] | done 2026-11-01 |
-| A3 | Translations: Russian first, Weblate as for Zanshin; Russian is in 1.0 | Russian done 2026-11-02 (seen on the emulator: PIN, home, parent door, plans); Weblate later |
+| A3 | Translations: Russian, written here by `docs/russian.md` | done 2026-11-04: the whole interface, the parser's errors, the listing and the README, checked by `tools/check_strings.py` and on the emulator. No Weblate (owner, 2026-11-04) |
 
 ## The blocks
 

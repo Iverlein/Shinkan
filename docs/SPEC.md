@@ -778,9 +778,13 @@ and cannot be changed at run time (§9.4).
 ### 8.6 Look
 
 Every page speaks English and Russian (`res/values-ru/`), following the
-device's language; the F-Droid listing has both (`fastlane/.../ru-RU`).
+device's language, or the app's own language where the system offers one:
+the build writes the two into `localeConfig` and keeps other languages of its
+libraries out. The F-Droid listing has both (`fastlane/.../ru-RU`), and the
+README (`README.ru.md`). The Russian is written here, by `docs/russian.md`.
 The words of the policy text and of the block list text (§4.4, §6.4) stay
-English in both: they are a format, not prose.
+English in both: they are a format, not prose. What a parser says of a line is
+a `TextProblem` in `core/`, worded by the app in either language.
 
 Every page works in portrait and in landscape from its first version; no
 page locks an orientation, and the player fills the screen in landscape.

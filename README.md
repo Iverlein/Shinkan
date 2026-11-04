@@ -1,5 +1,7 @@
 # Shinkan 真関
 
+[Русский](README.ru.md)
+
 A child lock for Android that holds the whole device: which apps exist for
 the child, at which hours, what the device may do, and what it may reach.
 Free software, on F-Droid when 1.0 is out.

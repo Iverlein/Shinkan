@@ -43,4 +43,7 @@ paths:
   The filter is checked by resolving a blocked and an unblocked name from
   an allowed terminal app on the emulator, and by `dumpsys connectivity`
   showing the VPN with lockdown.
-- **Strings in `res/values/strings.xml`**, never literals in Compose.
+- **Strings in `res/values/strings.xml`**, never literals in Compose, and their
+  Russian in `res/values-ru/` in the same commit, by `docs/russian.md`;
+  `python3 tools/check_strings.py` passes. `core/` holds no sentence a parent
+  reads: a problem is a key, as `TextProblem`, worded in the app.

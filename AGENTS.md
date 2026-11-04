@@ -27,11 +27,11 @@ by hand before working there:
 
 | Path | What |
 | --- | --- |
-| `core/` | Pure Kotlin: `Policy` and `Window` (what is usable when), `Restriction` (the `UserManager` keys), `PolicyText` (the stored form), `Pin`, `Volume`; `net/`: `Blocklist`, `BuiltinList` and `Category` (the built-in list), `Host`, `Families`, `Link` (what a shared text means), `BlocklistText`, `Segments` (the lookup of §7.5), `DnsQuestion` and `UdpDatagram`/`Checksum` (the filter's packets), `TcpSegment` and `TcpFlow` (the relay's connections), `SeenHosts` (the names of addresses), `ClientHello` (the name TLS shows). Tests in `core/src/test/`. No Android. |
+| `core/` | Pure Kotlin: `Policy` and `Window` (what is usable when), `Restriction` (the `UserManager` keys), `PolicyText` (the stored form), `TextProblem` (what is wrong with a line, as a key), `Pin`, `Volume`; `net/`: `Blocklist`, `BuiltinList` and `Category` (the built-in list), `Host`, `Families`, `Link` (what a shared text means), `BlocklistText`, `Segments` (the lookup of §7.5), `DnsQuestion` and `UdpDatagram`/`Checksum` (the filter's packets), `TcpSegment` and `TcpFlow` (the relay's connections), `SeenHosts` (the names of addresses), `ClientHello` (the name TLS shows). Tests in `core/src/test/`. No Android. |
 | `app/` | Compose UI, package `shinkan.app`, application id `io.github.iverlein.shinkan`. `admin/`: `ShinkanAdmin` the device admin receiver, `DeviceHold` the policy applied through `DevicePolicyManager`, `PolicyStore`, `ReapplyReceiver`. `filter/`: `FilterService` the VPN, `Relay` its TCP, `BlocklistStore`, `ShareActivity` the share target. `ui/`: the pages of SPEC §8. `LauncherIcon`: the alias switch for the icon of SPEC §8.5, drawn in `res/drawable/icon_*.xml`. Interface text in `res/values/strings.xml`. |
 | `fastlane/metadata/android/` | F-Droid store listing per language. |
-| `docs/` | `SPEC.md`, `ROADMAP.md`; `fdroid/` the recipe once submitted. |
-| `tools/` | Python only. `emulator/`: `emulator.py`, the emulator tool, `stand.py`, the stand of the QR flow, and their README with the traps and the checks of SPEC §10. `blocklist/refresh.py`: the built-in block list fetched into `app/src/main/assets/blocklist/` before a release. `provision_qr.py`: the QR code of SPEC §3.2, with `test_provision_qr.py`. |
+| `docs/` | `SPEC.md`, `ROADMAP.md`, `russian.md` the terms and typography of the Russian; `fdroid/` the recipe once submitted. |
+| `tools/` | Python only. `emulator/`: `emulator.py`, the emulator tool, `stand.py`, the stand of the QR flow, and their README with the traps and the checks of SPEC §10. `blocklist/refresh.py`: the built-in block list fetched into `app/src/main/assets/blocklist/` before a release. `provision_qr.py`: the QR code of SPEC §3.2, with `test_provision_qr.py`. `check_strings.py`: the Russian against `docs/russian.md`, with `test_check_strings.py`. |
 
 ## Commands
 
@@ -40,6 +40,8 @@ by hand before working there:
 ./gradlew :app:assembleDebug              # APK in app/build/outputs/apk/debug/
 adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk
 aapt2 dump permissions app/build/outputs/apk/debug/app-debug.apk   # the seven of SPEC §5.1, nothing else
+python3 tools/check_strings.py                   # the Russian strings against the English and docs/russian.md
+python3 tools/test_check_strings.py              # that check against strings wrong on purpose
 python3 tools/blocklist/refresh.py               # the built-in block list, before a release (--check: are the assets whole)
 python3 tools/provision_qr.py --url … --apk … out.png   # the QR code that provisions a device just reset
 python3 tools/test_provision_qr.py               # its codes read back by zbarimg

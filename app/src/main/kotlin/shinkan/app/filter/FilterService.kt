@@ -18,6 +18,7 @@ import shinkan.app.plan.DeviceVolume
 import shinkan.app.plan.PlanClock
 import shinkan.core.net.Blocklist
 import shinkan.core.net.DnsQuestion
+import shinkan.core.net.Tcp4
 import shinkan.core.net.Udp4
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -30,10 +31,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * The filter (SPEC §5): a VPN that takes only the device's DNS. Every query
+ * The filter (SPEC §5): a VPN that takes all the device's IPv4. Every query
  * for a blocked host is answered NXDOMAIN; every other query goes to the
- * network's own resolver through a protected socket and comes back as is.
- * No other traffic enters the tunnel in this block; SNI and QUIC are block 8.
+ * network's own resolver through a protected socket and comes back as is. TCP
+ * goes on through the [Relay]; other UDP is dropped until block 11b.
  */
 class FilterService : VpnService() {
     private var tun: ParcelFileDescriptor? = null
@@ -42,6 +43,8 @@ class FilterService : VpnService() {
     private val blocklist = AtomicReference(Blocklist())
     private val screen = PlanClock.Screen()
     private val volume = DeviceVolume()
+    private var relay: Relay? = null
+    private var output: FileOutputStream? = null
 
     /** The screen's broadcasts for the day plan's counter (SPEC §4.7) and the volume's for the device ceiling (§4.6), for as long as the filter runs. */
     override fun onCreate() {
@@ -64,7 +67,8 @@ class FilterService : VpnService() {
             .setSession(getString(R.string.app_name))
             .addAddress(TUN_ADDRESS, 32)
             .addDnsServer(DNS_ADDRESS)
-            .addRoute(DNS_ADDRESS, 32)
+            .addRoute("0.0.0.0", 0)
+            .setMtu(MTU)
             // Shinkan's own traffic stays out of its tunnel: inside it, the DNS-only route leaves
             // Shinkan nothing but DNS (lockdown exempts the owner from its drop, not from the route).
             // Shinkan's pages apply the block list themselves (SPEC §5.5).
@@ -82,11 +86,17 @@ class FilterService : VpnService() {
         val builtin = BuiltinLists.get(this)
         Log.i(TAG, "built-in list: ${builtin.ads.size} names of ads and trackers")
         val input = FileInputStream(fd.fileDescriptor)
-        val output = FileOutputStream(fd.fileDescriptor)
+        val output = FileOutputStream(fd.fileDescriptor).also { this.output = it }
+        val tcp = Relay(this, ::toTunnel).also { relay = it }
+        Thread(tcp, "shinkan-relay").start()
         val buffer = ByteArray(32767)
         while (!Thread.interrupted()) {
             val n = try { input.read(buffer) } catch (e: Exception) { break }
             if (n <= 0) continue
+            Tcp4.parse(buffer, n)?.let {
+                tcp.accept(it)
+                continue
+            }
             val datagram = Udp4.parse(buffer, n) ?: continue
             if (datagram.dstPort != 53) continue
             val question = DnsQuestion.parse(datagram.payload)
@@ -119,9 +129,18 @@ class FilterService : VpnService() {
         }
     }
 
-    @Synchronized
     private fun reply(output: FileOutputStream, query: Udp4, payload: ByteArray) {
-        output.write(Udp4.build(query.dst, query.src, query.dstPort, query.srcPort, payload))
+        toTunnel(Udp4.build(query.dst, query.src, query.dstPort, query.srcPort, payload))
+    }
+
+    /** One packet into the tun device; the relay and the resolver's replies share it. A closed device drops it. */
+    @Synchronized
+    private fun toTunnel(packet: ByteArray) {
+        try {
+            output?.write(packet)
+        } catch (e: java.io.IOException) {
+            Log.w(TAG, "tunnel closed: $e")
+        }
     }
 
     /**
@@ -156,6 +175,7 @@ class FilterService : VpnService() {
     override fun onDestroy() {
         unregisterReceiver(screen)
         unregisterReceiver(volume)
+        relay?.stop()
         worker?.interrupt()
         tun?.close()
         tun = null
@@ -175,6 +195,7 @@ class FilterService : VpnService() {
         private const val NOTICE_ID = 1
         private const val TUN_ADDRESS = "10.111.0.1"
         private const val DNS_ADDRESS = "10.111.0.2"
+        private const val MTU = 1500
         const val ACTION_RELOAD = "shinkan.filter.RELOAD"
 
         /** Starts the filter, or tells a running one to read the block list again. */

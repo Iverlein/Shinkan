@@ -29,7 +29,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.github.iverlein.shinkan.R
 import shinkan.app.filter.BlocklistStore
-import shinkan.app.filter.FilterService
 import shinkan.core.net.Blocklist
 import shinkan.core.net.BlocklistText
 import shinkan.core.net.Category
@@ -51,13 +50,15 @@ fun BlocklistPage() {
     var note by remember { mutableStateOf<String?>(null) }
     var wrong by remember { mutableStateOf(false) }
     fun save(next: Blocklist) {
-        store.blocklist = next
-        list = next
-        FilterService.start(context, reload = true)
+        list = store.change(context, next)
     }
 
     Text(stringResource(R.string.blocklist_intro))
     Spacer(Modifier.height(12.dp))
+    if (list.holdsOfficialApp) {
+        Text(stringResource(R.string.blocklist_official), style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(12.dp))
+    }
     Text(stringResource(R.string.blocklist_ads), style = MaterialTheme.typography.bodyMedium)
     Category.entries.forEach { c ->
         val on = c in list.categories

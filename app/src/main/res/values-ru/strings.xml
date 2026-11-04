@@ -97,7 +97,10 @@
     <string name="share_no_link">В том, чем поделились, нет ссылки.</string>
     <string name="share_site">Заблокировать %1$s на устройстве вместе со всеми поддоменами и этими адресами: %2$s</string>
     <string name="share_creator">Заблокировать %1$s на %2$s в плеере.</string>
-    <string name="share_item_later">Это отдельное видео или пост. Чтобы заблокировать по нему автора, нужен поиск плеера, которого пока нет; поделитесь страницей канала.</string>
+    <string name="share_item_asking">Ищем автора видео…</string>
+    <string name="share_item_failed">Не удалось найти автора видео. Возможно, видео закрыто или удалено, либо нет сети.</string>
+    <string name="share_retry">Повторить</string>
+    <string name="share_family">Это первый автор: сайт и приложение YouTube блокируются для всего на устройстве, кроме плеера. Они остаются в списке как сайты, и оттуда их можно убрать.</string>
     <string name="share_cancel">Отмена</string>
     <string name="share_block">Заблокировать</string>
     <string name="share_allow">Разрешить в плеере</string>
@@ -236,6 +239,7 @@
     <string name="summary_blocklist">Сайтов: %1$d, авторов: %2$d; %3$s</string>
     <string name="summary_blocklist_ads">реклама и трекеры</string>
     <string name="blocklist_intro">Что фильтр не пропускает на всём устройстве. Сайт блокируется со всеми поддоменами; поделиться ссылкой с Shinkan — значит добавить сайт. Автор скрывается в плеере.</string>
+    <string name="blocklist_official">Сайт и приложение YouTube заблокированы, соединения плеера проходят. Чтобы снять блокировку, уберите из списка ниже строку site youtube.com.</string>
     <string name="blocklist_ads">Реклама и трекеры блокируются всегда, по списку, встроенному в Shinkan. Включите ещё:</string>
     <string name="category_gambling">Азартные игры</string>
     <string name="category_porn">Порнография</string>

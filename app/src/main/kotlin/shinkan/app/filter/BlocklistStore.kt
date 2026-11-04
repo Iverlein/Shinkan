@@ -1,6 +1,7 @@
 package shinkan.app.filter
 
 import android.content.Context
+import shinkan.app.admin.DeviceHold
 import shinkan.core.net.Blocklist
 import shinkan.core.net.BlocklistText
 import shinkan.core.net.Builtin
@@ -15,6 +16,19 @@ class BlocklistStore(context: Context) {
     var blocklist: Blocklist
         get() = BlocklistText.parse(prefs.getString(KEY, "") ?: "")
         set(value) = prefs.edit().putString(KEY, BlocklistText.render(value)).apply()
+
+    /**
+     * Stores [next], an edit of the list, with what follows from it (SPEC §6.3): the
+     * family of a first creator, the official app held, the filter reloaded. Returns
+     * the list as stored.
+     */
+    fun change(context: Context, next: Blocklist): Blocklist {
+        val held = next.holdingFamily(blocklist)
+        blocklist = held
+        FilterService.start(context, reload = true)
+        DeviceHold(context).applyBlocklist()
+        return held
+    }
 
     private companion object {
         const val KEY = "blocklist"

@@ -4,6 +4,9 @@ import android.content.Context
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.channel.ChannelInfo
 import shinkan.app.filter.BlocklistStore
+import shinkan.core.net.Creator
+import shinkan.core.net.Link
+import shinkan.core.net.Platform
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -29,6 +32,18 @@ object Creators {
         }
         val known = HashMap(aliases)
         return { url -> list.hidesUploader(url, known) }
+    }
+
+    /**
+     * The creator of the video at [url], by the extractor (the lookup of SPEC §7.3),
+     * or null when the page names no channel. Fails with the extractor's exception
+     * when the video cannot be read. Called off the main thread.
+     */
+    fun ofVideo(url: String): Creator? {
+        Extractor.init()
+        val video = ServiceList.YouTube.getStreamExtractor(url).apply { fetchPage() }
+        val ref = Link.creatorRef(video.uploaderUrl) ?: return null
+        return Creator(Platform.YOUTUBE, ref, video.uploaderName.orEmpty().ifBlank { ref })
     }
 
     private val avatars = ConcurrentHashMap<String, String>()

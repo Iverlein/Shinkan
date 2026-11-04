@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import io.github.iverlein.shinkan.BuildConfig
 import shinkan.app.MainActivity
+import shinkan.app.filter.BlocklistStore
 import shinkan.app.filter.FilterService
 import shinkan.app.plan.PlanClock
 import shinkan.core.Mode
@@ -110,7 +111,8 @@ class DeviceHold(private val context: Context) {
     /**
      * Suspends the packages the form holds (SPEC §4.2): on the closed device
      * every launchable package but Shinkan, on the open device the closed ones
-     * outside their windows; the rest are resumed.
+     * outside their windows and the official app of a blocked platform (§7.1);
+     * the rest are resumed.
      */
     private fun applyPackages(policy: Policy, now: LocalDateTime) {
         // On the closed device the other homes are held too: when Shinkan's process dies, the
@@ -118,7 +120,7 @@ class DeviceHold(private val context: Context) {
         val launchable = launchablePackages() + if (policy.mode == Mode.CLOSED) otherHomes() else emptyList()
         val held = when (policy.mode) {
             Mode.CLOSED -> launchable.toSet()
-            Mode.OPEN -> policy.closedPackagesAt(now)
+            Mode.OPEN -> policy.closedPackagesAt(now) + launchable.filter(BlocklistStore(context).blocklist::holdsPackage)
         }
         val suspend = launchable.filter { it in held }.toTypedArray()
         val resume = launchable.filter { it !in held }.toTypedArray()
@@ -127,6 +129,11 @@ class DeviceHold(private val context: Context) {
             if (refused.isNotEmpty()) Log.w(TAG, "not suspended: ${refused.joinToString()}")
         }
         if (resume.isNotEmpty()) dpm.setPackagesSuspended(admin, resume, false)
+    }
+
+    /** Brings the suspensions to a block list just changed (SPEC §6.3). */
+    fun applyBlocklist(now: LocalDateTime = LocalDateTime.now()) {
+        if (isOwner) applyPackages(store.policy, now)
     }
 
     /** The packages with a launcher entry, Shinkan excluded. */

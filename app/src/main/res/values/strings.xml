@@ -98,7 +98,10 @@
     <string name="share_no_link">No link in what was shared.</string>
     <string name="share_site">Block %1$s on this device, with every subdomain and these hosts: %2$s</string>
     <string name="share_creator">Block %1$s on %2$s in the player.</string>
-    <string name="share_item_later">This is a single video or post. Blocking its creator from it needs the player\'s lookup, which is not built yet; share the channel page instead.</string>
+    <string name="share_item_asking">Looking up the video\'s creator…</string>
+    <string name="share_item_failed">The video\'s creator could not be looked up. It may be private or removed, or the network is down.</string>
+    <string name="share_retry">Try again</string>
+    <string name="share_family">This is the first creator: YouTube\'s own site and app are blocked for everything on this device but the player. They stay on the list as sites and can be taken off there.</string>
     <string name="share_cancel">Cancel</string>
     <string name="share_block">Block</string>
     <string name="share_allow">Allow in the player</string>
@@ -232,6 +235,7 @@
     <string name="summary_blocklist">%1$d sites, %2$d creators; %3$s</string>
     <string name="summary_blocklist_ads">ads and trackers</string>
     <string name="blocklist_intro">What the filter refuses on the whole device. A site blocks itself and every subdomain; sharing a link to Shinkan adds one. A creator is hidden in the player.</string>
+    <string name="blocklist_official">YouTube\'s own site and app are blocked, with the player\'s connections left through. Take the line site youtube.com off the list below to lift it.</string>
     <string name="blocklist_ads">Ads and trackers are always blocked, from the list built into Shinkan. Switch on more of it:</string>
     <string name="category_gambling">Gambling</string>
     <string name="category_porn">Porn</string>

@@ -29,10 +29,11 @@ Shinkan is made the **device owner** once, on a freshly set-up device, by one
   SponsorBlock;
 - the browser is Shinkan's own page with EasyList and EasyPrivacy applied
   to every request;
-- a day plan: free hours, then budgets of minutes per door with rests
-  between, say half an hour of YouTube, an hour and a half of rest, two
-  hours of the browser; in a rest playback stops and the child sees a ring
-  closing until it ends, or until a parent opens the device;
+- a day plan of spans, each with its own settings: say YouTube free from six
+  to nine, then from ten to seven an hour of it followed by half an hour of
+  rest, in rounds, while the browser stays open; in a rest playback stops and
+  the child sees a ring closing until it ends, or until a parent opens the
+  device;
 - the parent opens the settings with a PIN that exists only on the device,
   and can release the device at any time.
 

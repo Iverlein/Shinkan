@@ -195,12 +195,12 @@ Stored and shown as text, one statement per line, parsed and rendered by
 ```
 mode closed
 plan mon,tue,wed,thu,fri
-  06:00-10:00 browser player
-  player 30 rest 90
-  browser 120
+  06:00-09:00 player
+  10:00-19:00 browser player 60 rest 30
+  19:00-21:00 browser,player 45
 plan sat,sun
   08:00-12:00 browser player
-  player 60 rest parent
+  14:00-20:00 browser player 60 rest parent
 volume browser 60
 volume player 40
 restrict factory_reset
@@ -210,7 +210,7 @@ restrict factory_reset
 mode open
 plan mon,tue,wed,thu,fri
   07:00-09:00 device
-  device 60 rest 30
+  16:00-21:00 device 60 rest 30
 close com.example.game
 window com.example.game sat,sun 10:00-12:00
 close com.zhiliaoapp.musically
@@ -219,9 +219,12 @@ volume device 70
 ```
 
 `mode` is `closed` or `open` (§4.1); `plan` opens a day plan for the
-weekdays named and the indented lines are its stages, a span
-(`HH:MM-HH:MM` and the doors open in it) or a budget (the doors, the minutes,
-and `rest` with minutes or `parent`), in order (§4.7); `browser` and
+weekdays named and the indented lines are its stages, in order (§4.7): a span
+is `HH:MM-HH:MM` and the doors open in it, a door free unless minutes follow
+it, then `rest` with minutes or `parent`, and doors joined by a comma
+(`browser,player 45`) share their minutes; a line with no hours (the doors,
+the minutes, the rest) is a budget standing as a stage, as 1.0 wrote it, which
+still reads and runs; `browser` and
 `player` name Shinkan's two doors and `device` the whole screen of the open
 device; `close` names a package of the open device and `window` gives it one
 span on given weekdays, which may cross midnight and then belongs to the day
@@ -273,18 +276,37 @@ device's own. Block 3d for the doors, 7c for the device.
 
 ### 4.7 The day plan: spans, budgets and rests
 
-A day is a **plan** of stages (`plan` lines, §4.4), one plan per set of
-weekdays. A stage is either a **span**, a clock period in which the named
-doors are open (`06:00-10:00 browser player`), or a **budget**, a number of
-minutes of use of the named doors, after which an optional **rest** follows
-(`player 30 rest 90`). Stages run in order: a span starts at its time
-whatever is running; a budget starts when the stage before it ends and lasts
-until its minutes are spent; a rest lasts the minutes given on the wall
-clock, screen on or off, or until a parent opens the door and taps *Open*
-(`rest parent`). After the last stage nothing is open until the next plan
-day. A plan belongs to the day its first stage starts, and a span may cross
-midnight. So "free until ten, then half an hour of YouTube with an hour and
-a half of rest, then two hours of the browser" is three stages.
+A day is a **plan** of **spans** (`plan` lines, §4.4), one plan per set of
+weekdays. A span is a clock period with the doors open in it, and each span
+has its own settings: a door runs free to the span's end unless a **budget**
+inside the span counts it, a number of minutes of use, after which an optional
+**rest** follows. A budget counts the doors named in it; doors joined by a
+comma share its minutes, and a door is in one budget of a span at most. So
+"from six to nine YouTube is free, from ten to seven it is an hour of YouTube
+followed by half an hour of rest" is two spans:
+
+```
+  06:00-09:00 player
+  10:00-19:00 browser player 60 rest 30
+```
+
+The budget's rest closes its own doors and no others: in the second span the
+browser stays open while the player rests. A rest lasts the minutes given on
+the wall clock, screen on or off, or until a parent opens the door and taps
+*Open* (`rest parent`). When it ends the budget fills again, so the span goes
+in rounds, an hour on and half an hour off, until it ends. A budget with no
+rest is spent once: its doors stay closed to the span's end. The span's end
+ends everything in it, a rest included, and the next span starts with its own
+budgets whole; minutes never pass from one span to another. Outside every span
+nothing is open until the next one starts. A plan belongs to the day its first
+stage starts, and a span may cross midnight.
+
+A budget may also stand as a stage of its own, between spans, as 1.0 wrote it
+(`player 30 rest 90`): stages run in order, such a budget starts when the stage
+before it ends and lasts until its minutes are spent, its rest gives way to the
+next stage, and it does not fill again. Such a line still reads and runs as it
+did, and the door's editor shows it and edits it, but offers only spans:
+refusing it would leave a held device unable to read its own policy.
 
 Use is time the screen is on and that door in front, over the lock screen
 or not:
@@ -293,7 +315,7 @@ the filter's foreground service counts it from `ACTION_SCREEN_ON`,
 rest page itself does not count. When a budget is spent, playback stops
 (the player pauses, the browser's page is paused) and, if a rest follows,
 the rest is shown: on the closed device the home keeps its doors and the
-doors of the spent budget carry a small ensō in its current state with the
+doors of the spent budget, and only they, carry a small ensō in its current state with the
 minutes left (§8.1); on the open device the rest page (§8.7) takes the
 screen, Shinkan brings it to the front and pins it with lock
 task (`startLockTask`, allowed to a device owner's own activity without a
@@ -309,14 +331,15 @@ Shinkan steps back and what was in front returns. The rest page stays under
 the keyguard, not over it as the closed home does: the lock screen keeps its
 emergency call.
 
-Nothing is logged (§2.5): what is kept is the current stage, the minutes
-spent in it and a rest's end, in device-protected storage so a reboot
-neither resets nor extends them; the clock is protected by
+Nothing is logged (§2.5): what is kept is the current stage, the seconds
+spent of each of its budgets and their rests' ends, in device-protected
+storage so a reboot neither resets nor extends them; the clock is protected by
 `no_config_date_time`. `Policy.openAt` gives what is open now and
-`Policy.nextChange` the next edge, by clock or by the budget's remainder;
-`Policy.count` adds use to the running budget, `Policy.openNow` is the
-parent's *Open now*, which ends any rest, `Policy.nextOpening` is what a
-greyed door says.
+`Policy.nextChange` the next edge, by clock or by a budget's remainder;
+`Policy.count` adds use to the budget that counts the door, `Policy.budgets`
+is how each of them stands, `Policy.openNow` is the parent's *Open now*, which
+ends every rest running and fills their budgets, `Policy.nextOpening` is what
+a greyed door says.
 
 The edges of a plan day, as `Policy` decides them: a plan day starts at
 midnight, or when the day before's span across midnight ends, and ends at
@@ -325,7 +348,8 @@ starts at its first stage whatever the day before left (a rest included).
 A span ahead of the running stage takes over at its start, skipping the
 stages between. A day with no plan opens nothing; a policy with no plan at
 all sets no time and leaves every door open, as a freshly held device is.
-Blocks 3c and 3e for the closed device, 7b for the open.
+Blocks 3c and 3e for the closed device, 7b for the open, 13 for budgets inside
+a span.
 
 ## 5. The filter
 
@@ -695,7 +719,7 @@ portrait; a door the plan has closed is greyed and says when it opens next
 by the clock alone (`Policy.nextOpening`: "Opens at 16:00" today, "Opens
 Tue 06:00" on another day, "Closed" when not within a week), an open one
 with a budget shows what is left of it. During a rest the doors of the
-spent budget are greyed and carry, in place of their mark, a small ensō
+spent budget are greyed, the span's other doors staying open, and carry, in place of their mark, a small ensō
 in vermilion in its current state, closing as the rest passes, with the
 minutes left under the name; for a rest a parent ends the ring is whole
 and the door says so. Each door carries its drawn mark
@@ -720,8 +744,10 @@ it and *Open now* during a rest (§4.7); the icon (§8.5); the theme (§8.6);
 
 The policy is edited in sections, each a page: the form (two choices); the
 day plans (a card per plan with its weekdays as chips, a weekday of another
-plan greyed, and its stages, each moved up or down, edited in a dialog or
-removed; times typed as `HH:MM`); the closed apps (every launchable package
+plan greyed, and its spans, each moved up or down, edited in a dialog or
+removed, with its budgets under it, added, edited and removed there, a door
+offered to one budget of the span at most and taken out of its budget when the
+span no longer opens it; times typed as `HH:MM`); the closed apps (every launchable package
 by name, a check to close it, its windows added and removed); the volume
 ceilings (a switch and a slider in steps of five per door); the
 restrictions (a switch each, and two warnings: one while a way out of the
@@ -732,7 +758,8 @@ its text, editable, read back by the parser, a malformed line named by its
 number. A stage is drawn, not spelled: a span as its hours and the marks of
 the doors open in it, a budget as its doors' marks, an hourglass and its
 minutes, then an ensō with the rest's minutes, or an ensō and a key for a
-rest a parent ends; the door's *Now* line draws it the same way.
+rest a parent ends; the door's *Now* line draws it the same way, a span's
+budgets under its hours, each with what is left of it or when its rest ends.
 
 The sections edit a draft. *Apply now* checks it by its own text (it must
 render and parse back, `PolicyText.problem`, so the editor and a pasted
@@ -873,7 +900,8 @@ uninstalled. Release asks for the PIN once more.
 - **Segments** are community data: one nobody marked is played.
 - **A budget counts screen-on time**, not attention: a page left open
   counts, and on the open device a stage cannot tell one app from another
-  (`device` only, the same limit as the ceiling). A rest in minutes runs on
+  (`device` only, the same limit as the ceiling). There a budget with no rest
+  holds nothing once spent, since only a rest pins the screen. A rest in minutes runs on
   the wall clock, which is protected; a rest the parent ends waits for the
   parent.
 - **The phone app and Settings cannot be suspended**: `setPackagesSuspended`

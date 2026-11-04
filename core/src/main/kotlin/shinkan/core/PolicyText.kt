@@ -22,11 +22,11 @@ import java.time.format.DateTimeFormatter
  *     start https://www.wikipedia.org
  *     restrict factory_reset
  *
- * A `plan` line takes the indented lines under it as its stages. A span is
- * `HH:MM-HH:MM` and the doors open in it, a door free unless minutes follow it,
- * then `rest` with minutes or `parent`; doors joined by a comma share their
- * minutes. A line with no hours (the doors, the minutes, the rest) is a budget
- * standing as a stage, as 1.0 wrote it. A `window` closes its package too. No
+ * A `plan` line takes the indented lines under it as its spans: `HH:MM-HH:MM` and
+ * the doors open in it, a door free unless minutes follow it, then `rest` with
+ * minutes or `parent`; doors joined by a comma share their minutes. A line with
+ * no hours, as 1.0 wrote a budget, is turned into a span as it is read
+ * ([spans]) and never written. A `window` closes its package too. No
  * `restrict` line means the default set, `restrict none` an empty one. Blank
  * lines and lines starting with # are skipped. Unknown statements and
  * malformed lines raise [PolicyText.Malformed] with the line number.
@@ -62,16 +62,16 @@ object PolicyText {
         var restrictionsGiven = false
         var start: String? = null
         val denied = linkedMapOf<String, Set<Capability>>()
-        // The plan being read: its line, its days and the stages so far.
+        // The plan being read: its line, its days and its lines so far.
         var planLine = 0
         var planDays: Set<DayOfWeek>? = null
-        val stages = mutableListOf<Stage>()
+        val stages = mutableListOf<PlanLine>()
         val seenDays = mutableSetOf<DayOfWeek>()
 
         fun closePlan() {
             val days = planDays ?: return
             if (stages.isEmpty()) throw Malformed(planLine, "plan ${days(days)}", TextProblem.PLAN_WITHOUT_STAGES)
-            plans += Plan(days, stages.toList())
+            plans += Plan(days, spans(stages))
             planDays = null
             stages.clear()
         }
@@ -143,10 +143,16 @@ object PolicyText {
         return Policy(mode, plans, closed, windows, volumes, if (restrictionsGiven) restrictions else Restriction.DEFAULT, start, denied)
     }
 
-    private fun stage(n: Int, line: String, parts: List<String>): Stage {
+    /** An indented line of a plan: a span, or a budget with no hours as 1.0 wrote it. */
+    private sealed interface PlanLine {
+        class Hours(val span: Span) : PlanLine
+        class Loose(val budget: Budget) : PlanLine
+    }
+
+    private fun stage(n: Int, line: String, parts: List<String>): PlanLine {
         span.matchEntire(parts[0])?.let {
             val (from, to) = hours(n, line, parts[0])
-            return span(n, line, from, to, parts.drop(1))
+            return PlanLine.Hours(span(n, line, from, to, parts.drop(1)))
         }
         val doors = parts.takeWhile { it.toIntOrNull() == null && it != "rest" }
         if (doors.isEmpty()) throw Malformed(n, line, TextProblem.STAGE_SHAPE)
@@ -160,13 +166,50 @@ object PolicyText {
             after.size == 2 && after[0] == "rest" -> rest(n, line, after[1])
             else -> throw Malformed(n, line, TextProblem.AFTER_MINUTES)
         }
-        return Stage.Budget(doorSet, minutes, restOf)
+        return PlanLine.Loose(Budget(doorSet, minutes, restOf))
+    }
+
+    /** The spans of a plan, the budgets with no hours turned into the span they ran in (SPEC §4.4). */
+    private fun spans(lines: List<PlanLine>): List<Span> = buildList {
+        var i = 0
+        while (i < lines.size) {
+            val line = lines[i]
+            if (line is PlanLine.Hours) {
+                add(line.span)
+                i++
+                continue
+            }
+            val loose = lines.drop(i).takeWhile { it is PlanLine.Loose }.map { (it as PlanLine.Loose).budget }
+            i += loose.size
+            gap(lastOrNull(), (lines.getOrNull(i) as? PlanLine.Hours)?.span, loose)?.let(::add)
+        }
+    }
+
+    /**
+     * The span of [budgets] that stood between [before] and [after]: from the one's
+     * end to the other's start or the day's end. Nothing when no time is left there,
+     * and a span across midnight ended its plan day, so what followed it never ran.
+     * Never looser than 1.0: a door stays in its first budget, and a rest in minutes
+     * goes, since it came once and would now fill the budget.
+     */
+    private fun gap(before: Span?, after: Span?, budgets: List<Budget>): Span? {
+        if (before != null && before.to <= before.from) return null
+        val from = before?.to ?: LocalTime.MIDNIGHT
+        val to = after?.from ?: if (from == LocalTime.MIDNIGHT) LocalTime.of(23, 59) else LocalTime.MIDNIGHT
+        if (from == to) return null
+        val seen = linkedSetOf<Door>()
+        val kept = budgets.mapNotNull { b ->
+            val doors = b.doors - seen
+            seen += doors
+            if (doors.isEmpty()) null else Budget(doors, b.minutes, b.rest.takeIf { it == Rest.Parent })
+        }
+        return Span(from, to, seen, kept)
     }
 
     /** What follows a span's hours: doors, each group free or with its minutes and rest. */
-    private fun span(n: Int, line: String, from: LocalTime, to: LocalTime, parts: List<String>): Stage.Span {
+    private fun span(n: Int, line: String, from: LocalTime, to: LocalTime, parts: List<String>): Span {
         val free = linkedSetOf<Door>()
-        val budgets = mutableListOf<Stage.Budget>()
+        val budgets = mutableListOf<Budget>()
         var i = 0
         while (i < parts.size) {
             val group = parts[i++].split(",").map { door(it) ?: throw Malformed(n, line, TextProblem.UNKNOWN_DOOR, it) }.toSet()
@@ -184,13 +227,13 @@ object PolicyText {
                 restOf = rest(n, line, parts.getOrNull(i + 1))
                 i += 2
             }
-            budgets += Stage.Budget(group, minutes, restOf)
+            budgets += Budget(group, minutes, restOf)
         }
         val counted = budgets.flatMap { it.doors }
         counted.firstOrNull { it in free || counted.count { c -> c == it } > 1 }?.let {
             throw Malformed(n, line, TextProblem.DOOR_REPEATED, it.name.lowercase())
         }
-        return Stage.Span(from, to, free + counted, budgets)
+        return Span(from, to, free + counted, budgets)
     }
 
     private fun rest(n: Int, line: String, text: String?): Rest =
@@ -240,7 +283,7 @@ object PolicyText {
         appendLine("mode ${policy.mode.name.lowercase()}")
         policy.plans.forEach { plan ->
             appendLine("plan ${days(plan.days)}")
-            plan.stages.forEach { appendLine("  ${render(it)}") }
+            plan.spans.forEach { appendLine("  ${render(it)}") }
         }
         policy.closed.forEach { pkg ->
             appendLine("close $pkg")
@@ -262,36 +305,25 @@ object PolicyText {
 
     /**
      * The plan state as the app stores it (SPEC §4.7), one line of `key=value`:
-     * `day=2026-11-02 stage=1 spent=1800 rest=2026-11-02T12:00`, with
-     * `rest=parent` for a rest a parent ends, and for each budget of a span
-     * touched `b0=600`, `b1=3600,2026-11-02T12:00` or `b1=3600,parent`. Nothing
-     * but these is kept.
+     * `day=2026-11-02 span=1 b0=600 b1=3600,2026-11-02T12:00`, and `b1=3600,parent`
+     * for a rest a parent ends. Nothing but these is kept.
      */
     fun renderState(state: PlanState): String = buildList {
         state.day?.let { add("day=$it") }
-        add("stage=${state.stage}")
-        add("spent=${state.spent}")
-        when {
-            state.restParent -> add("rest=parent")
-            state.restEnd != null -> add("rest=${state.restEnd}")
-        }
+        add("span=${state.span}")
         state.uses.toSortedMap().forEach { (i, use) ->
             val rest = if (use.restParent) ",parent" else use.restEnd?.let { ",$it" }.orEmpty()
             add("b$i=${use.spent}$rest")
         }
     }.joinToString(" ")
 
-    /** The stored plan state; what cannot be read is a fresh state, which the plan then carries to now. */
+    /** The stored plan state; what cannot be read is a fresh state, which the plan then carries to now. Before 1.1 the span was `stage`. */
     fun parseState(text: String): PlanState {
         val fields = text.trim().split(Regex("\\s+")).filter { '=' in it }.associate { it.substringBefore('=') to it.substringAfter('=') }
         return try {
-            val rest = fields["rest"]
             PlanState(
                 day = fields["day"]?.let(LocalDate::parse),
-                stage = fields["stage"]?.toInt() ?: 0,
-                spent = fields["spent"]?.toLong() ?: 0,
-                restEnd = rest?.takeIf { it != "parent" }?.let(LocalDateTime::parse),
-                restParent = rest == "parent",
+                span = (fields["span"] ?: fields["stage"])?.toInt() ?: 0,
                 uses = fields.filterKeys { it.matches(Regex("b\\d+")) }.entries.associate { (key, value) ->
                     val (spent, end) = (value.split(",") + "").take(2)
                     key.drop(1).toInt() to Use(
@@ -306,18 +338,15 @@ object PolicyText {
         }
     }
 
-    /** One stage as its indented line shows it, without the indent. */
-    fun render(stage: Stage): String = when (stage) {
-        is Stage.Span -> {
-            val free = stage.doors - stage.budgets.flatMap { it.doors }.toSet()
-            (listOf("${stage.from.format(hhmm)}-${stage.to.format(hhmm)}", doors(free)) + stage.budgets.map { render(it, ",") })
-                .filter { it.isNotEmpty() }.joinToString(" ")
-        }
-        is Stage.Budget -> render(stage, " ")
+    /** One span as its indented line shows it, without the indent. */
+    fun render(span: Span): String {
+        val free = span.doors - span.budgets.flatMap { it.doors }.toSet()
+        return (listOf("${span.from.format(hhmm)}-${span.to.format(hhmm)}", doors(free)) + span.budgets.map(::render))
+            .filter { it.isNotEmpty() }.joinToString(" ")
     }
 
-    private fun render(budget: Stage.Budget, between: String): String = buildString {
-        append("${doors(budget.doors, between)} ${budget.minutes}")
+    private fun render(budget: Budget): String = buildString {
+        append("${doors(budget.doors, ",")} ${budget.minutes}")
         when (val r = budget.rest) {
             null -> Unit
             is Rest.Minutes -> append(" rest ${r.minutes}")

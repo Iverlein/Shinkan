@@ -20,8 +20,8 @@ import shinkan.core.net.Blocklist
 import shinkan.core.net.DnsQuestion
 import shinkan.core.net.SeenHosts
 import shinkan.core.net.dropsDatagram
-import shinkan.core.net.Tcp4
-import shinkan.core.net.Udp4
+import shinkan.core.net.TcpSegment
+import shinkan.core.net.UdpDatagram
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.DatagramPacket
@@ -33,7 +33,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * The filter (SPEC §5): a VPN that takes all the device's IPv4. Every query
+ * The filter (SPEC §5): a VPN that takes all the device's traffic, IPv4 and IPv6. Every query
  * for a blocked host is answered NXDOMAIN; every other query goes to the
  * network's own resolver through a protected socket and comes back as is. TCP
  * and other UDP go on through the [Relay], but QUIC to a blocked host.
@@ -70,7 +70,9 @@ class FilterService : VpnService() {
             .setSession(getString(R.string.app_name))
             .addAddress(TUN_ADDRESS, 32)
             .addDnsServer(DNS_ADDRESS)
+            .addAddress(TUN_ADDRESS6, 128)
             .addRoute("0.0.0.0", 0)
+            .addRoute("::", 0)
             .setMtu(MTU)
             // Shinkan's own traffic stays out of its tunnel: inside it, the DNS-only route leaves
             // Shinkan nothing but DNS (lockdown exempts the owner from its drop, not from the route).
@@ -96,11 +98,11 @@ class FilterService : VpnService() {
         while (!Thread.interrupted()) {
             val n = try { input.read(buffer) } catch (e: Exception) { break }
             if (n <= 0) continue
-            Tcp4.parse(buffer, n)?.let {
+            TcpSegment.parse(buffer, n)?.let {
                 tcp.accept(it)
                 continue
             }
-            val datagram = Udp4.parse(buffer, n) ?: continue
+            val datagram = UdpDatagram.parse(buffer, n) ?: continue
             if (datagram.dstPort != 53) {
                 val blocked = blocklist.get().dropsDatagram(datagram.dstPort, seen.nameOf(datagram.dst), builtin)
                 if (blocked && BuildConfig.DEBUG) Log.d(TAG, "dropped quic to ${seen.nameOf(datagram.dst)}")
@@ -119,7 +121,7 @@ class FilterService : VpnService() {
     }
 
     /** Asks the network's resolver and writes its answer back into the tunnel. */
-    private fun forward(output: FileOutputStream, datagram: Udp4, name: String?) {
+    private fun forward(output: FileOutputStream, datagram: UdpDatagram, name: String?) {
         val resolver = upstream() ?: return
         try {
             DatagramSocket().use { socket ->
@@ -139,8 +141,8 @@ class FilterService : VpnService() {
         }
     }
 
-    private fun reply(output: FileOutputStream, query: Udp4, payload: ByteArray) {
-        toTunnel(Udp4.build(query.dst, query.src, query.dstPort, query.srcPort, payload))
+    private fun reply(output: FileOutputStream, query: UdpDatagram, payload: ByteArray) {
+        toTunnel(UdpDatagram.build(query.dst, query.src, query.dstPort, query.srcPort, payload))
     }
 
     /** One packet into the tun device; the relay and the resolver's replies share it. A closed device drops it. */
@@ -205,6 +207,7 @@ class FilterService : VpnService() {
         private const val NOTICE_ID = 1
         private const val TUN_ADDRESS = "10.111.0.1"
         private const val DNS_ADDRESS = "10.111.0.2"
+        private const val TUN_ADDRESS6 = "fd11:1::1"
         private const val MTU = 1500
         const val ACTION_RELOAD = "shinkan.filter.RELOAD"
 

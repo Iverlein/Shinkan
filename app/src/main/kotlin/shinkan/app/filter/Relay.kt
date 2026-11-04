@@ -5,9 +5,9 @@ import android.os.SystemClock
 import android.util.Log
 import io.github.iverlein.shinkan.BuildConfig
 import shinkan.core.net.ClientHello
-import shinkan.core.net.Tcp4
+import shinkan.core.net.TcpSegment
 import shinkan.core.net.TcpFlow
-import shinkan.core.net.Udp4
+import shinkan.core.net.UdpDatagram
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -42,10 +42,10 @@ class Relay(
         var refused = false
     }
 
-    private data class Key(val address: Int, val srcPort: Int, val dstPort: Int)
+    private data class Key(val address: ByteBuffer, val srcPort: Int, val dstPort: Int)
 
     /** The datagrams of one sender to one address and port. */
-    private class Exchange(val first: Udp4, val channel: DatagramChannel, var last: Long)
+    private class Exchange(val first: UdpDatagram, val channel: DatagramChannel, var last: Long)
 
     private val selector = Selector.open()
     private val inbox = ConcurrentLinkedQueue<Any>()
@@ -58,13 +58,13 @@ class Relay(
     @Volatile private var running = true
 
     /** A segment from the tun device, from any thread. */
-    fun accept(segment: Tcp4) {
+    fun accept(segment: TcpSegment) {
         inbox.add(segment)
         selector.wakeup()
     }
 
     /** A datagram from the tun device, from any thread. */
-    fun accept(datagram: Udp4) {
+    fun accept(datagram: UdpDatagram) {
         inbox.add(datagram)
         selector.wakeup()
     }
@@ -80,8 +80,8 @@ class Relay(
                 selector.select(TICK_MS)
                 while (true) {
                     when (val packet = inbox.poll() ?: break) {
-                        is Tcp4 -> handle(packet)
-                        is Udp4 -> handle(packet)
+                        is TcpSegment -> handle(packet)
+                        is UdpDatagram -> handle(packet)
                     }
                 }
                 val keys = selector.selectedKeys().iterator()
@@ -110,17 +110,17 @@ class Relay(
         }
     }
 
-    private fun keyOf(t: Tcp4) = Key(t.dst.fold(0) { a, b -> (a shl 8) or (b.toInt() and 0xff) }, t.srcPort, t.dstPort)
+    private fun keyOf(t: TcpSegment) = Key(ByteBuffer.wrap(t.dst), t.srcPort, t.dstPort)
 
-    private fun handle(d: Udp4) {
-        val key = Key(d.dst.fold(0) { a, b -> (a shl 8) or (b.toInt() and 0xff) }, d.srcPort, d.dstPort)
+    private fun handle(d: UdpDatagram) {
+        val key = Key(ByteBuffer.wrap(d.dst), d.srcPort, d.dstPort)
         val exchange = exchanges[key] ?: open(key, d) ?: return
         exchange.last = SystemClock.elapsedRealtime()
         // A datagram that cannot go is lost, as any may be; the app asks again or gives up.
         runCatching { exchange.channel.write(ByteBuffer.wrap(d.payload)) }
     }
 
-    private fun open(key: Key, d: Udp4): Exchange? {
+    private fun open(key: Key, d: UdpDatagram): Exchange? {
         if (exchanges.size >= MAX_EXCHANGES) return null
         val channel = DatagramChannel.open()
         return try {
@@ -146,16 +146,16 @@ class Relay(
             val n = runCatching { exchange.channel.read(datagrams) }.getOrDefault(0)
             if (n <= 0) return
             exchange.last = SystemClock.elapsedRealtime()
-            toTunnel(Udp4.build(first.dst, first.src, first.dstPort, first.srcPort, datagrams.array().copyOf(n)))
+            toTunnel(UdpDatagram.build(first.dst, first.src, first.dstPort, first.srcPort, datagrams.array().copyOf(n)))
         }
     }
 
-    private fun handle(t: Tcp4) {
+    private fun handle(t: TcpSegment) {
         val key = keyOf(t)
         val connection = connections[key]
         if (connection == null) {
-            val opening = t.has(Tcp4.SYN) && !t.has(Tcp4.ACK)
-            if (opening && !refusesPort(t.dstPort)) open(key, t) else if (!t.has(Tcp4.RST)) refuse(t)
+            val opening = t.has(TcpSegment.SYN) && !t.has(TcpSegment.ACK)
+            if (opening && !refusesPort(t.dstPort)) open(key, t) else if (!t.has(TcpSegment.RST)) refuse(t)
             return
         }
         val now = SystemClock.elapsedRealtime()
@@ -163,9 +163,9 @@ class Relay(
     }
 
     /** A segment of no connection known, or a port refused: the device is told, and stops. */
-    private fun refuse(t: Tcp4) = toTunnel(t.reset())
+    private fun refuse(t: TcpSegment) = toTunnel(t.reset())
 
-    private fun open(key: Key, syn: Tcp4) {
+    private fun open(key: Key, syn: TcpSegment) {
         val flow = TcpFlow(syn, random.nextInt().toLong() and 0xffffffffL, SystemClock.elapsedRealtime())
         if (connections.size >= MAX_CONNECTIONS) {
             flow.failed().packets.forEach(toTunnel)
@@ -300,7 +300,7 @@ class Relay(
         const val MAX_EXCHANGES = 512
         const val UDP_IDLE_MS = 60_000L
 
-        /** The largest datagram that fits the tunnel's MTU. */
-        const val MAX_DATAGRAM = 1472
+        /** The largest datagram that fits the tunnel's MTU over either family. */
+        const val MAX_DATAGRAM = 1452
     }
 }

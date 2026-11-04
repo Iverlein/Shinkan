@@ -43,13 +43,18 @@ import shinkan.core.Stage
 import java.time.DayOfWeek
 import java.time.LocalTime
 
-/** Which stage the dialog edits: of plan [plan], at [stage], or a new one when null. */
-private data class Editing(val plan: Int, val stage: Int?, val initial: Stage)
+/**
+ * What the dialog edits: of plan [plan], the stage at [stage], or a new one when
+ * null; with [inSpan], a budget of that span, at [budget], or a new one when null.
+ */
+private data class Editing(val plan: Int, val stage: Int?, val initial: Stage, val inSpan: Boolean = false, val budget: Int? = null)
 
 /**
  * The day plans (SPEC §4.7, §8.2): one card per plan with its weekdays and its
- * stages, each moved up or down, edited or removed; spans and budgets added by
- * a dialog. A weekday in another plan is greyed, so no day is in two.
+ * spans, each moved up or down, edited or removed, and under each span its
+ * budgets, added, edited and removed there. A budget standing as a stage, as 1.0
+ * wrote it, is shown and edited but no longer added. A weekday in another plan is
+ * greyed, so no day is in two.
  */
 @Composable
 fun PlansPage(policy: Policy, onChange: (Policy) -> Unit) {
@@ -74,7 +79,7 @@ fun PlansPage(policy: Policy, onChange: (Policy) -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 plan.stages.forEachIndexed { si, stage ->
                     if (si > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    StageLine(stage, Modifier.padding(top = 8.dp))
+                    StageLine(stage, Modifier.padding(top = 8.dp), budgets = false)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         val move: (Int) -> Unit = { to ->
                             withPlan(pi, plan.copy(stages = plan.stages.toMutableList().also { it.add(to, it.removeAt(si)) }))
@@ -86,16 +91,29 @@ fun PlansPage(policy: Policy, onChange: (Policy) -> Unit) {
                             withPlan(pi, plan.copy(stages = plan.stages.filterIndexed { j, _ -> j != si }))
                         }
                     }
+                    if (stage is Stage.Span) {
+                        stage.budgets.forEachIndexed { bi, budget ->
+                            Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                StageLine(budget, Modifier.weight(1f))
+                                Mini("✎", stringResource(R.string.stage_edit)) { editing = Editing(pi, si, budget, inSpan = true, budget = bi) }
+                                Mini("✕", stringResource(R.string.stage_remove)) {
+                                    val kept = stage.copy(budgets = stage.budgets.filterIndexed { j, _ -> j != bi })
+                                    withPlan(pi, plan.copy(stages = plan.stages.toMutableList().also { it[si] = kept }))
+                                }
+                            }
+                        }
+                        val uncounted = Door.entries.filter { it in stage.doors && stage.budgets.none { b -> it in b.doors } }
+                        if (uncounted.isNotEmpty()) {
+                            TextButton(modifier = Modifier.padding(start = 16.dp), onClick = {
+                                editing = Editing(pi, si, Stage.Budget(setOf(uncounted.last()), 30), inSpan = true)
+                            }) { Text(stringResource(R.string.plans_add_budget)) }
+                        }
+                    }
                 }
                 if (plan.stages.isEmpty()) Text(stringResource(R.string.plans_no_stage), color = MaterialTheme.colorScheme.error)
-                Row {
-                    TextButton(onClick = {
-                        editing = Editing(pi, null, Stage.Span(LocalTime.of(8, 0), LocalTime.of(12, 0), doors.toSet()))
-                    }) { Text(stringResource(R.string.plans_add_span)) }
-                    TextButton(onClick = {
-                        editing = Editing(pi, null, Stage.Budget(doors.toSet(), 30))
-                    }) { Text(stringResource(R.string.plans_add_budget)) }
-                }
+                TextButton(onClick = {
+                    editing = Editing(pi, null, Stage.Span(LocalTime.of(8, 0), LocalTime.of(12, 0), doors.toSet()))
+                }) { Text(stringResource(R.string.plans_add_span)) }
                 TextButton(onClick = {
                     onChange(policy.copy(plans = policy.plans.filterIndexed { j, _ -> j != pi }))
                 }) { Text(stringResource(R.string.plans_remove), color = MaterialTheme.colorScheme.error) }
@@ -108,8 +126,19 @@ fun PlansPage(policy: Policy, onChange: (Policy) -> Unit) {
     }) { Text(stringResource(R.string.plans_add)) }
 
     editing?.let { e ->
-        StageDialog(e.initial, (doors + e.initial.doors).distinct(), onDismiss = { editing = null }) { stage ->
-            val plan = policy.plans[e.plan]
+        val plan = policy.plans[e.plan]
+        val span = e.stage?.takeIf { e.inSpan }?.let { plan.stages[it] as? Stage.Span }
+        // A budget of a span is offered the span's doors no other budget of it counts.
+        val offered = if (span == null) (doors + e.initial.doors).distinct() else {
+            val others = span.budgets.filterIndexed { j, _ -> j != e.budget }.flatMap { it.doors }
+            Door.entries.filter { it in span.doors && it !in others }
+        }
+        StageDialog(e.initial, offered, inSpan = span != null, onDismiss = { editing = null }) { edited ->
+            val stage = if (span == null) edited else {
+                val budget = edited as Stage.Budget
+                val at = e.budget
+                span.copy(budgets = if (at == null) span.budgets + budget else span.budgets.toMutableList().also { it[at] = budget })
+            }
             val stages = if (e.stage == null) plan.stages + stage else plan.stages.toMutableList().also { it[e.stage] = stage }
             withPlan(e.plan, plan.copy(stages = stages))
             editing = null
@@ -125,11 +154,12 @@ private fun Mini(sign: String, name: String, enabled: Boolean = true, onClick: (
 
 /**
  * One stage, a span or a budget as [initial] is: the span's times typed as
- * HH:MM and the doors open in it; the budget's doors, minutes and rest. Done
- * stays off until the stage is whole, and says why.
+ * HH:MM and the doors open in it, a door taken out of the span leaving its
+ * budgets; the budget's doors, minutes and rest, and with [inSpan] what they mean
+ * there. Done stays off until the stage is whole, and says why.
  */
 @Composable
-private fun StageDialog(initial: Stage, doors: List<Door>, onDismiss: () -> Unit, onDone: (Stage) -> Unit) {
+private fun StageDialog(initial: Stage, doors: List<Door>, inSpan: Boolean = false, onDismiss: () -> Unit, onDone: (Stage) -> Unit) {
     var chosen by remember { mutableStateOf(initial.doors) }
     var from by remember { mutableStateOf((initial as? Stage.Span)?.from?.let(PolicyText::time) ?: "") }
     var to by remember { mutableStateOf((initial as? Stage.Span)?.to?.let(PolicyText::time) ?: "") }
@@ -148,7 +178,12 @@ private fun StageDialog(initial: Stage, doors: List<Door>, onDismiss: () -> Unit
         when {
             f == null || t == null -> null to badTime
             f == t -> null to sameTime
-            else -> Stage.Span(f, t, chosen) to null
+            else -> {
+                val kept = (initial as? Stage.Span)?.budgets.orEmpty().mapNotNull { b ->
+                    (b.doors intersect chosen).takeIf { it.isNotEmpty() }?.let { b.copy(doors = it) }
+                }
+                Stage.Span(f, t, chosen, kept) to null
+            }
         }
     } else {
         val m = minutes.toIntOrNull()?.takeIf { it > 0 }
@@ -186,6 +221,7 @@ private fun StageDialog(initial: Stage, doors: List<Door>, onDismiss: () -> Unit
                         NumberField(stringResource(R.string.stage_rest_length), restMinutes, Modifier.fillMaxWidth()) { restMinutes = it }
                     }
                     RadioRow(stringResource(R.string.stage_rest_parent), rest == Rest.Parent) { rest = Rest.Parent }
+                    if (inSpan) Text(stringResource(R.string.stage_budget_in_span), style = MaterialTheme.typography.bodySmall)
                 }
                 if (why != null) Text(why, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }

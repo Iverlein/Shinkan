@@ -157,7 +157,7 @@ object PlanClock {
         if (use == null) return
         if (since == null) since = SystemClock.elapsedRealtime()
         // Flush at least every fifteen seconds, and just after the budget runs out.
-        val left = store.policy.budgetLeft(LocalDateTime.now(), current.value)
+        val left = store.policy.budgetLeft(LocalDateTime.now(), current.value, use)
         val delay = minOf(TICK_MS, left?.let { it * 1000 + 200 } ?: TICK_MS)
         handler.postDelayed(tick, delay.coerceAtLeast(200))
     }

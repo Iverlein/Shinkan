@@ -281,10 +281,19 @@ private fun PlanNow(policy: Policy, counted: PlanState, onOpenNow: () -> Unit) {
             StageLine(stage)
         }
     }
-    when {
-        state.restParent -> Text(stringResource(R.string.plan_rest_parent))
-        state.restEnd != null -> Text(stringResource(R.string.plan_rest_until, state.restEnd!!.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))))
-        else -> policy.budgetLeft(now, state)?.let { Text(stringResource(R.string.plan_left, (it + 59) / 60)) }
+    policy.budgets(now, state).forEach { b ->
+        val end = b.restEnd
+        val left = b.left
+        val words = when {
+            b.restParent -> stringResource(R.string.plan_rest_parent)
+            end != null -> stringResource(R.string.plan_rest_until, end.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
+            left != null -> stringResource(R.string.plan_left, (left + 59) / 60)
+            else -> return@forEach
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            DoorMarks(b.budget.doors)
+            Text(words)
+        }
     }
     if (state.resting) {
         Spacer(Modifier.height(8.dp))

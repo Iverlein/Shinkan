@@ -161,7 +161,7 @@
     <string name="form_open_body">The device keeps its launcher; the apps you name are closed, always or outside their windows.</string>
 
     <!-- Day plans (SPEC §4.7) -->
-    <string name="plans_intro">One plan per set of weekdays. Its stages run in order: a span of clock time with the doors open in it, or a budget of minutes of use with an optional rest after it.</string>
+    <string name="plans_intro">One plan per set of weekdays. Each span is clock time with the doors open in it. A door runs free to the span\'s end unless a budget inside the span counts its minutes.</string>
     <string name="plans_add">Add a plan</string>
     <string name="plans_remove">Remove this plan</string>
     <string name="plans_no_stage">A plan needs at least one stage.</string>
@@ -183,6 +183,7 @@
     <string name="stage_rest_parent">A rest until a parent opens</string>
     <string name="stage_rest_length">Minutes of rest</string>
     <string name="stage_closed">Doors closed</string>
+    <string name="stage_budget_in_span">After a rest the minutes start again, until the span ends. With no rest the doors stay closed until the span ends. Doors ticked together share the minutes.</string>
     <string name="minutes_short">%1$d min</string>
     <string name="stage_bad_time">A time is HH:MM, from 00:00 to 23:59.</string>
     <string name="stage_same_time">The span starts and ends at the same time.</string>
@@ -303,6 +304,7 @@
     <string name="problem_mode">mode is closed or open</string>
     <string name="problem_plan_days">plan takes the days</string>
     <string name="problem_day_repeated">%1$s is in an earlier plan</string>
+    <string name="problem_door_repeated">%1$s is named twice in this span</string>
     <string name="problem_close">close takes one package</string>
     <string name="problem_window">window takes package, days and hours</string>
     <string name="problem_permission_shape">permission takes a package, deny and what</string>

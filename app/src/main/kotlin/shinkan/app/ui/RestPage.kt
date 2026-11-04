@@ -42,7 +42,6 @@ import shinkan.app.plan.PlanClock
 import shinkan.core.PlanState
 import shinkan.core.Policy
 import shinkan.core.Rest
-import shinkan.core.Stage
 import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.math.cos
@@ -59,9 +58,10 @@ import kotlin.math.sin
 fun RestPage(policy: Policy, state: PlanState, onParent: () -> Unit) {
     val context = LocalContext.current
     var now by remember { mutableStateOf(LocalDateTime.now()) }
-    val end = state.restEnd
-    val minutes = state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage)
-        ?.let { (it as? Stage.Budget)?.rest as? Rest.Minutes }?.minutes
+    // Read once per state: carried to a later moment the rest would be gone before the page is told.
+    val rest = remember(policy, state) { policy.budgets(LocalDateTime.now(), state).firstOrNull { it.restEnd != null || it.restParent } }
+    val end = rest?.restEnd
+    val minutes = (rest?.budget?.rest as? Rest.Minutes)?.minutes
     LaunchedEffect(end) {
         while (end != null) {
             delay(1000)

@@ -40,11 +40,12 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import io.github.iverlein.shinkan.R
 import kotlinx.coroutines.delay
 import shinkan.app.admin.PolicyStore
+import shinkan.core.BudgetNow
 import shinkan.core.Door
 import shinkan.core.Mode
 import shinkan.core.PlanState
 import shinkan.core.Policy
-import shinkan.core.Stage
+import shinkan.core.Rest
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -57,8 +58,8 @@ import java.time.format.TextStyle
  * browser and the player, one above the other in portrait and side by side in
  * landscape; a door the plan has closed is greyed and says when it opens next.
  * An open door with a budget says what is left of it. During a rest the
- * doors of the spent budget are greyed with a small ensō in its current state
- * and the minutes left (§8.1, §8.7). Back does nothing here: there is nowhere
+ * doors of the spent budget, and only they, are greyed with a small ensō in
+ * its current state and the minutes left (§8.1, §8.7). Back does nothing here: there is nowhere
  * behind the home. A small *Parent* link leads to the door.
  */
 @Composable
@@ -86,8 +87,9 @@ fun HomePage(store: PolicyStore, counted: PlanState, onDoor: (Door) -> Unit, onP
         val doors: @Composable (Modifier) -> Unit = { m ->
             for (door in listOf(Door.BROWSER, Door.PLAYER)) {
                 val isOpen = door in open
-                val left = policy.budgetLeft(now, state)?.takeIf { isOpen && door in budgetDoors(policy, state) }
-                val rest = if (door in budgetDoors(policy, state)) restMark(policy, state, now) else null
+                val budget = policy.budgetOf(door, now, state)
+                val left = budget?.left?.takeIf { isOpen }
+                val rest = budget?.let { restMark(it, now) }
                 val note = when {
                     rest != null -> rest.minutes?.let { stringResource(R.string.home_resting, it) }
                         ?: stringResource(R.string.home_resting_parent)
@@ -163,20 +165,14 @@ private fun DoorButton(door: Door, open: Boolean, note: String?, rest: RestMark?
 /** A running rest as a door shows it: how much of the ring is drawn, and the minutes left (null: a parent's rest). */
 private class RestMark(val passed: Float, val minutes: Long?)
 
-/** The rest of the running budget at [now], or null when no rest runs. */
-private fun restMark(policy: Policy, state: PlanState, now: LocalDateTime): RestMark? {
-    if (!state.resting) return null
-    if (state.restParent) return RestMark(1f, null)
-    val end = state.restEnd ?: return null
-    val stage = state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage) as? Stage.Budget
-    val total = ((stage?.rest as? shinkan.core.Rest.Minutes)?.minutes ?: 1) * 60L
+/** The rest of [budget] at [now], or null when it does not rest. */
+private fun restMark(budget: BudgetNow, now: LocalDateTime): RestMark? {
+    if (budget.restParent) return RestMark(1f, null)
+    val end = budget.restEnd ?: return null
+    val total = ((budget.budget.rest as? Rest.Minutes)?.minutes ?: 1) * 60L
     val left = Duration.between(now, end).seconds.coerceAtLeast(0)
     return RestMark((1f - left.toFloat() / total).coerceIn(0f, 1f), (left + 59) / 60)
 }
-
-/** The doors the running budget counts, or none when no budget runs. */
-private fun budgetDoors(policy: Policy, state: PlanState): Set<Door> =
-    (state.day?.let { policy.planFor(it) }?.stages?.getOrNull(state.stage) as? Stage.Budget)?.doors.orEmpty()
 
 /** The drawn mark of a door: a globe for the browser, a screen with the play sign for the player, a phone for the open device. */
 fun doorMark(door: Door): Int = when (door) {

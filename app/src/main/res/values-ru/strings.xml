@@ -163,7 +163,7 @@
     <string name="form_open_body">Обычный главный экран остаётся; выбранные вами приложения закрыты всегда или вне своих окон.</string>
 
     <!-- Day plans (SPEC §4.7) -->
-    <string name="plans_intro">Один распорядок на набор дней недели. Его этапы идут по порядку: промежуток времени, когда открыты указанные двери, или лимит минут использования, после которого может идти отдых.</string>
+    <string name="plans_intro">Один распорядок на\u00A0набор дней недели. Каждый промежуток\u00A0— это время, когда открыты указанные двери. Дверь открыта до\u00A0конца промежутка, если внутри него для неё не\u00A0задан лимит минут.</string>
     <string name="plans_add">Добавить распорядок</string>
     <string name="plans_remove">Удалить распорядок</string>
     <string name="plans_no_stage">В\u00A0распорядке нужен хотя бы один этап.</string>
@@ -185,6 +185,7 @@
     <string name="stage_rest_parent">Отдых, пока не откроет родитель</string>
     <string name="stage_rest_length">Минут отдыха</string>
     <string name="stage_closed">Двери закрыты</string>
+    <string name="stage_budget_in_span">После отдыха минуты начинаются заново, пока не\u00A0кончится промежуток. Без отдыха двери закрыты до\u00A0конца промежутка. Отмеченные вместе двери делят минуты между собой.</string>
     <string name="minutes_short">%1$d\u00A0мин</string>
     <string name="stage_bad_time">Укажите время в\u00A0формате ЧЧ:ММ, от\u00A000:00 до\u00A023:59.</string>
     <string name="stage_same_time">Промежуток начинается и\u00A0заканчивается в\u00A0одно и\u00A0то же время.</string>
@@ -305,6 +306,7 @@
     <string name="problem_mode">после mode нужно closed или open</string>
     <string name="problem_plan_days">после plan нужны дни</string>
     <string name="problem_day_repeated">%1$s уже есть в\u00A0одном из\u00A0распорядков выше</string>
+    <string name="problem_door_repeated">%1$s указана в\u00A0этом промежутке дважды</string>
     <string name="problem_close">после close нужно одно имя пакета</string>
     <string name="problem_window">после window нужны пакет, дни и\u00A0часы</string>
     <string name="problem_permission_shape">после permission нужны пакет, deny и\u00A0разрешение</string>

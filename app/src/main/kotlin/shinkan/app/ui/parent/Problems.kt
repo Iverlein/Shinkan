@@ -41,6 +41,7 @@ fun Resources.problem(problem: TextProblem, detail: String): String = getString(
         TextProblem.UNKNOWN_DOOR -> R.string.problem_unknown_door
         TextProblem.UNKNOWN_DAY -> R.string.problem_unknown_day
         TextProblem.DAY_REPEATED -> R.string.problem_day_repeated
+        TextProblem.DOOR_REPEATED -> R.string.problem_door_repeated
     },
     detail,
 )

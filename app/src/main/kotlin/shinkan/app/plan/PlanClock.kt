@@ -120,7 +120,8 @@ object PlanClock {
         if (start != null && front != null) {
             val seconds = (SystemClock.elapsedRealtime() - start) / 1000
             if (seconds > 0) {
-                after = policy.count(now, before, front, seconds)
+                // From the state as stored when these seconds began, so those before a seam stay in their span.
+                after = policy.count(now, store.planState, front, seconds)
                 since = start + seconds * 1000
             }
         }

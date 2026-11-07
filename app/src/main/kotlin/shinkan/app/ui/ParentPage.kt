@@ -90,9 +90,10 @@ private enum class Section(val title: Int) {
  *
  * The sections edit a draft of the policy; *Apply now* checks it by its own text
  * ([PolicyText.problem], so the editor and a pasted text meet one parser), stores
- * it and applies the hold. A changed day plan starts the day afresh: the stored
- * plan state names a stage of the old plan. The theme is not part of the policy
- * and is pinned at once.
+ * it and applies the hold. A changed day plan takes over where the old one
+ * stood: the minutes used and a rest under way in the span of this moment are
+ * measured by the new budgets ([Policy.takeOver]). The theme is not part of the
+ * policy and is pinned at once.
  */
 @Composable
 fun ParentPage(
@@ -122,7 +123,12 @@ fun ParentPage(
             return false
         }
         val clean = PolicyText.parse(PolicyText.render(draft))
-        if (clean.plans != store.policy.plans) store.planState = PlanState()
+        if (clean.plans != store.policy.plans) {
+            // The use so far counted under the plan it was used under, then carried into the new one (SPEC §8.2).
+            PlanClock.flush(context)
+            val now = LocalDateTime.now()
+            store.planState = clean.takeOver(store.policy, now, store.planState)
+        }
         store.policy = clean
         stored = clean
         draft = clean

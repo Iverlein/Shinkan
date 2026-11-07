@@ -66,6 +66,10 @@
     <!-- The parent door (SPEC §8.2) -->
     <string name="parent_title">Родителям</string>
     <string name="parent_status_held">Shinkan управляет этим устройством.</string>
+    <!-- The battery on the parent door (SPEC §8.2). -->
+    <string name="battery_level">Батарея: %1$d\u00A0%%</string>
+    <string name="battery_charging">Батарея: %1$d\u00A0%%, заряжается</string>
+    <string name="battery_full">Батарея: %1$d\u00A0%%, заряжена</string>
     <string name="parent_mode_closed">Закрытое устройство: Shinkan\u00A0— это весь главный экран.</string>
     <string name="parent_mode_open">Открытое устройство: главный экран остаётся, выбранные приложения закрыты.</string>
     <string name="parent_back">Назад</string>

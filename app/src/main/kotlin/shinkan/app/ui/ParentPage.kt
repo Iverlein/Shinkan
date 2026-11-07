@@ -192,6 +192,9 @@ fun ParentPage(
         Text(stringResource(R.string.parent_title), style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(16.dp))
         Text(stringResource(R.string.parent_status_held))
+        Spacer(Modifier.height(4.dp))
+        BatteryLine()
+        Spacer(Modifier.height(4.dp))
         val form = if (stored.mode == Mode.CLOSED) R.string.parent_mode_closed else R.string.parent_mode_open
         Text(stringResource(form))
         Spacer(Modifier.height(16.dp))

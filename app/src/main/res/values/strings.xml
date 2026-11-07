@@ -351,7 +351,9 @@
     <string name="selfhold_open_developer">Open Developer options</string>
     <string name="selfhold_step_code">3. Keep the code on screen and type it into Shinkan\'s notification: pull the notifications down and reply.</string>
     <string name="selfhold_notify">Show the notification</string>
-    <string name="selfhold_step_here">Or put Shinkan and Settings side by side in split screen and type the code here.</string>
+    <string name="selfhold_step_here">Shinkan is beside Settings: the code can also be typed here.</string>
+    <string name="selfhold_notifications_off">Notifications from Shinkan are off, and the code is typed into one. Turn them on in Settings, then tap Show the notification again.</string>
+    <string name="selfhold_notification_settings">Notification settings</string>
     <string name="selfhold_code_label">Pairing code</string>
     <string name="selfhold_take">Take the hold</string>
     <string name="selfhold_working">Pairing and taking the hold…</string>

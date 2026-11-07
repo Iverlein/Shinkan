@@ -353,7 +353,9 @@
     <string name="selfhold_open_developer">Открыть «Для разработчиков»</string>
     <string name="selfhold_step_code">3. Оставьте код на экране и введите его в уведомлении Shinkan: потяните уведомления вниз и ответьте на него.</string>
     <string name="selfhold_notify">Показать уведомление</string>
-    <string name="selfhold_step_here">Или откройте Shinkan и настройки рядом, в режиме разделённого экрана, и введите код здесь.</string>
+    <string name="selfhold_step_here">Shinkan открыт рядом с\u00A0настройками: код можно ввести и\u00A0здесь.</string>
+    <string name="selfhold_notifications_off">Уведомления Shinkan выключены, а\u00A0код вводится в\u00A0уведомлении. Включите их в\u00A0настройках и\u00A0снова нажмите «Показать уведомление».</string>
+    <string name="selfhold_notification_settings">Настройки уведомлений</string>
     <string name="selfhold_code_label">Код подключения</string>
     <string name="selfhold_take">Включить защиту</string>
     <string name="selfhold_working">Подключение и включение защиты…</string>

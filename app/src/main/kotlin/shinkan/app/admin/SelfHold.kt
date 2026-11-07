@@ -71,7 +71,7 @@ object SelfHold {
 
     private const val TAG = "SelfHold"
     private const val KEY_NAME = "Shinkan"
-    private const val CHANNEL = "pairing"
+    const val CHANNEL = "pairing"
     private const val NOTICE = 7
     const val REPLY = "code"
 

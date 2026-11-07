@@ -341,4 +341,29 @@
     <string name="problem_unknown_category">unknown category</string>
     <string name="problem_pass">pass takes one domain</string>
     <string name="text_invalid">This text does not make a valid policy.</string>
+    <!-- The hold taken on the device itself, through Wireless debugging (SPEC §3.3). -->
+    <string name="setup_computer">With a computer</string>
+    <string name="selfhold_title">On this device, without a computer</string>
+    <string name="selfhold_body">Shinkan can make itself the device owner through Wireless debugging, on a device with no accounts added and connected to Wi-Fi. Then it switches Wireless debugging off, and the hold keeps it off.</string>
+    <string name="selfhold_step_developer">1. Turn on Developer options: in Settings, open About phone (or About tablet) and tap Build number seven times.</string>
+    <string name="selfhold_open_about">Open About phone</string>
+    <string name="selfhold_step_wireless">2. In Developer options turn on Wireless debugging, open it and tap Pair device with pairing code. Settings shows a six-digit code.</string>
+    <string name="selfhold_open_developer">Open Developer options</string>
+    <string name="selfhold_step_code">3. Keep the code on screen and type it into Shinkan\'s notification: pull the notifications down and reply.</string>
+    <string name="selfhold_notify">Show the notification</string>
+    <string name="selfhold_step_here">Or put Shinkan and Settings side by side in split screen and type the code here.</string>
+    <string name="selfhold_code_label">Pairing code</string>
+    <string name="selfhold_take">Take the hold</string>
+    <string name="selfhold_working">Pairing and taking the hold…</string>
+    <string name="selfhold_done">Shinkan holds this device</string>
+    <string name="selfhold_done_body">Open Shinkan to set the PIN.</string>
+    <string name="selfhold_channel">Taking the hold</string>
+    <string name="selfhold_notice">Type the pairing code</string>
+    <string name="selfhold_notice_body">The six digits Settings shows under Pair device with pairing code.</string>
+    <string name="selfhold_reply">Pair</string>
+    <string name="selfhold_no_pairing">No pairing found. Tap Pair device with pairing code in Wireless debugging and keep the code on screen.</string>
+    <string name="selfhold_wrong_code">The code was not accepted. Settings shows a new one each time: type the one on screen.</string>
+    <string name="selfhold_no_debugging">Paired, but Wireless debugging was not found. Check that it is on, then pair again.</string>
+    <string name="selfhold_refused">Android refused to make Shinkan the device owner. Most often an account is on the device: remove every account in Settings and try again. Android\'s answer:</string>
+    <string name="selfhold_broken">Taking the hold failed:</string>
 </resources>

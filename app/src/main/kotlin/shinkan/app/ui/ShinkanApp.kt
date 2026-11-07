@@ -130,6 +130,11 @@ fun ShinkanApp(
     // ...and as soon as Shinkan leaves the screen; the owner is read again on return.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { if (behindPin) page = Page.HOME }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { owner = hold.isOwner }
+    // The hold taken from the device itself (SPEC §3.3) lands while Shinkan may stay on screen.
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        val taken by shinkan.app.admin.SelfHold.stage.collectAsState()
+        LaunchedEffect(taken) { owner = hold.isOwner }
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { PlanClock.refresh(context) }
 
     Surface(
@@ -186,17 +191,4 @@ fun ShinkanApp(
             }
         }
     }
-}
-
-@Composable
-private fun SetupPage(command: String) = Column(Modifier.verticalScroll(rememberScrollState())) {
-    Text(stringResource(R.string.setup_title), style = MaterialTheme.typography.headlineSmall)
-    Spacer(Modifier.height(16.dp))
-    Text(stringResource(R.string.setup_body))
-    Spacer(Modifier.height(16.dp))
-    Text(command, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium)
-    Spacer(Modifier.height(16.dp))
-    Text(stringResource(R.string.setup_after))
-    Spacer(Modifier.height(16.dp))
-    Text(stringResource(R.string.setup_qr))
 }

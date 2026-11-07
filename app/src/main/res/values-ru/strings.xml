@@ -343,4 +343,29 @@
     <string name="problem_unknown_category">неизвестная категория</string>
     <string name="problem_pass">после pass нужен один домен</string>
     <string name="text_invalid">Из\u00A0этого текста нельзя составить правила.</string>
+    <!-- The hold taken on the device itself, through Wireless debugging (SPEC §3.3). -->
+    <string name="setup_computer">С компьютером</string>
+    <string name="selfhold_title">На этом устройстве, без компьютера</string>
+    <string name="selfhold_body">Shinkan может сам стать владельцем устройства через отладку по Wi-Fi, если на устройстве нет ни одного аккаунта и оно подключено к Wi-Fi. Потом он выключает отладку по Wi-Fi, а защита не даёт включить её снова.</string>
+    <string name="selfhold_step_developer">1. Включите режим разработчика: в\u00A0настройках откройте раздел «О\u00A0телефоне» (или «О\u00A0планшете») и\u00A0семь раз нажмите «Номер сборки».</string>
+    <string name="selfhold_open_about">Открыть «О\u00A0телефоне»</string>
+    <string name="selfhold_step_wireless">2. В разделе «Для разработчиков» включите «Отладку по Wi-Fi», откройте её и нажмите «Подключить устройство с помощью кода». Появится код из\u00A0шести цифр.</string>
+    <string name="selfhold_open_developer">Открыть «Для разработчиков»</string>
+    <string name="selfhold_step_code">3. Оставьте код на экране и введите его в уведомлении Shinkan: потяните уведомления вниз и ответьте на него.</string>
+    <string name="selfhold_notify">Показать уведомление</string>
+    <string name="selfhold_step_here">Или откройте Shinkan и настройки рядом, в режиме разделённого экрана, и введите код здесь.</string>
+    <string name="selfhold_code_label">Код подключения</string>
+    <string name="selfhold_take">Включить защиту</string>
+    <string name="selfhold_working">Подключение и включение защиты…</string>
+    <string name="selfhold_done">Shinkan управляет этим устройством</string>
+    <string name="selfhold_done_body">Откройте Shinkan и задайте PIN-код.</string>
+    <string name="selfhold_channel">Включение защиты</string>
+    <string name="selfhold_notice">Введите код подключения</string>
+    <string name="selfhold_notice_body">Шесть цифр, которые настройки показывают под «Подключить устройство с помощью кода».</string>
+    <string name="selfhold_reply">Подключить</string>
+    <string name="selfhold_no_pairing">Подключение не найдено. Нажмите «Подключить устройство с помощью кода» в отладке по Wi-Fi и оставьте код на экране.</string>
+    <string name="selfhold_wrong_code">Код не подошёл. Настройки каждый раз показывают новый: введите тот, что на экране.</string>
+    <string name="selfhold_no_debugging">Подключено, но отладка по Wi-Fi не найдена. Проверьте, что она включена, и подключитесь снова.</string>
+    <string name="selfhold_refused">Android не сделал Shinkan владельцем устройства. Чаще всего на устройстве есть аккаунт: удалите все аккаунты в настройках и попробуйте снова. Ответ Android:</string>
+    <string name="selfhold_broken">Не удалось включить защиту:</string>
 </resources>

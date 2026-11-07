@@ -158,6 +158,16 @@
             </intent-filter>
         </activity>
 
+        <!-- The pairing code typed into the notification of SPEC §3.3, worked through in the foreground. -->
+        <service
+            android:name="shinkan.app.admin.PairingService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Device setup: pairs with this device's own Wireless debugging to make the app its device owner, started by the user's reply to its notification" />
+        </service>
+
         <!-- Applies the policy again after a reboot and at the next window edge (SPEC §4.2). -->
         <receiver
             android:name="shinkan.app.admin.ReapplyReceiver"

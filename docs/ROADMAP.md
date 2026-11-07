@@ -1081,11 +1081,38 @@ is used up.*, the phone and Settings left, lock task `NONE`, and at the span's
 end, 16:19, every app resumed with no tap. On the closed device `browser player
 1` greyed YouTube alone, *Budget used up*, *Opens Thu 12:10 AM*.
 
+**The seam and the edit**, the owner, 2026-11-07: a span passing into the
+next must be seamless for the child, and a change of a span on the parent door
+must act on the app's state at once. Found on `shinkan-test` before the fix:
+the seam itself broke nothing visible (a video played through, an apply took
+some 50 ms), but up to 15 s of the old span's use went into the new span's
+budget, and the next span started whole, a rest cut; and every applied plan
+edit wiped the plan state, so 79 s used of a budget lowered to 1 minute gave
+the child a fresh minute. Settled with the owner: use carries across a seam
+between spans that meet, measured by the new span's budget, and an applied edit
+carries the same way (SPEC §4.7, §8.2). `Policy.resolve` walks a stored state
+through each seam (`carry`), `Policy.takeOver` carries it into an edited plan,
+and `Policy.count` splits the seconds at the plan's edges; `PlanClock.flush`
+counts from the state as stored.
+
+Checked on `shinkan-test` the same day: 79 s used, the budget lowered from 30 to
+1 and applied, the door read *Resting until 10:32* and the home *10 min of
+rest*. On the closed device about 90 s of YouTube in `5 rest 5`, at the seam
+into `1 rest 2`, the door gave way to the home with a rest to 10:29, two
+minutes from the seam. On the open device a rest of `device 1 rest 3` begun
+10:28:31 held its page across the 10:30 seam into `device 1 rest 5`, its end
+moved to 10:33:31, lock task `LOCKED`.
+
 ## Open
 
 Nothing waits for the owner.
 
 ## Decided
+
+- 2026-11-07: spans that meet carry their use across the seam, measured by the
+  next span's budgets; a gap or a new plan day starts whole. A plan edit
+  applied on the door carries the state the same way instead of starting the
+  day afresh; the draft and *Apply now* stay (SPEC §4.7, §8.2).
 
 - 2026-11-04: on the open device the hours no span opens stay free: after a
   plan's last span and on a day with no plan the apps are usable and nothing is

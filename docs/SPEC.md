@@ -305,9 +305,18 @@ browser stays open while the player rests. A rest lasts the minutes given on
 the wall clock, screen on or off, or until a parent opens the door and taps
 *Open* (`rest parent`). When it ends the budget fills again, so the span goes
 in rounds, an hour on and half an hour off, until it ends. A budget with no
-rest is spent once: its doors stay closed to the span's end. The span's end
-ends everything in it, a rest included, and the next span starts with its own
-budgets whole; minutes never pass from one span to another. Outside every span
+rest is spent once: its doors stay closed to the span's end. A span that
+starts where the one before it ends (or earlier, taking over) carries on from
+it, so the child meets no seam: each of its budgets takes the use of the
+budgets before it that counted the same doors, and measures it by its own
+minutes and rest. Minutes used stay used; short of the new budget the doors
+are open with what is left of it; at or past it the budget is spent, and a
+rest under way runs on with the new rest's length counted from its own start
+(ending at once if that is already past, which fills the budget), or else the
+new rest begins at the seam. A door that ran free starts its new budget whole,
+a door free in the new span runs free, and a door the new span does not open
+closes. Use counted across a seam goes to the span of each second. After a
+gap between spans the next one starts with its budgets whole. Outside every span
 nothing is open until the next one starts: on the closed device the doors are
 greyed; on the open device, whose plan speaks of a budget and not of a curfew,
 the apps stay usable and nothing is pinned. A plan belongs to the day its first
@@ -350,7 +359,8 @@ spent of each of its budgets and their rests' ends, in device-protected
 storage so a reboot neither resets nor extends them; the clock is protected by
 `no_config_date_time`. `Policy.openAt` gives what is open now and
 `Policy.nextChange` the next edge, by clock or by a budget's remainder;
-`Policy.count` adds use to the budget that counts the door, `Policy.budgets`
+`Policy.count` adds use to the budget that counts the door, split at the
+plan's edges, `Policy.takeOver` carries the state into an edited plan (§8.2), `Policy.budgets`
 is how each of them stands, `Policy.openNow` is the parent's *Open now*, which
 ends every rest running and fills their budgets, `Policy.nextOpening` is what
 a greyed door says.
@@ -779,8 +789,13 @@ budgets under its hours, each with what is left of it or when its rest ends.
 The sections edit a draft. *Apply now* checks it by its own text (it must
 render and parse back, `PolicyText.problem`, so the editor and a pasted
 text meet one parser), stores it and applies the hold; a changed day plan
-starts the day afresh, since the stored plan state names a span of the
-old one. Leaving the door with a draft not applied asks whether to apply
+takes effect at once on where the day stands: the use counted so far, the
+minutes used and a rest under way in the span of this moment are measured by
+the new budgets as at a seam (§4.7, `Policy.takeOver`), so a budget lowered
+below what was used starts its rest, one raised during a rest opens its doors
+with what is left, and a shortened rest ends at its start plus the new length.
+A span moved off the present moment, or a budget no longer counting the doors
+it counted, starts whole. Leaving the door with a draft not applied asks whether to apply
 it, drop it or keep editing; the door closing by itself drops it. Closes to the home by itself after two
 minutes without a touch, and as soon as Shinkan leaves the screen, so a
 door left open is never found open by the child.

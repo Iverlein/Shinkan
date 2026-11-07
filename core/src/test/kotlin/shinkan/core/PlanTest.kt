@@ -220,13 +220,84 @@ class PlanTest {
         assertEquals(at(2, "14:30"), start)
     }
 
-    @Test fun `the span's end ends its rest, and the next span starts fresh`() {
+    @Test fun `a rest running into the next span is measured by that span's budget`() {
         val s = use(rounds, at(2, "17:50"), rounds.resolve(at(2, "17:50"), PlanState()), Door.PLAYER, 60)
         assertEquals(at(2, "19:20"), rounds.budgetOf(Door.PLAYER, at(2, "18:50"), s)?.restEnd)
         assertEquals(browser, rounds.openAt(at(2, "18:59"), s))
-        assertEquals(both, rounds.openAt(at(2, "19:00"), s))
-        assertFalse(rounds.resolve(at(2, "19:00"), s).resting)
-        assertEquals(PlanState(monday, 2), rounds.resolve(at(2, "19:00"), s))
+        // Sixty minutes used are past the evening's shared 45, which has no rest: both doors stay shut.
+        assertEquals(emptySet<Door>(), rounds.openAt(at(2, "19:00"), s))
+        assertEquals(true, rounds.budgetOf(Door.BROWSER, at(2, "19:00"), s)?.depleted)
+        assertEquals(at(2, "21:00"), rounds.nextChange(at(2, "19:00"), rounds.resolve(at(2, "19:00"), s)))
+    }
+
+    // Two spans that meet, as the owner gave them for the seam (2026-11-07).
+    private val seam = PolicyText.parse("plan mon\n  10:00-14:00 player 60 rest 30\n  14:00-19:00 player 45 rest 15\n  19:00-20:00 player")
+
+    @Test fun `minutes used run on across a seam`() {
+        val s = use(seam, at(2, "13:20"), seam.resolve(at(2, "13:20"), PlanState()), Door.PLAYER, 40)
+        assertEquals(5 * 60L, seam.budgetLeft(at(2, "14:00"), s, Door.PLAYER))
+        assertEquals(player, seam.openAt(at(2, "14:00"), s))
+    }
+
+    @Test fun `minutes used past the next span's budget start its rest at the seam`() {
+        val s = use(seam, at(2, "13:09"), seam.resolve(at(2, "13:09"), PlanState()), Door.PLAYER, 50)
+        assertEquals(player, seam.openAt(at(2, "13:59"), s))
+        assertEquals(emptySet<Door>(), seam.openAt(at(2, "14:00"), s))
+        assertEquals(at(2, "14:15"), seam.budgetOf(Door.PLAYER, at(2, "14:00"), s)?.restEnd)
+        assertEquals(at(2, "14:15"), seam.nextOpening(Door.PLAYER, at(2, "14:00"), s))
+    }
+
+    @Test fun `a rest under way runs on with the next span's length from its start`() {
+        // Spent at 13:50: the morning's rest would end 14:20, the afternoon's 15 minutes end it at 14:05.
+        val s = use(seam, at(2, "12:50"), seam.resolve(at(2, "12:50"), PlanState()), Door.PLAYER, 60)
+        assertEquals(at(2, "14:20"), seam.budgetOf(Door.PLAYER, at(2, "13:59"), s)?.restEnd)
+        assertEquals(at(2, "14:05"), seam.budgetOf(Door.PLAYER, at(2, "14:00"), s)?.restEnd)
+        assertEquals(player, seam.openAt(at(2, "14:05"), s))
+        assertEquals(45 * 60L, seam.budgetLeft(at(2, "14:05"), s, Door.PLAYER))
+    }
+
+    @Test fun `a rest the next span's length has already ended fills its budget at the seam`() {
+        val s = use(seam, at(2, "12:40"), seam.resolve(at(2, "12:40"), PlanState()), Door.PLAYER, 60)
+        assertTrue(seam.resolve(at(2, "13:59"), s).resting)
+        assertEquals(player, seam.openAt(at(2, "14:00"), s))
+        assertEquals(45 * 60L, seam.budgetLeft(at(2, "14:00"), s, Door.PLAYER))
+    }
+
+    @Test fun `a door free in the next span runs free, and a seam carries through several spans`() {
+        val s = use(seam, at(2, "18:00"), seam.resolve(at(2, "18:00"), PlanState()), Door.PLAYER, 45)
+        assertEquals(emptySet<Door>(), seam.openAt(at(2, "18:59"), s))
+        assertEquals(player, seam.openAt(at(2, "19:00"), s))
+        // A state last stored at 13:30 is walked through both seams.
+        val early = use(seam, at(2, "13:00"), seam.resolve(at(2, "13:00"), PlanState()), Door.PLAYER, 30)
+        assertEquals(PlanState(monday, 2), seam.resolve(at(2, "19:30"), early))
+        assertEquals(15 * 60L, seam.budgetLeft(at(2, "14:30"), early, Door.PLAYER))
+    }
+
+    @Test fun `a budget used up with no rest opens with what is left of a larger one`() {
+        val p = PolicyText.parse("plan mon\n  10:00-14:00 player 30\n  14:00-19:00 player 60")
+        val s = use(p, at(2, "13:00"), p.resolve(at(2, "13:00"), PlanState()), Door.PLAYER, 30)
+        assertEquals(emptySet<Door>(), p.openAt(at(2, "13:59"), s))
+        assertEquals(player, p.openAt(at(2, "14:00"), s))
+        assertEquals(30 * 60L, p.budgetLeft(at(2, "14:00"), s, Door.PLAYER))
+    }
+
+    @Test fun `use counted across a seam goes to the span of each second`() {
+        val p = PolicyText.parse("plan mon\n  10:00-14:00 player\n  14:00-19:00 player 45")
+        val before = p.resolve(at(2, "13:59:50"), PlanState())
+        val s = p.count(at(2, "14:00:05"), before, Door.PLAYER, 15)
+        assertEquals(45 * 60L - 5, p.budgetLeft(at(2, "14:00:05"), s, Door.PLAYER))
+    }
+
+    @Test fun `use counted across a span's end into a gap stays with that span`() {
+        val p = PolicyText.parse("plan mon\n  10:00-14:00 player 30\n  15:00-19:00 player 30")
+        val s = p.count(at(2, "14:00:10"), p.resolve(at(2, "13:59:50"), PlanState()), Door.PLAYER, 20)
+        assertEquals(30 * 60L, p.budgetLeft(at(2, "15:00"), s, Door.PLAYER))
+    }
+
+    @Test fun `a gap between spans starts the next one whole`() {
+        val p = PolicyText.parse("plan mon\n  10:00-14:00 player 30\n  14:01-19:00 player 30")
+        val s = use(p, at(2, "13:00"), p.resolve(at(2, "13:00"), PlanState()), Door.PLAYER, 30)
+        assertEquals(30 * 60L, p.budgetLeft(at(2, "14:01"), s, Door.PLAYER))
     }
 
     @Test fun `doors joined by a comma share their minutes`() {
@@ -300,6 +371,53 @@ class PlanTest {
         val other = PlanState(monday, 0, mapOf(0 to Use(100)))
         assertEquals(PlanState(monday, 1), rounds.resolve(at(2, "11:00"), other))
         assertEquals(PlanState(monday.plusDays(7), 1), rounds.resolve(at(9, "11:00"), PlanState(monday, 1, mapOf(0 to Use(100)))))
+    }
+
+    // A parent's edit applied in a span under way (SPEC §8.2), the owner's word of 2026-11-07.
+    private val day = PolicyText.parse("plan mon\n  09:00-13:00 browser player 30 rest 10")
+    private fun edited(line: String) = PolicyText.parse("plan mon\n  $line")
+
+    @Test fun `a budget lowered below the minutes used starts its rest at once`() {
+        val s = use(day, at(2, "10:00"), day.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 20)
+        val p = edited("09:00-13:00 browser player 15 rest 10")
+        val taken = p.takeOver(day, at(2, "10:20"), s)
+        assertEquals(browser, p.openAt(at(2, "10:20"), taken))
+        assertEquals(at(2, "10:30"), p.budgetOf(Door.PLAYER, at(2, "10:20"), taken)?.restEnd)
+    }
+
+    @Test fun `a budget raised during its rest opens with what is left`() {
+        val s = use(day, at(2, "10:00"), day.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 30)
+        assertTrue(day.resolve(at(2, "10:31"), s).resting)
+        val p = edited("09:00-13:00 browser player 45 rest 10")
+        val taken = p.takeOver(day, at(2, "10:31"), s)
+        assertEquals(both, p.openAt(at(2, "10:31"), taken))
+        assertEquals(15 * 60L, p.budgetLeft(at(2, "10:31"), taken, Door.PLAYER))
+    }
+
+    @Test fun `a rest shortened ends at its start plus the new length`() {
+        val s = use(day, at(2, "10:00"), day.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 30)
+        val p = edited("09:00-13:00 browser player 30 rest 5")
+        assertEquals(at(2, "10:35"), p.budgetOf(Door.PLAYER, at(2, "10:32"), p.takeOver(day, at(2, "10:32"), s))?.restEnd)
+        assertEquals(both, p.openAt(at(2, "10:36"), p.takeOver(day, at(2, "10:36"), s)))
+    }
+
+    @Test fun `an edit elsewhere keeps the use and the rest as they stand`() {
+        val s = use(day, at(2, "10:00"), day.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 30)
+        val p = PolicyText.parse("plan mon\n  09:00-13:00 browser player 30 rest 10\n  18:00-19:00 browser")
+        val taken = p.takeOver(day, at(2, "10:33"), s)
+        assertEquals(day.resolve(at(2, "10:33"), s), taken)
+        val running = use(day, at(2, "11:00"), day.resolve(at(2, "11:00"), PlanState()), Door.PLAYER, 12)
+        assertEquals(18 * 60L, p.budgetLeft(at(2, "11:12"), p.takeOver(day, at(2, "11:12"), running), Door.PLAYER))
+    }
+
+    @Test fun `a span moved off the present moment, or a door taken out of a budget, starts afresh`() {
+        val s = use(day, at(2, "10:00"), day.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 20)
+        val later = edited("11:00-13:00 browser player 30 rest 10")
+        assertEquals(PlanState(monday, 0), later.takeOver(day, at(2, "10:20"), s))
+        val other = edited("09:00-13:00 browser 30 rest 10 player")
+        val taken = other.takeOver(day, at(2, "10:20"), s)
+        assertEquals(30 * 60L, other.budgetLeft(at(2, "10:20"), taken, Door.BROWSER))
+        assertNull(other.budgetLeft(at(2, "10:20"), taken, Door.PLAYER))
     }
 
     @Test fun `the stored state reads back as it was`() {

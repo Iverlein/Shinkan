@@ -1,6 +1,7 @@
 package shinkan.core
 
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -50,8 +51,10 @@ data class Policy(
      * [state] carried to [now] by the clock alone (SPEC §4.7): the plan day that
      * holds [now], the span under way or else the next one, a later span taking
      * over at its start, and of the running span's budgets what still holds: a
-     * rest past its end fills its budget again, and a day or a span left behind
-     * takes all of it along. Use is never counted here; that is [count].
+     * rest past its end fills its budget again. A span that starts where the one
+     * before it ends, or earlier, takes over that one's use at the seam ([carry]);
+     * a gap between spans, or a new plan day, leaves all of it behind. Use is
+     * never counted here; that is [count].
      */
     fun resolve(now: LocalDateTime, state: PlanState): PlanState {
         val day = currentDay(now) ?: return PlanState()
@@ -60,16 +63,63 @@ data class Policy(
         val started = times.indexOfLast { it.first <= now }
         val running = started >= 0 && now < times[started].second
         val at = if (running) started else started + 1
-        if (!running || state.day != day || state.span != at) return PlanState(day, at)
-        return PlanState(day, at, settle(plan.spans[at], state.uses, now))
+        if (!running || state.day != day || state.span > at) return PlanState(day, at)
+        var span = state.span
+        var uses = state.uses
+        while (span < at) {
+            val seam = times[span + 1].first
+            // Use runs on only from a span still under way at the next one's start.
+            if (uses.isEmpty() || seam > times[span].second) return PlanState(day, at)
+            uses = carry(plan.spans[span], settle(plan.spans[span], uses, seam), plan.spans[span + 1], seam)
+            span++
+        }
+        return PlanState(day, at, settle(plan.spans[at], uses, now))
     }
 
     /**
-     * [seconds] of use of [door] counted at [now] (SPEC §4.7): added to the budget
-     * of the running span that counts the door. A budget used up ends at the
-     * moment it ran out, in its rest, or else its doors stay shut to the span's end.
+     * This policy put in place of [old] at [now], with what [state] holds under
+     * [old] carried over (SPEC §8.2): the budgets of the span now under way take
+     * the use of the old span's budgets that counted the same doors, measured by
+     * the new minutes and rests ([carry]). A span that no longer holds [now], or
+     * another plan day, starts afresh.
+     */
+    fun takeOver(old: Policy, now: LocalDateTime, state: PlanState): PlanState {
+        val fresh = resolve(now, PlanState())
+        val before = old.resolve(now, state)
+        if (before.day == null || before.day != fresh.day) return fresh
+        val from = old.spanAt(now, before) ?: return fresh
+        val to = spanAt(now, fresh) ?: return fresh
+        return fresh.copy(uses = carry(from, before.uses, to, now))
+    }
+
+    /**
+     * [seconds] of use of [door] up to [now], [state] being as it stood when they
+     * began (SPEC §4.7): added to the budget of the span that counts the door, the
+     * seconds before an edge of the plan to the span of that moment, so none
+     * passes from one span into the next. A budget used up ends at the moment it
+     * ran out, in its rest, or else its doors stay shut to the span's end.
      */
     fun count(now: LocalDateTime, state: PlanState, door: Door, seconds: Long): PlanState {
+        if (seconds <= 0 || plans.isEmpty()) return resolve(now, state)
+        var t = now.minusSeconds(seconds)
+        // A state of a later span than the seconds' start cannot be walked back: all of them go to now.
+        val start = resolve(t, state)
+        if (start.day == state.day && start.span < state.span) return countIn(now, state, door, seconds)
+        var s = state
+        var left = seconds
+        while (true) {
+            val edge = nextChange(t, s, withBudget = false)?.takeIf { it < now } ?: return countIn(now, s, door, left)
+            val part = Duration.between(t, edge).seconds.coerceIn(0, left)
+            // The seconds up to an edge belong to the moment before it: at the edge itself the next span holds.
+            if (part > 0) s = countIn(edge.minusNanos(1), s, door, part)
+            left -= part
+            s = resolve(edge, s)
+            t = edge
+        }
+    }
+
+    /** [seconds] of use of [door] ending at [now], all of them in the span of [now]. */
+    private fun countIn(now: LocalDateTime, state: PlanState, door: Door, seconds: Long): PlanState {
         val s = resolve(now, state)
         val span = spanAt(now, s) ?: return s
         val i = span.budgets.indexOfFirst { door in it.doors }
@@ -221,6 +271,48 @@ data class Policy(
         val midnight = day.plusDays(1).atStartOfDay()
         val last = planFor(day)?.spanTimes(day)?.maxOfOrNull { it.second } ?: return midnight
         return maxOf(midnight, last)
+    }
+
+    /**
+     * The use of [from]'s budgets as [to]'s, at [at] (SPEC §4.7, §8.2): each budget
+     * of [to] takes the use of the budgets of [from] that counted any of its doors,
+     * the most restrictive of them when there are several. Minutes used stay used:
+     * short of the new budget, its doors are open with the rest of it; at or past
+     * it, the budget is spent, and a rest under way runs on with the new rest's
+     * length from its own start, or else the new rest starts at [at]. A door free
+     * in [from] starts its budget whole; a door free in [to] runs free.
+     */
+    private fun carry(from: Span, uses: Map<Int, Use>, to: Span, at: LocalDateTime): Map<Int, Use> {
+        val carried = buildMap {
+            to.budgets.forEachIndexed { j, budget ->
+                val taken = from.budgets.mapIndexedNotNull { i, old ->
+                    val use = uses[i] ?: return@mapIndexedNotNull null
+                    if (old.doors.none { it in budget.doors }) null else carried(use, old, budget, at)
+                }
+                taken.maxWithOrNull(compareBy<Use>({ it.restParent }, { it.restEnd ?: LocalDateTime.MIN }, { it.spent }))
+                    ?.let { put(j, it) }
+            }
+        }
+        return settle(to, carried, at)
+    }
+
+    /** One budget's [use] under [old] as it stands under [new] at [at]; null when nothing of it is left. */
+    private fun carried(use: Use, old: Budget, new: Budget, at: LocalDateTime): Use? {
+        if (use.spent < new.seconds) return Use(use.spent).takeIf { it.spent > 0 }
+        // Spent by the new minutes and not resting yet: settle starts the new rest at [at].
+        if (!use.resting) return Use(use.spent)
+        return when (val rest = new.rest) {
+            null -> Use(new.seconds)
+            Rest.Parent -> Use(new.seconds, restParent = true)
+            is Rest.Minutes -> {
+                val oldEnd = use.restEnd
+                val oldMinutes = (old.rest as? Rest.Minutes)?.minutes
+                val start = if (oldEnd != null && oldMinutes != null) oldEnd.minusMinutes(oldMinutes.toLong()) else at
+                val end = start.plusMinutes(rest.minutes.toLong())
+                // A rest the new length has already ended fills the budget.
+                if (end <= at) null else Use(new.seconds, end)
+            }
+        }
     }
 
     /** The span under way at [now] in [s], which is resolved: null before it starts and between spans. */

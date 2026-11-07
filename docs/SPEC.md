@@ -98,7 +98,42 @@ code to the hold is run on the stand of `tools/emulator/stand.py`; Google's
 wizard itself is on no emulator image, so the six taps and its camera are
 unrun: see ROADMAP block 9.
 
-### 3.3 What a device owner is not
+### 3.3 On the device itself
+
+From Android 11 the setup page takes the hold with no computer, through the
+device's own Wireless debugging, the way §3.1 does it from a computer: the
+same `dpm set-device-owner`, run as the shell. The parent turns on Developer
+options and Wireless debugging and opens *Pair device with pairing code*;
+Settings shows a six-digit code and keeps the pairing open while the code is
+on screen. The parent types the code into Shinkan's notification, which
+takes a reply, or into the setup page beside Settings in split screen
+(`SelfHold`). The reply starts `PairingService`, a foreground service for
+the few seconds the work takes: started from the notification it runs while
+Settings stays on screen, where a broadcast would be cut at ten seconds.
+
+Shinkan then pairs as adb's own client does (`core/adb/`): a TLS 1.3
+connection to the pairing port, SPAKE2 over edwards25519 as BoringSSL has it,
+the code bound to the session by 64 bytes exported from it (`adb-label`), and
+its RSA-2048 key sent sealed with AES-128-GCM; the device lists it as
+*Shinkan* under *Paired devices*. It connects to the debugging port with a
+certificate of that key (CNXN, STLS, TLS), opens `shell:` and runs the
+command; when `isDeviceOwnerApp` reads true it turns Wireless debugging off
+(`adb_wifi_enabled 0`) and deletes its key. Then the setup goes on as in §8.3.
+
+Every connection is to 127.0.0.1; nothing leaves the device. adbd announces
+its two ports by mDNS, but from Android 17 the system's service discovery
+gives an app nothing without `ACCESS_LOCAL_NETWORK` (found on the emulator,
+2026-11-07: the results never came, AppOps named that operation), and an app
+can read neither `/proc/net/tcp` nor `service.adb.tls.port`. So
+`LoopbackPorts` finds the ports open on the loopback, every port from 1024
+up, in eight slices of non-blocking connects (some five seconds on the
+emulator). The pairing is tried on each in turn: another service fails at
+TLS or at the first packet, a wrong code ends the search and is told as one
+(Settings keeps the same code, so the next reply may be right). adbd's own
+port is the one that answers CNXN with STLS. A device with an account is
+refused as in §3.1, and the page shows `dpm`'s answer.
+
+### 3.4 What a device owner is not
 
 A device owner is not root. It cannot read other apps' data, cannot decrypt
 their traffic, cannot stop the recovery-mode wipe of a device without factory
@@ -390,8 +425,12 @@ with a silent notice.
 The app asks for seven permissions, all granted at install without a
 prompt, and no other: `INTERNET` for the tunnel's forwarding,
 `ACCESS_NETWORK_STATE` to find the underlying network's resolver (§5.3),
-`FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE` for the filter,
-`POST_NOTIFICATIONS` for its notice, `RECEIVE_BOOT_COMPLETED` to apply the
+`FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE` for the filter and
+for the pairing of §3.3,
+`POST_NOTIFICATIONS` for its notice and for the pairing code's notification
+of §3.3 (before the hold, from Android 13, the system asks for it once, when
+the parent taps *Show the notification*; without it the code is typed on the
+page), `RECEIVE_BOOT_COMPLETED` to apply the
 hold at boot (§4.2), `QUERY_ALL_PACKAGES` to see the packages it suspends.
 Beside them the APK declares androidx's own
 `<package>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, a signature
@@ -759,7 +798,10 @@ small *Parent* link leads to §8.2.
 
 ### 8.2 Parent door
 
-PIN entry, then: the hold's status; the form (§4.1); the policy as a list
+PIN entry, then: the hold's status; the battery, a drawn cell filled to its
+level with the percent and whether it charges, vermilion at 15 % and under
+with no power in (`Battery`, from the sticky `ACTION_BATTERY_CHANGED`, live
+while the door is open); the form (§4.1); the policy as a list
 (the doors' windows and ceilings on the closed device, the closed apps with
 their windows and the device ceiling on the open device, restrictions); the
 block list (sites, creators, the built-in categories of §6.5, the segment
@@ -802,8 +844,10 @@ door left open is never found open by the child.
 
 ### 8.3 Setup
 
-Shown while Shinkan is not device owner: the adb command of §3.1, what
-follows, and the QR way of §3.2. Once held, the first opening asks for the PIN to be set and for the
+Shown while Shinkan is not device owner: from Android 11 the steps of §3.3
+first, with buttons to Settings' *About* and *Developer options*, the code
+field and *Take the hold*; then, under *With a computer*, the adb command
+of §3.1, what follows, and the QR way of §3.2. Once held, the first opening asks for the PIN to be set and for the
 form: the closed device needs nothing more; the open device lists every
 launchable package, none closed.
 
@@ -945,6 +989,11 @@ uninstalled. Release asks for the PIN once more.
   and the release cuts adb (§4.3).
 - **Suspended apps' widgets and shortcuts** still show; their taps open the
   suspension dialog.
+- **The hold taken on the device itself** (§3.3) needs Android 11, Wi-Fi
+  (Wireless debugging is off without it) and Developer options, and leaves
+  *Shinkan* under *Paired devices* with a key that no longer exists. The
+  release build's `no_debugging_features` closes Developer options with the
+  hold; the beta keeps them.
 - **Emergency calls** are never blocked; the phone app is the OEM's. During
   a rest of the open device the phone app is out of reach as every app is,
   and a call can be placed only from the lock screen's emergency button, on

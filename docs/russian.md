@@ -32,6 +32,9 @@ in Shinkan what Settings calls the same thing.
 | player, segment | плеер, фрагмент | |
 | private DNS | персональный DNS-сервер | частный DNS |
 | USB debugging | отладка по USB | |
+| Wireless debugging | отладка по Wi-Fi | беспроводная отладка |
+| pairing code | код подключения | код сопряжения |
+| Developer options | «Для разработчиков» | |
 | hash | хеш | хэш |
 
 ## Address

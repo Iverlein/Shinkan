@@ -74,6 +74,8 @@ order. Numbers are identifiers and do not change when the order does.
 | 11d | The tunnel: the per-app pass for the player over TCP | nothing to build while Shinkan is outside its tunnel (see 11a–11d) |
 | 12 | IPv6 in the tunnel | done 2026-11-04 |
 | 13 | A plan of spans, with budgets inside them | done 2026-11-04 |
+| 14 | The battery on the parent door | done 2026-11-07 |
+| 15 | The hold taken on the device itself, through Wireless debugging | done 2026-11-07 on the emulator; a real device unrun |
 | A1 | Lock task features tuned on real devices: notifications, power dialog, keyguard [§4.1] | |
 | A2 | The icon drawn: the crest by default; the gate, the drawn gate and the seal 関 chosen on the parent door [§8.5] | done 2026-11-01 |
 | A3 | Translations: Russian, written here by `docs/russian.md` | done 2026-11-04: the whole interface, the parser's errors, the listing and the README, checked by `tools/check_strings.py` and on the emulator. No Weblate (owner, 2026-11-04) |
@@ -1102,6 +1104,47 @@ into `1 rest 2`, the door gave way to the home with a rest to 10:29, two
 minutes from the seam. On the open device a rest of `device 1 rest 3` begun
 10:28:31 held its page across the 10:30 seam into `device 1 rest 5`, its end
 moved to 10:33:31, lock task `LOCKED`.
+
+### 14. The battery on the parent door [§8.2]
+
+**Builds.** `core/Battery`: the system's level and scale as a percent, the
+power (battery, charging, full) and *low* at 15 % and under with no power in.
+`ui/BatteryLine`: a drawn cell filled to the level, a bolt while charging,
+vermilion when low, under the hold's status; read from the sticky
+`ACTION_BATTERY_CHANGED` and live while the door is open.
+
+**Proved, 2026-11-07.** `BatteryTest`; on the emulator with `dumpsys battery`:
+87 %, 12 % in vermilion, 40 % charging with the bolt, 9 % in Russian.
+
+### 15. The hold taken on the device itself [§3.3, §8.3]
+
+**Builds.** `core/adb/`: `Spake2` over `Ed25519` as BoringSSL does it (M and
+N generated from their seeds, the password scalar raised to a multiple of
+eight), `Pairing` (packets, HKDF, AES-128-GCM, peer info), `AdbKey` (adb's
+key struct, a self-signed certificate), `AdbClient` (CNXN, STLS, `shell:`).
+`admin/SelfHold`, `LoopbackPorts`, `PairingService`; `ui/SetupPage` with the
+steps first.
+
+**Proved, 2026-11-07, on `shinkan-test`.** `Spake2Test` (RFC 8032's public
+key, BoringSSL's M and N, one key for one password), `PairingTest` (both
+sides over pipes, right and wrong code, the key struct, the certificate, a
+shell command through STLS). On the emulator, as a parent would: Wireless
+debugging allowed on the network, *Show the notification* with the system's
+prompt, the pairing dialog, the code typed into the notification's reply:
+paired on the first try against the real adbd, `dpm` answered
+`Success: Device owner set`, `dpm list-owners` read it, Wireless debugging
+off, the key file gone, the notification said so; the PIN then applied the
+hold as before. In Russian, a wrong code was told as one and nothing held,
+and the next reply with the code still on screen took the hold.
+
+**What the emulator found.** mDNS discovery gives an app targeting API 37
+nothing without `ACCESS_LOCAL_NETWORK`; the loopback search replaced it.
+Leaving Settings closes the pairing dialog, pulling the notifications down
+does not. A broadcast receiver for the reply was killed by an ANR at ten
+seconds while the search ran; the reply starts a foreground service.
+
+**Not proved.** A real device, and an OEM's Settings (Samsung's pairing
+dialog, its own ports). Split screen was not driven.
 
 ## Open
 

@@ -35,7 +35,7 @@ Shinkan is made the **device owner** once, on a freshly set-up device, by one
   the child sees a ring closing until it ends, or until a parent opens the
   device;
 - the parent opens the settings with a PIN that exists only on the device,
-  and can release the device at any time.
+  sees the battery there, and can release the device at any time.
 
 Shinkan speaks English and Russian. The launcher icon is the parent's choice on the same page: the crest (the
 gate in a ring, the default), the gate, the drawn gate or the seal 関.
@@ -48,8 +48,14 @@ download. Nothing about the child leaves the device. The specification is
 
 ## Taking a device
 
-On a device just after setup, before any account is added, with USB debugging
-on:
+On a device just after setup, before any account is added. From Android 11
+Shinkan takes the device by itself, with no computer: turn on Developer
+options and Wireless debugging, tap *Pair device with pairing code*, and type
+the code into Shinkan's notification. Shinkan pairs with the device's own
+debugging on the loopback, makes itself the device owner and switches
+Wireless debugging off again.
+
+With a computer and USB debugging on:
 
 ```
 adb shell dpm set-device-owner io.github.iverlein.shinkan/shinkan.app.admin.ShinkanAdmin

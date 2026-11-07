@@ -105,9 +105,12 @@ device's own Wireless debugging, the way §3.1 does it from a computer: the
 same `dpm set-device-owner`, run as the shell. The parent turns on Developer
 options and Wireless debugging and opens *Pair device with pairing code*;
 Settings shows a six-digit code and keeps the pairing open while the code is
-on screen. The parent types the code into Shinkan's notification, which
-takes a reply, or into the setup page beside Settings in split screen
-(`SelfHold`). The reply starts `PairingService`, a foreground service for
+on screen, and closes it as soon as Settings leaves the screen; pulling the
+notifications down does not. So the parent types the code into Shinkan's
+notification, which takes a reply, with no split screen needed (`SelfHold`).
+The setup page shows a code field of its own only while Shinkan shares the
+screen (split screen, a free window), when Settings can stay beside it; at
+full screen the field would only invite the parent to leave Settings. The reply starts `PairingService`, a foreground service for
 the few seconds the work takes: started from the notification it runs while
 Settings stays on screen, where a broadcast would be cut at ten seconds.
 
@@ -428,9 +431,11 @@ prompt, and no other: `INTERNET` for the tunnel's forwarding,
 `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE` for the filter and
 for the pairing of §3.3,
 `POST_NOTIFICATIONS` for its notice and for the pairing code's notification
-of §3.3 (before the hold, from Android 13, the system asks for it once, when
-the parent taps *Show the notification*; without it the code is typed on the
-page), `RECEIVE_BOOT_COMPLETED` to apply the
+of §3.3 (before the hold, from Android 13, the system asks for it when the
+parent taps *Show the notification*, and stops asking after a second
+refusal; while Shinkan's notifications or its pairing channel are off, the
+page says that the code is typed into one and opens Shinkan's notification
+settings), `RECEIVE_BOOT_COMPLETED` to apply the
 hold at boot (§4.2), `QUERY_ALL_PACKAGES` to see the packages it suspends.
 Beside them the APK declares androidx's own
 `<package>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, a signature
@@ -845,8 +850,9 @@ door left open is never found open by the child.
 ### 8.3 Setup
 
 Shown while Shinkan is not device owner: from Android 11 the steps of §3.3
-first, with buttons to Settings' *About* and *Developer options*, the code
-field and *Take the hold*; then, under *With a computer*, the adb command
+first, with buttons to Settings' *About* and *Developer options* and *Show
+the notification*; the code field and *Take the hold* only while Shinkan
+shares the screen; then, under *With a computer*, the adb command
 of §3.1, what follows, and the QR way of §3.2. Once held, the first opening asks for the PIN to be set and for the
 form: the closed device needs nothing more; the open device lists every
 launchable package, none closed.

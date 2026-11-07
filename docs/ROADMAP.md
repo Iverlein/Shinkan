@@ -1143,8 +1143,20 @@ Leaving Settings closes the pairing dialog, pulling the notifications down
 does not. A broadcast receiver for the reply was killed by an ANR at ten
 seconds while the search ran; the reply starts a foreground service.
 
+**Changed the same day, at the owner's word that not every device has split
+screen.** The notification is the way; the page's own code field shows only
+while Shinkan shares the screen (`addOnMultiWindowModeChangedListener`). With
+notifications refused, or switched off for the app or its pairing channel,
+*Show the notification* says so and offers *Notification settings*. Proved
+on `shinkan-test`: no field at full screen; two refusals, the system's prompt
+gone on the third tap and the page's notice shown; notifications turned on
+from its button, the notice gone on return and the notification posted;
+split screen entered by Meta+Ctrl+Left beside the phone app showed the field,
+and dragging the divider away took it off at once.
+
 **Not proved.** A real device, and an OEM's Settings (Samsung's pairing
-dialog, its own ports). Split screen was not driven.
+dialog, its own ports). A pairing typed into the page in split screen beside
+Settings itself.
 
 ## Open
 

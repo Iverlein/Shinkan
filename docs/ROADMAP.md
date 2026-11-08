@@ -327,7 +327,15 @@ emulator, 2026-11-02: the speaker's music stream (15 steps) at 5 came down
 to 3 as the player stub opened, three presses up kept 3, one down gave 2;
 on the home the system's volume dialog took the keys. `cmd media_session
 volume --set` sets the "default" device, not the speaker: read the
-speaker's index in `dumpsys audio`.
+speaker's index in `dumpsys audio`. Found afterwards: the panel a press
+shows has a slider that set the stream to any index, past the keys.
+`DoorVolume` now also registers, while the door is in front, a receiver of
+`VOLUME_CHANGED_ACTION` that pulls the stream back to the ceiling
+(`DeviceVolume.clamp` with the door's percent). Checked on the emulator,
+2026-11-08, `volume player 20` on the held closed device: the slider dragged
+to the top, systemui set 4 to 15 one by one and Shinkan set each back to 3
+within some 10 ms (`dumpsys audio`'s `setStreamVolume` events); the
+receiver is gone once the door closes.
 
 ### 3e. The parent's editor [§8.2, §4.4]
 

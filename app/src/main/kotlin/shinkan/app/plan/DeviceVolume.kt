@@ -16,7 +16,7 @@ import shinkan.core.Volume
  */
 class DeviceVolume : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.getIntExtra(EXTRA_STREAM, -1) == AudioManager.STREAM_MUSIC) clamp(context)
+        if (isMusic(intent)) clamp(context)
     }
 
     companion object {
@@ -25,12 +25,18 @@ class DeviceVolume : BroadcastReceiver() {
 
         val filter = IntentFilter(CHANGED)
 
-        /** Brings the media stream down to the ceiling, when there is one and it is above. */
-        fun clamp(context: Context) {
-            val ceiling = PolicyStore(context).policy.deviceCeiling ?: return
+        /** Whether a [CHANGED] broadcast is about the media stream. */
+        fun isMusic(intent: Intent): Boolean = intent.getIntExtra(EXTRA_STREAM, -1) == AudioManager.STREAM_MUSIC
+
+        /** Brings the media stream down to the device's ceiling, when there is one and it is above. */
+        fun clamp(context: Context) = clamp(context, PolicyStore(context).policy.deviceCeiling)
+
+        /** Brings the media stream down to a ceiling of [percent], when there is one and it is above. */
+        fun clamp(context: Context, percent: Int?) {
+            percent ?: return
             val audio = context.getSystemService(AudioManager::class.java)
             val current = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
-            val allowed = Volume.opening(current, audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC), ceiling)
+            val allowed = Volume.opening(current, audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC), percent)
             if (allowed != current) audio.setStreamVolume(AudioManager.STREAM_MUSIC, allowed, 0)
         }
     }

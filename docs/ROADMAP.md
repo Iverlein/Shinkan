@@ -335,7 +335,14 @@ shows has a slider that set the stream to any index, past the keys.
 2026-11-08, `volume player 20` on the held closed device: the slider dragged
 to the top, systemui set 4 to 15 one by one and Shinkan set each back to 3
 within some 10 ms (`dumpsys audio`'s `setStreamVolume` events); the
-receiver is gone once the door closes.
+receiver is gone once the door closes. Then, so that no step above the
+ceiling is heard at all, the keys stopped asking for the system's panel:
+the door draws its own bar (`ui/VolumeBar`, fed by `DoorVolume.shown`,
+1.5 s after the last press, full at the ceiling), and the clamp stays for
+the rest. Checked the same day on the emulator: one press down showed 2 of
+3, two up a full bar with the stream at 3, no system panel in the window
+list, the bar gone after 1.5 s; on the home a press still brought the
+system's panel.
 
 ### 3e. The parent's editor [§8.2, §4.4]
 

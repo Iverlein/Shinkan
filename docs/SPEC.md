@@ -309,10 +309,12 @@ ahead of any view of the door's, `AudioManager.setStreamVolume` on
 `STREAM_MUSIC`, one step a press, never above the ceiling, which is the
 share of `getStreamMaxVolume` rounded down: `Volume` in `core/`) and sets
 the stream to the ceiling when a door opens above it. A press shows the
-system's volume panel, whose slider sets the stream past the keys; so while
-a door with a ceiling is in front Shinkan also listens for
-`AudioManager.VOLUME_CHANGED_ACTION` and sets the stream back to the
-ceiling, the clamp of the open device below, for that door alone. On the
+door's own volume bar for a moment and not the system's volume panel, whose
+slider would pass the ceiling (no `FLAG_SHOW_UI`); the bar is full at the
+door's ceiling. Every other change while a door with a ceiling is in front
+(a headset's buttons) is caught by the clamp of the open device below, for
+that door alone: Shinkan listens for `AudioManager.VOLUME_CHANGED_ACTION`
+and sets the stream back to the ceiling. On the
 home and the other pages the keys are the system's; in lock task
 mode the status bar's slider is not reachable. On the open device no
 platform policy tells Shinkan which app is in front (usage access cannot be
@@ -981,8 +983,8 @@ uninstalled. Release asks for the PIN once more.
   clamp: a sound may be loud for a moment before it is pulled down, and an
   app that sets the volume itself is pulled down again each time. Per-app
   ceilings exist only for the two doors of the closed device (§4.6); there
-  the keys never pass the ceiling, but the volume panel's slider is pulled
-  back by the same clamp, a step above it heard for some milliseconds.
+  the keys never pass the ceiling, and what else changes the volume (a
+  headset's buttons) is pulled back by the same clamp.
 - **Segments** are community data: one nobody marked is played.
 - **A budget counts screen-on time**, not attention: a page left open
   counts, and on the open device a span cannot tell one app from another

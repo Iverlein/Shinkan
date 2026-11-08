@@ -99,9 +99,10 @@ class MainActivity : ComponentActivity() {
 
     /**
      * The volume keys while a door is in front (SPEC §4.6): Shinkan sets the media
-     * stream itself, one step a press, never above the door's ceiling. Taken in
-     * dispatchKeyEvent, ahead of any view of the door's (a WebView, a player), and
-     * left to the system on every other page.
+     * stream itself, one step a press, never above the door's ceiling, and shows the
+     * door's own bar instead of the system's panel, whose slider would pass the
+     * ceiling. Taken in dispatchKeyEvent, ahead of any view of the door's (a
+     * WebView, a player), and left to the system on every other page.
      */
     // Lint takes the override's calls to super for calls into androidx's restricted API; they are Activity's own.
     @android.annotation.SuppressLint("RestrictedApi")
@@ -114,7 +115,8 @@ class MainActivity : ComponentActivity() {
             val audio = getSystemService(AudioManager::class.java)
             val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             val next = Volume.step(audio.getStreamVolume(AudioManager.STREAM_MUSIC), max, ceiling, up)
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, next, AudioManager.FLAG_SHOW_UI)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
+            shinkan.app.ui.DoorVolume.show(next, Volume.ceiling(ceiling, max))
         }
         return true
     }

@@ -2,6 +2,8 @@ package shinkan.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -56,9 +58,12 @@ fun DoorPage(door: Door, onClose: () -> Unit, onPause: () -> Unit = {}) {
         }
         return
     }
-    when (door) {
-        Door.BROWSER -> BrowserPage(onClose)
-        else -> PlayerPage(onClose)
+    Box(Modifier.fillMaxSize()) {
+        when (door) {
+            Door.BROWSER -> BrowserPage(onClose)
+            else -> PlayerPage(onClose)
+        }
+        VolumeBar(Modifier.align(Alignment.CenterEnd).padding(end = 16.dp))
     }
 }
 

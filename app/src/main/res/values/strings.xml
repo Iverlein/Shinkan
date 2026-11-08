@@ -57,6 +57,7 @@
     <string name="player_no_stream">This video has no stream the player can play.</string>
     <string name="door_close">Close</string>
     <string name="door_unlock">Unlock</string>
+    <string name="door_volume">Volume %1$d of %2$d</string>
     <string name="door_locked">This door opens once a parent has unlocked the device after it was turned on.</string>
     <string name="home_resting">%1$d min of rest</string>
     <string name="home_resting_parent">Rest until a parent opens</string>

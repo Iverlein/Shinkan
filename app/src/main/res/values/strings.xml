@@ -30,6 +30,7 @@
     <string name="plan_rest_until">Resting until %1$s</string>
     <string name="plan_rest_parent">Resting until a parent opens.</string>
     <string name="plan_open_now">Open now</string>
+    <string name="plan_reset">Reset the counters</string>
 
     <!-- The doors (SPEC §8.1) -->
     <string name="door_browser">Browser</string>

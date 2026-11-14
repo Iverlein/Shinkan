@@ -33,6 +33,7 @@
     <string name="plan_rest_until">Отдых до\u00A0%1$s</string>
     <string name="plan_rest_parent">Отдых, пока не откроет родитель.</string>
     <string name="plan_open_now">Открыть сейчас</string>
+    <string name="plan_reset">Сбросить счётчики</string>
 
     <!-- The doors (SPEC §8.1) -->
     <string name="door_browser">Браузер</string>

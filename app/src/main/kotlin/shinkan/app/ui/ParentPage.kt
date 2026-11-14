@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -85,7 +86,7 @@ private enum class Section(val title: Int) {
 }
 
 /**
- * The parent door (SPEC §8.2): the hold's status, the day plan now, the policy's
+ * The parent door (SPEC §8.2): the hold's status, the day plan now with its counters, the policy's
  * sections, *Apply now*, the icon, *Release this device*.
  *
  * The sections edit a draft of the policy; *Apply now* checks it by its own text
@@ -198,13 +199,24 @@ fun ParentPage(
         val form = if (stored.mode == Mode.CLOSED) R.string.parent_mode_closed else R.string.parent_mode_open
         Text(stringResource(form))
         Spacer(Modifier.height(16.dp))
-        PlanNow(stored, counted) {
-            // *Open now* (SPEC §8.2): the rest ends, the next stage begins, the hold follows.
-            val now = LocalDateTime.now()
-            store.planState = store.policy.openNow(now, store.policy.resolve(now, store.planState))
-            hold.apply(now)
-            PlanClock.refresh(context)
-        }
+        PlanNow(
+            stored, counted,
+            onOpenNow = {
+                // *Open now* (SPEC §8.2): the rest ends, the next stage begins, the hold follows.
+                val now = LocalDateTime.now()
+                store.planState = store.policy.openNow(now, store.policy.resolve(now, store.planState))
+                hold.apply(now)
+                PlanClock.refresh(context)
+            },
+            onReset = {
+                // *Reset the counters* (SPEC §8.2): the seconds under way counted first, so they go with the rest.
+                PlanClock.flush(context)
+                val now = LocalDateTime.now()
+                store.planState = store.policy.resetUse(now, store.planState)
+                hold.apply(now)
+                PlanClock.refresh(context)
+            },
+        )
         Spacer(Modifier.height(24.dp))
         Text(stringResource(R.string.edit_title), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(4.dp))
@@ -276,9 +288,12 @@ private fun summary(section: Section, policy: Policy, theme: ThemePin): String =
     Section.TEXT -> stringResource(R.string.summary_text)
 }
 
-/** The day plan's current span, what is left of its budgets, and *Open now* during a rest (SPEC §8.2, §4.7). */
+/**
+ * The day plan's current span, what is left of its budgets, *Open now* during a rest and
+ * *Reset the counters* once anything of the span is counted (SPEC §8.2, §4.7).
+ */
 @Composable
-private fun PlanNow(policy: Policy, counted: PlanState, onOpenNow: () -> Unit) {
+private fun PlanNow(policy: Policy, counted: PlanState, onOpenNow: () -> Unit, onReset: () -> Unit) {
     val now = LocalDateTime.now()
     val state = policy.resolve(now, counted)
     val span = state.day?.let { policy.planFor(it) }?.spans?.getOrNull(state.span)
@@ -304,9 +319,13 @@ private fun PlanNow(policy: Policy, counted: PlanState, onOpenNow: () -> Unit) {
             Text(words)
         }
     }
-    if (state.resting) {
+    if (state.uses.isNotEmpty()) {
         Spacer(Modifier.height(8.dp))
-        Button(onClick = onOpenNow) { Text(stringResource(R.string.plan_open_now)) }
+        // A row that wraps: the two buttons in Russian are wider than a phone.
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (state.resting) Button(onClick = onOpenNow) { Text(stringResource(R.string.plan_open_now)) }
+            OutlinedButton(onClick = onReset) { Text(stringResource(R.string.plan_reset)) }
+        }
     }
 }
 

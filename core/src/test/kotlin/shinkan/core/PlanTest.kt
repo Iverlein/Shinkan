@@ -339,6 +339,34 @@ class PlanTest {
         assertEquals(110 * 60L, p.budgetLeft(at(2, "11:15"), opened, Door.BROWSER))
     }
 
+    @Test fun `a reset fills every budget of the span, a rest and a budget used up included`() {
+        val p = PolicyText.parse("plan mon\n  10:00-19:00 browser 120 player 60 rest 30")
+        var s = use(p, at(2, "10:00"), p.resolve(at(2, "10:00"), PlanState()), Door.BROWSER, 10)
+        s = use(p, at(2, "10:10"), s, Door.PLAYER, 60)
+        assertTrue(s.resting)
+        val reset = p.resetUse(at(2, "11:15"), s)
+        assertEquals(PlanState(monday, 0), reset)
+        assertEquals(both, p.openAt(at(2, "11:15"), reset))
+        assertEquals(120 * 60L, p.budgetLeft(at(2, "11:15"), reset, Door.BROWSER))
+        assertEquals(60 * 60L, p.budgetLeft(at(2, "11:15"), reset, Door.PLAYER))
+
+        val once = PolicyText.parse("plan mon\n  10:00-19:00 browser player 60")
+        val used = use(once, at(2, "10:00"), once.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 60)
+        assertEquals(browser, once.openAt(at(2, "12:00"), used))
+        assertEquals(both, once.openAt(at(2, "12:00"), once.resetUse(at(2, "12:00"), used)))
+    }
+
+    @Test fun `a reset touches the span under way alone`() {
+        val p = PolicyText.parse("plan mon\n  10:00-12:00 player 30 rest parent\n  12:00-14:00 player 60 rest 30")
+        val s = use(p, at(2, "10:00"), p.resolve(at(2, "10:00"), PlanState()), Door.PLAYER, 20)
+        // Past the seam the use stands in the second span, and that span's count is what is cleared.
+        assertEquals(PlanState(monday, 1), p.resetUse(at(2, "12:30"), s))
+        // Between spans and outside the plan there is nothing to clear.
+        val gap = PolicyText.parse("plan mon\n  10:00-11:00 player 30\n  12:00-14:00 player 60")
+        assertEquals(PlanState(monday, 1), gap.resetUse(at(2, "11:30"), PlanState(monday, 0, mapOf(0 to Use(600)))))
+        assertEquals(PlanState(), gap.resetUse(at(3, "11:30"), PlanState(monday, 0, mapOf(0 to Use(600)))))
+    }
+
     @Test fun `next change in a span takes the nearest budget's end`() {
         val p = PolicyText.parse("plan mon\n  10:00-19:00 browser 120 player 60 rest 30")
         var s = p.resolve(at(2, "10:00"), PlanState())

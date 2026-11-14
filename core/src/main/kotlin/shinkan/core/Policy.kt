@@ -139,6 +139,13 @@ data class Policy(
         return s.copy(uses = s.uses.filterValues { !it.resting })
     }
 
+    /**
+     * The parent's *Reset the counters* (SPEC §8.2): every budget of the span
+     * under way whole again, whatever was used of it: a rest under way ends, and
+     * a budget used up with no rest opens its doors.
+     */
+    fun resetUse(now: LocalDateTime, state: PlanState): PlanState = resolve(now, state).copy(uses = emptyMap())
+
     /** The budgets of the span under way at [now], each as it stands (SPEC §4.7). */
     fun budgets(now: LocalDateTime, state: PlanState): List<BudgetNow> {
         if (plans.isEmpty()) return emptyList()

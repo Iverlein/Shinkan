@@ -533,7 +533,8 @@ def cmd_store(device: Device, args):
         os.unlink(local)
     device.adb("shell", f"run-as {PACKAGE} sh -c 'mkdir -p {PREFS.rsplit('/', 1)[0]} && cat /data/local/tmp/shinkan-prefs.xml > {PREFS}'")
     device.adb("shell", "rm", "/data/local/tmp/shinkan-prefs.xml")
-    pid = device.sh(f"pidof {PACKAGE}").strip()
+    # pidof fails when the app is not running, as on the open device once it is left.
+    pid = device.adb("shell", f"pidof {PACKAGE}", check=False).decode(errors="replace").strip()
     if pid:
         device.adb("shell", "run-as", PACKAGE, "kill", pid.split()[0])
     time.sleep(3 * SETTLE)

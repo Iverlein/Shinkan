@@ -406,8 +406,9 @@ storage so a reboot neither resets nor extends them; the clock is protected by
 `Policy.count` adds use to the budget that counts the door, split at the
 plan's edges, `Policy.takeOver` carries the state into an edited plan (§8.2), `Policy.budgets`
 is how each of them stands, `Policy.openNow` is the parent's *Open now*, which
-ends every rest running and fills their budgets, `Policy.nextOpening` is what
-a greyed door says.
+ends every rest running and fills their budgets, `Policy.resetUse` is the
+parent's *Reset the counters* (§8.2), which makes every budget of the span
+under way whole, `Policy.nextOpening` is what a greyed door says.
 
 The edges of a plan day, as `Policy` decides them: a plan day starts at
 midnight, or when the day before's span across midnight ends, and ends at
@@ -817,8 +818,18 @@ while the door is open); the form (§4.1); the policy as a list
 their windows and the device ceiling on the open device, restrictions); the
 block list (sites, creators, the built-in categories of §6.5, the segment
 categories of §7.5); the day plan with its current span, what is left of
-it and *Open now* during a rest (§4.7); the icon (§8.5); the theme (§8.6);
-*Apply now*; *Release this device*.
+it, *Open now* during a rest and *Reset the counters* (§4.7); the icon (§8.5);
+the theme (§8.6); *Apply now*; *Release this device*.
+
+*Reset the counters* stands under the current span once anything of it is
+counted: a minute used, a rest under way, a budget used up. It clears the count
+of the span under way and nothing else: every budget of the span is whole
+again, a rest ends, a budget used up with no rest opens its doors, and the hold
+follows at once (the doors open, the open device's apps resumed, the rest page
+unpinned). The seconds in use at the tap are counted first and cleared with the
+rest. The plan itself is not changed, and the next span starts as it would
+have. *Open now* is narrower: it ends the rests and fills their budgets alone,
+leaving what is used of the others.
 
 The policy is edited in sections, each a page: the form (two choices); the
 day plans (a card per plan with its weekdays as chips, a weekday of another

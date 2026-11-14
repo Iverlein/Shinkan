@@ -1179,6 +1179,17 @@ Nothing waits for the owner.
 
 ## Decided
 
+- 2026-11-14: *Reset the counters* on the parent door, at the owner's word:
+  the count of the span under way cleared, every budget whole, a rest ended, a
+  budget used up open again; the plan untouched (SPEC §8.2, `Policy.resetUse`).
+  Shown once anything of the span is counted, beside *Open now* during a rest.
+  Proved by `PlanTest` and on `shinkan-test`: on the closed device a rest to
+  10:40 and 110 of 120 minutes became 60 and 120 minutes left, both doors open
+  on the home; on the open device `device 60` used up, 18 packages suspended,
+  none after the tap; a rest of `device 60 rest 30` pinned (`LOCKED`) gave lock
+  task `NONE`, in Russian, the two buttons in one row at phone width. The
+  stored state read `span=0` with no budget after each.
+
 - 2026-11-07: spans that meet carry their use across the seam, measured by the
   next span's budgets; a gap or a new plan day starts whole. A plan edit
   applied on the door carries the state the same way instead of starting the

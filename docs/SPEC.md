@@ -839,7 +839,10 @@ offered to one budget of the span at most and taken out of its budget when the
 span no longer opens it; times typed as `HH:MM`); the closed apps (every launchable package
 by name, a check to close it, its windows added and removed); the volume
 ceilings (a switch and a slider in steps of five per door); the
-restrictions (a switch each, and two warnings: one while a way out of the
+restrictions (*All restrictions* first, a switch on while any of them is in
+force with how many are, which lifts every one, `restrict none`, and sets every
+one of §4.3 when turned on; then a switch each; *Back to the default set*; and
+two warnings: one while a way out of the
 hold is open, `factory_reset`, `safe_boot`, `add_user` or
 `debugging_features` lifted, one while a way around the filter is open,
 `config_vpn` or `config_private_dns` lifted); the theme; and the policy as

@@ -1179,6 +1179,15 @@ Nothing waits for the owner.
 
 ## Decided
 
+- 2026-11-19: *All restrictions* on the restrictions page, at the owner's word:
+  one switch over the list, on while any restriction is in force, with the count;
+  off lifts every one (`restrict none`), on sets all thirteen of SPEC §4.3. The
+  switch each and *Back to the default set* stay (SPEC §8.2). Checked on
+  `shinkan-test`: from the default set (10 in the device policy, the debug build
+  keeping adb) the switch off and *Apply now* left none in `dumpsys user`, on
+  again and applied gave 12, `no_usb_file_transfer` and `no_config_credentials`
+  among them; both warnings shown while off.
+
 - 2026-11-14: *Reset the counters* on the parent door, at the owner's word:
   the count of the span under way cleared, every budget whole, a rest ended, a
   budget used up open again; the plan untouched (SPEC §8.2, `Policy.resetUse`).

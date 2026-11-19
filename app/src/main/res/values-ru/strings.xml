@@ -230,6 +230,7 @@
 
     <!-- Restrictions (SPEC §4.3) -->
     <string name="restrictions_intro">Что нельзя делать на самом устройстве. Набор по умолчанию сохраняет защиту и\u00A0фильтр; передача файлов по USB и\u00A0учётные данные по умолчанию открыты, их закрывают для более строгих правил.</string>
+    <string name="restrictions_all">Все ограничения</string>
     <string name="restrictions_default">Вернуть набор по умолчанию</string>
     <string name="restrictions_warn_hold">Открыт выход из-под защиты: ребёнок может стереть устройство, загрузить его без Shinkan, добавить пользователя без защиты или управлять устройством с\u00A0компьютера.</string>
     <string name="restrictions_warn_filter">Открыт обход фильтра: ребёнок может настроить другой VPN или персональный DNS-сервер.</string>

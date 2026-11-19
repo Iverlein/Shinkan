@@ -228,6 +228,7 @@
 
     <!-- Restrictions (SPEC §4.3) -->
     <string name="restrictions_intro">What the device itself may not do. The default set keeps the hold and the filter; USB file transfer and credentials stay open by default and are for stricter homes.</string>
+    <string name="restrictions_all">All restrictions</string>
     <string name="restrictions_default">Back to the default set</string>
     <string name="restrictions_warn_hold">A way out of the hold is open: the child could wipe the device, boot it without Shinkan, add an unheld user or use a computer as a shell.</string>
     <string name="restrictions_warn_filter">A way around the filter is open: the child could set up another VPN or a private DNS server.</string>

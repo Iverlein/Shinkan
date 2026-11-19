@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -101,7 +102,9 @@ fun VolumesPage(policy: Policy, onChange: (Policy) -> Unit) {
 }
 
 /**
- * The restrictions (SPEC §4.3), each a switch, with the two warnings: a way out
+ * The restrictions (SPEC §4.3): one switch for all of them, on while any is in
+ * force (off lifts every one, on sets every one), then a switch each, with the
+ * two warnings: a way out
  * of the hold open (factory reset, safe boot, a new user, USB debugging) and a
  * way around the filter open (another VPN, a private DNS server).
  */
@@ -112,6 +115,26 @@ fun RestrictionsPage(policy: Policy, onChange: (Policy) -> Unit) {
     Spacer(Modifier.height(12.dp))
     if (!set.containsAll(HOLD)) Warning(stringResource(R.string.restrictions_warn_hold))
     if (!set.containsAll(FILTER)) Warning(stringResource(R.string.restrictions_warn_filter))
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .toggleable(set.isNotEmpty(), role = Role.Switch) { on ->
+                onChange(policy.copy(restrictions = if (on) Restriction.entries.toSet() else emptySet()))
+            }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.restrictions_all), style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(R.string.summary_restrictions_count, set.size, Restriction.entries.size),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(checked = set.isNotEmpty(), onCheckedChange = null)
+    }
+    HorizontalDivider(Modifier.padding(vertical = 6.dp))
     Restriction.entries.forEach { r ->
         Row(
             Modifier
